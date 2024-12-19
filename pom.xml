@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>io.telicent.smart-caches.storage</groupId>
+    <artifactId>parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>Telicent Smart Caches - Storage - Parent</name>
+    <parent>
+        <groupId>io.telicent.smart-caches</groupId>
+        <artifactId>parent</artifactId>
+        <version>0.25.1</version>
+    </parent>
+    <description>Libraries to simplify using common storage layers across Smart Caches</description>
+
+    <modules>
+        <module>hibernate</module>
+    </modules>
+
+    <distributionManagement>
+        <repository>
+            <id>aws-codeartifact-telicent</id>
+            <name>Telicent Maven Packages on AWS CodeArtifact</name>
+            <url>https://telicent-098669589541.d.codeartifact.eu-west-2.amazonaws.com/maven/telicent-code-artifacts/
+            </url>
+        </repository>
+        <snapshotRepository>
+            <id>aws-codeartifact-telicent</id>
+            <name>Telicent Maven Packages on AWS CodeArtifact</name>
+            <url>https://telicent-098669589541.d.codeartifact.eu-west-2.amazonaws.com/maven/telicent-code-artifacts/
+            </url>
+        </snapshotRepository>
+    </distributionManagement>
+
+    <scm>
+        <connection>scm:git:https://github.com/telicent-io/smart-cache-storage</connection>
+        <developerConnection>scm:git:ssh://git@github.com/telicent-io/smart-cache-storage</developerConnection>
+        <url>https://github.com/telicent-io/smart-cache-storage</url>
+        <tag>HEAD</tag>
+    </scm>
+
+    <properties>
+        <!-- License Plugin Configuration -->
+        <!--
+        Note that all submodules need to declare this appropriately as well so that the plugin can correctly find
+        the header.txt file in this top directory even when run on a submodule -->
+        <license.header.path>${project.basedir}</license.header.path>
+
+        <!-- Not GPG signing internal builds -->
+        <gpg.skip>true</gpg.skip>
+
+        <!-- Plugin Versions -->
+        <plugin.editorconfig>0.1.3</plugin.editorconfig>
+        <plugin.exec>3.4.1</plugin.exec>
+        <plugin.war>3.1.0</plugin.war>
+
+        <!-- Dependency Versions -->
+        <dependency.commons-codec>1.16.1</dependency.commons-codec>
+        <dependency.commons-io>2.18.0</dependency.commons-io>
+        <dependency.h2>2.3.232</dependency.h2>
+        <dependency.hibernate>6.6.3.Final</dependency.hibernate>
+        <dependency.hypersistence>3.9.0</dependency.hypersistence>
+        <dependency.postgres>42.7.4</dependency.postgres>
+        <dependency.smart-caches>0.25.1</dependency.smart-caches>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Dependencies from Smart Caches Core -->
+            <dependency>
+                <groupId>io.telicent.smart-caches</groupId>
+                <artifactId>cli-core</artifactId>
+                <version>${dependency.smart-caches}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.telicent.smart-caches</groupId>
+                <artifactId>configurator</artifactId>
+                <version>${dependency.smart-caches}</version>
+            </dependency>
+        </dependencies>
+
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>${plugin.dependency}</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>go-offline</goal>
+                            </goals>
+                            <configuration>
+                                <!--
+                                When going offline don't try to resolve internal project dependencies.  This is
+                                primarily only a problem when the version gets bumped.  However, in a CI/CD environment
+                                this is always needed.
+                                -->
+                                <excludeGroupIds>io.telicent.smart-caches.storage</excludeGroupIds>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+
+        </pluginManagement>
+
+        <plugins>
+            <!-- License Plugin -->
+            <plugin>
+                <groupId>com.mycila</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <version>${plugin.license}</version>
+                <configuration>
+                    <header>${license.header.path}/header.txt</header>
+                    <failIfMissing>true</failIfMissing>
+                    <aggregate>false</aggregate>
+                    <useDefaultMapping>true</useDefaultMapping>
+                    <strictCheck>true</strictCheck>
+                    <excludes>
+                        <exclude>header.txt</exclude>
+                        <exclude>pom.xml</exclude>
+                        <exclude>**/pom.xml</exclude>
+                        <exclude>.github/**/*</exclude>
+                        <exclude>*-code-style.xml</exclude>
+                        <exclude>.editorconfig</exclude>
+
+                        <!-- Config -->
+                        <exclude>**/*.yml</exclude>
+
+			            <!-- Trivy Cache -->
+                        <exclude>.trivy/**</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.ec4j.maven</groupId>
+                <artifactId>editorconfig-maven-plugin</artifactId>
+                <version>${plugin.editorconfig}</version>
+                <executions>
+                    <execution>
+                        <id>check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <excludes>
+                        <exclude>*-code-style.xml</exclude>
+                        <exclude>docs/images/</exclude>
+                        <exclude>.vscode/*</exclude>
+                        <exclude>.trivy/**</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+
+    </build>
+
+    <repositories>
+        <repository>
+            <id>aws-codeartifact-telicent</id>
+            <url>https://telicent-098669589541.d.codeartifact.eu-west-2.amazonaws.com/maven/telicent-code-artifacts/
+            </url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
+</project>
