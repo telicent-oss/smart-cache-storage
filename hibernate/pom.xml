@@ -23,25 +23,16 @@
         <dependency>
             <groupId>com.fasterxml.jackson.module</groupId>
             <artifactId>jackson-module-jakarta-xmlbind-annotations</artifactId>
-            <version>${dependency.jackson}</version>
         </dependency>
 
         <dependency>
             <groupId>org.hibernate.orm</groupId>
             <artifactId>hibernate-core</artifactId>
-            <version>${dependency.hibernate}</version>
         </dependency>
 
         <dependency>
             <groupId>io.hypersistence</groupId>
             <artifactId>hypersistence-utils-hibernate-63</artifactId>
-            <version>${dependency.hypersistence}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <version>${dependency.postgres}</version>
         </dependency>
 
         <dependency>
@@ -80,6 +71,13 @@
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <version>${dependency.h2}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${dependency.postgres}</version>
             <scope>test</scope>
         </dependency>
 

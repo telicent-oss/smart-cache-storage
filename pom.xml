@@ -59,7 +59,7 @@
         <dependency.commons-codec>1.16.1</dependency.commons-codec>
         <dependency.commons-io>2.18.0</dependency.commons-io>
         <dependency.h2>2.3.232</dependency.h2>
-        <dependency.hibernate>6.6.3.Final</dependency.hibernate>
+        <dependency.hibernate>6.6.4.Final</dependency.hibernate>
         <dependency.hypersistence>3.9.0</dependency.hypersistence>
         <dependency.postgres>42.7.4</dependency.postgres>
         <dependency.smart-caches>0.25.1</dependency.smart-caches>
@@ -78,6 +78,25 @@
                 <groupId>io.telicent.smart-caches</groupId>
                 <artifactId>configurator</artifactId>
                 <version>${dependency.smart-caches}</version>
+            </dependency>
+
+            <!-- Hibernate related dependencies -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.module</groupId>
+                <artifactId>jackson-module-jakarta-xmlbind-annotations</artifactId>
+                <version>${dependency.jackson}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.hibernate.orm</groupId>
+                <artifactId>hibernate-core</artifactId>
+                <version>${dependency.hibernate}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.hypersistence</groupId>
+                <artifactId>hypersistence-utils-hibernate-63</artifactId>
+                <version>${dependency.hypersistence}</version>
             </dependency>
         </dependencies>
 

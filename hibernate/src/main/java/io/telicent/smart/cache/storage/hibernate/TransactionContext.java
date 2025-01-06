@@ -8,6 +8,26 @@ import org.hibernate.Session;
 
 /**
  * Transaction Context
+ * <p>
+ * A transaction context provides access to the Hibernate {@link Session} and corresponding JPA {@link EntityManager}
+ * for the lifetime of a transaction.  The context is auto-closeable so is intended to be used by callers in a
+ * try-with-resources block e.g.
+ * </p>
+ * <pre>
+ * try (TransactionContext transaction = startTransaction()) {
+ *   // Do some transactional actions
+ *
+ *   // Commit our transaction
+ *   transaction.commit();
+ * }
+ * </pre>
+ * <p>
+ * As seen in the above example callers are expected to {@link #commit()} the transaction when they have completed it,
+ * if they do not commit it, or an error is thrown, when the try-with-resources block exits and calls the
+ * {@link #close()} method the transaction is rolled back if it is still active.  Therefore, callers
+ * <strong>MUST</strong> ensure that they call {@link #commit()} if they want any changes made to the storage to be
+ * persistent.
+ * </p>
  */
 public interface TransactionContext extends AutoCloseable {
 

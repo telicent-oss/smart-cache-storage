@@ -11,7 +11,8 @@ import org.hibernate.Session;
 import java.util.Objects;
 
 /**
- * Short-lived transaction Context, intended for use within a single method
+ * Short-lived transaction Context, intended for use within a single method, or to be passed between several methods to
+ * orchestrate a larger transaction.  Guarantees to commit/abort the transaction upon closure.
  */
 @Getter
 final class ShortLivedTransactionContext implements TransactionContext {
