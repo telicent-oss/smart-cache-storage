@@ -12,6 +12,7 @@
     <description>Library providing a basic API and dependencies for building Smart Caches using Hibernate backed storage</description>
     <properties>
         <license.header.path>${project.parent.basedir}</license.header.path>
+        <coverage.minimum>0.3</coverage.minimum>
     </properties>
 
     <dependencies>
@@ -33,6 +34,11 @@
         <dependency>
             <groupId>io.hypersistence</groupId>
             <artifactId>hypersistence-utils-hibernate-63</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
         </dependency>
 
         <dependency>
@@ -113,6 +119,12 @@
                         <include>**/Test*.java</include>
                     </includes>
                 </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${plugin.jacoco}</version>
             </plugin>
         </plugins>
     </build>

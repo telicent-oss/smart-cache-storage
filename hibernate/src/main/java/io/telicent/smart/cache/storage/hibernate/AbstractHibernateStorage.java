@@ -10,6 +10,7 @@ import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Root;
 import lombok.ToString;
+import org.apache.commons.collections4.MapUtils;
 
 import java.util.*;
 import java.util.function.Function;
@@ -294,7 +295,7 @@ public abstract class AbstractHibernateStorage implements AutoCloseable {
                                                   String queryName, Map<String, Object> queryParameters) {
         // Cache the named queries for performance reasons
         TypedQuery<T> query = transaction.getEntityManager().createNamedQuery(queryName, entityClass);
-        if (queryParameters != null) {
+        if (MapUtils.isNotEmpty(queryParameters)) {
             for (Map.Entry<String, Object> entry : queryParameters.entrySet()) {
                 query.setParameter(entry.getKey(), entry.getValue());
             }

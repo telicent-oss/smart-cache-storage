@@ -8,7 +8,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.telicent.smart.cache.storage.hibernate.HibernateConfiguration.*;
 
-public class H2MemoryStorage extends AbstractHibernateStorage {
+/**
+ * Abstract H2 in-memory backed storage for testing
+ */
+public abstract class AbstractH2MemoryStorage extends AbstractHibernateStorage {
 
     private static final AtomicInteger COUNTER = new AtomicInteger();
 
@@ -35,7 +38,7 @@ public class H2MemoryStorage extends AbstractHibernateStorage {
      * @param persistenceUnit The name of the persistence unit to use, this should generally contain only the basic
      *                        configuration e.g. Entity Classes, JPA Provider, generic JPA configuration.
      */
-    public H2MemoryStorage(String dbName, String persistenceUnit) {
+    public AbstractH2MemoryStorage(String dbName, String persistenceUnit) {
         super(prepareProperties(dbName), persistenceUnit);
     }
 
@@ -45,7 +48,7 @@ public class H2MemoryStorage extends AbstractHibernateStorage {
      * @param persistenceUnit The name of the persistence unit to use, this should generally contain only the basic
      *                        configuration e.g. Entity Classes, JPA Provider, generic JPA configuration.
      */
-    public H2MemoryStorage(String persistenceUnit) {
+    public AbstractH2MemoryStorage(String persistenceUnit) {
         super(prepareProperties(), persistenceUnit);
     }
 }
