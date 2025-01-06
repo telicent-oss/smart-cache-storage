@@ -1,5 +1,9 @@
 # Smart Cache - Storage Libraries - Change Lang
 
+# 0.1.2
+
+- Use correct private workflow
+ 
 # 0.1.1
 
 - Setup GitHub Workflows to get automated releases working correctly
