@@ -1,5 +1,14 @@
 # Smart Cache - Storage Libraries - Change Lang
 
+# 0.2.0
+
+- Add improved Javadoc to `AbstractHibernateStorage`
+- **BREAKING** Renamed `beginInternal()` to `begin()` on AbstractHibernateStorage
+- `ShortLivedTransactionContext` provides stronger guarantees around cleaning up transactional resources
+- Build and test improvements:
+    - Increased test coverage significantly 
+    - Upgraded Smart Caches Core Libraries to 0.25.2
+
 # 0.1.2
 
 - Use correct private workflow

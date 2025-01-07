@@ -13,12 +13,27 @@ import org.testng.annotations.Test;
 import java.math.BigDecimal;
 import java.util.List;
 
-public class TestOrderManager {
+/**
+ * Abstract test suite that exercise the {@link OrderManager} which is an exemplar implementation of deriving from the
+ * {@link AbstractHibernateStorage} base class.  Therefore, these tests are designed to call methods that ultimately
+ * call all the helper methods provided by that class.
+ * <p>
+ * See derived classes for running these tests against different database backends by varying the JPA configuration.
+ * </p>
+ */
+public abstract class AbstractOrderManagerTests {
+
+    /**
+     * Creates a new instance of the order manager to test against
+     *
+     * @return Order Manager
+     */
+    protected abstract OrderManager createOrderManager();
 
     @Test(expectedExceptions = IllegalStateException.class)
     public void givenStore_whenClosing_thenSubsequentOperationsFail() {
         // Given
-        try (OrderManager orderManager = new OrderManager()) {
+        try (OrderManager orderManager = createOrderManager()) {
             // When
             orderManager.close();
             Assert.assertTrue(orderManager.isClosed());
@@ -31,7 +46,7 @@ public class TestOrderManager {
     @Test
     public void givenEmptyStore_whenLoadingAllAddresses_thenEmptyList() {
         // Given
-        try (OrderManager orderManager = new OrderManager()) {
+        try (OrderManager orderManager = createOrderManager()) {
             // When
             List<Address> addresses = orderManager.getAddresses();
 
@@ -105,7 +120,7 @@ public class TestOrderManager {
     @Test
     public void givenPopulatedStore_whenLoadingAllAddresses_thenPopulatedList_andLoadingByWrongPostCodeReturnsNothing() {
         // Given
-        try (OrderManager orderManager = new OrderManager()) {
+        try (OrderManager orderManager = createOrderManager()) {
             this.generateAddresses(orderManager, 1, 10);
 
             // When
@@ -134,7 +149,7 @@ public class TestOrderManager {
     @Test
     public void givenStore_whenPopulatingWithSameAddressesMultipleTimes_thenAddressesAreOnlyStoredOnce() {
         // Given
-        try (OrderManager orderManager = new OrderManager()) {
+        try (OrderManager orderManager = createOrderManager()) {
             // When
             for (int i = 1; i <= 10; i++) {
                 this.generateAddresses(orderManager, 1, 10);
@@ -147,9 +162,9 @@ public class TestOrderManager {
     }
 
     @Test
-    public void givenStorePopulatingWithManyAddresses_whenLoadingByPostcode_onlyPostcodeSpecificAddressesAreReturned() {
+    public void givenStorePopulatedWithManyAddresses_whenLoadingByPostcode_thenOnlyPostcodeSpecificAddressesAreReturned() {
         // Given
-        try (OrderManager orderManager = new OrderManager()) {
+        try (OrderManager orderManager = createOrderManager()) {
             this.generateAddresses(orderManager, 10, 30);
 
             // When
@@ -172,10 +187,25 @@ public class TestOrderManager {
         }
     }
 
+    @Test(expectedExceptions = IllegalStateException.class, expectedExceptionsMessageRegExp = ".*more than one result")
+    public void givenStorePopulatedWithManyAddresses_whenBadSaveOperation_thenIllegalStateException() {
+        // Given
+        try (OrderManager orderManager = createOrderManager()) {
+            this.generateAddresses(orderManager, 10, 30);
+            List<Address> addresses = orderManager.getAddresses();
+            Assert.assertEquals(addresses.size(), 300);
+            Address address = addresses.get(0);
+
+            // When and Then
+            orderManager.badSaveAddress(address.getRecipient(), address.getNameOrNumber(), address.getStreet(),
+                                        address.getCity(), address.getPostalCode());
+        }
+    }
+
     @Test
     public void givenEmptyStore_whenListingProducts_thenEmptyList() {
         // Given
-        try (OrderManager orderManager = new OrderManager()) {
+        try (OrderManager orderManager = createOrderManager()) {
             // When
             List<Product> products = orderManager.listProducts();
 
@@ -187,7 +217,7 @@ public class TestOrderManager {
     @Test
     public void givenEmptyStore_whenListingInStockProducts_thenEmptyList() {
         // Given
-        try (OrderManager orderManager = new OrderManager()) {
+        try (OrderManager orderManager = createOrderManager()) {
             // When
             List<Product> products = orderManager.listProducts(true);
 
@@ -199,7 +229,7 @@ public class TestOrderManager {
     @Test
     public void givenEmptyStore_whenListingOutOfStockProducts_thenEmptyList() {
         // Given
-        try (OrderManager orderManager = new OrderManager()) {
+        try (OrderManager orderManager = createOrderManager()) {
             // When
             List<Product> products = orderManager.listProducts(false);
 
@@ -211,7 +241,7 @@ public class TestOrderManager {
     @Test
     public void givenEmptyStore_whenGettingProductById_thenNull() {
         // Given
-        try (OrderManager orderManager = new OrderManager()) {
+        try (OrderManager orderManager = createOrderManager()) {
             // When
             Product product = orderManager.getProduct("A123");
 
@@ -223,7 +253,7 @@ public class TestOrderManager {
     @Test
     public void givenPopulatedStore_whenListingProducts_thenProductsReturned_andStockQueriesReturnCorrectly() {
         // Given
-        try (OrderManager orderManager = new OrderManager()) {
+        try (OrderManager orderManager = createOrderManager()) {
             orderManager.saveProduct("A1", "Test Item", null, BigDecimal.valueOf(1.0), 100);
             orderManager.saveProduct("A2", "Another Item", null, BigDecimal.valueOf(0.2), 0);
 
@@ -245,7 +275,7 @@ public class TestOrderManager {
     @Test
     public void givenEmptyStore_whenPopulatingProductsWithDuplicateId_thenFails_andOnlyFirstProductIsStored() {
         // Given
-        try (OrderManager orderManager = new OrderManager()) {
+        try (OrderManager orderManager = createOrderManager()) {
             // When
             try {
                 orderManager.saveProduct("A1", "Test Item", null, BigDecimal.valueOf(1.0), 100);
@@ -267,7 +297,7 @@ public class TestOrderManager {
     @Test
     public void givenPopulatedStore_whenUpdatingStock_thenCorrectAvailabilityReturned() {
         // Given
-        try (OrderManager orderManager = new OrderManager()) {
+        try (OrderManager orderManager = createOrderManager()) {
             orderManager.saveProduct("A1", "Test Item", null, BigDecimal.valueOf(1.0), 100);
 
             // When
@@ -282,7 +312,7 @@ public class TestOrderManager {
     @Test
     public void givenPopulatedStore_whenUpdatingStockInvalidly_thenAvailabilityUnchanged() {
         // Given
-        try (OrderManager orderManager = new OrderManager()) {
+        try (OrderManager orderManager = createOrderManager()) {
             orderManager.saveProduct("A1", "Test Item", null, BigDecimal.valueOf(1.0), 100);
 
             // When
