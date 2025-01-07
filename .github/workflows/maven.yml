@@ -27,6 +27,8 @@ jobs:
       MAVEN_ARGS: -P-telicent-oss -Dtest.maxForks=1
       # If running in debug mode, use appropriate logging
       MAVEN_DEBUG_ARGS: -Dlogback.configurationFile=logback-debug.xml
+      # Disable Windows build
+      RUN_WINDOWS_BUILD: false
     secrets: inherit 
 
 
