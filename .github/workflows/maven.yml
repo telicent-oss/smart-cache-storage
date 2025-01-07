@@ -23,6 +23,8 @@ jobs:
       # Want SNAPSHOTs to be published from main
       PUBLISH_SNAPSHOTS: true
       MAIN_BRANCH: main
+      # Disable telicent-oss profile as this is a private build
+      MAVEN_ARGS: -P-telicent-oss
       # If running in debug mode, use appropriate logging
       MAVEN_DEBUG_ARGS: -Dlogback.configurationFile=logback-debug.xml
     secrets: inherit 
