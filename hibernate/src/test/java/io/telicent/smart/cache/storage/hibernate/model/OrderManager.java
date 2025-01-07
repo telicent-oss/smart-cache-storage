@@ -3,19 +3,23 @@
  */
 package io.telicent.smart.cache.storage.hibernate.model;
 
-import io.telicent.smart.cache.storage.hibernate.AbstractH2MemoryStorage;
+import io.telicent.smart.cache.storage.hibernate.AbstractHibernateStorage;
 import io.telicent.smart.cache.storage.hibernate.TransactionContext;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
-public class OrderManager extends AbstractH2MemoryStorage {
+@SuppressWarnings({"unused", "UnusedReturnValue"})
+public class OrderManager extends AbstractHibernateStorage {
     /**
      * Creates a new order manager
+     *
+     * @param dbProperties Database connection properties
      */
-    public OrderManager() {
-        super("hibernate-storage-example");
+    public OrderManager(Properties dbProperties) {
+        super(dbProperties, "hibernate-storage-example");
     }
 
     public List<Address> getAddresses() {

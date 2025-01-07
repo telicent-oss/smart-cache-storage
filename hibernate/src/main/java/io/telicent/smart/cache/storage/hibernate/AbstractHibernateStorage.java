@@ -3,6 +3,8 @@
  */
 package io.telicent.smart.cache.storage.hibernate;
 
+import io.telicent.smart.cache.storage.hibernate.configuration.HibernateConfiguration;
+import io.telicent.smart.cache.storage.hibernate.configuration.JpaConfiguration;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.NamedQuery;
 import jakarta.persistence.Persistence;
@@ -26,7 +28,7 @@ import java.util.function.Supplier;
  * storage:
  * </p>
  * <ol>
- *     <li>The {@link #begin()}</li> method to start a new transaction.</li>
+ *     <li>The {@link #begin()} method to start a new transaction.</li>
  *     <li>
  *     The various helper methods that take the {@link TransactionContext} returned by {@link #begin()} and use it
  *     to carry out common operations e.g. {@link #getOrCreateByNaturalId(TransactionContext, Object, Class, Supplier)}
@@ -37,7 +39,7 @@ import java.util.function.Supplier;
  * </p>
  */
 @ToString
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "UnusedReturnValue"})
 public abstract class AbstractHibernateStorage implements AutoCloseable {
 
     @ToString.Exclude
@@ -53,9 +55,9 @@ public abstract class AbstractHibernateStorage implements AutoCloseable {
      * Creates a new hibernate backed store
      *
      * @param dbProperties    Database Connection properties, this should contain at least a
-     *                        {@value HibernateConfiguration#JAKARTA_PERSISTENCE_JDBC_URL} property to provide a JDBC
+     *                        {@value JpaConfiguration#JAKARTA_PERSISTENCE_JDBC_URL} property to provide a JDBC
      *                        connection to the database as well as any other relevant properties e.g.
-     *                        {@value HibernateConfiguration#JAKARTA_PERSISTENCE_JDBC_USER},
+     *                        {@value JpaConfiguration#JAKARTA_PERSISTENCE_JDBC_USER},
      *                        {@value HibernateConfiguration#HIBERNATE_DIALECT} etc.
      * @param persistenceUnit The name of the persistence unit to use, this should generally contain only the basic
      *                        configuration e.g. Entity Classes, JPA Provider, generic JPA configuration.  The actual
@@ -64,12 +66,11 @@ public abstract class AbstractHibernateStorage implements AutoCloseable {
      */
     public AbstractHibernateStorage(Properties dbProperties, String persistenceUnit) {
         this.entityManagerFactory = Persistence.createEntityManagerFactory(persistenceUnit, dbProperties);
-        this.jdbcUrl = dbProperties.getProperty(HibernateConfiguration.JAKARTA_PERSISTENCE_JDBC_URL);
+        this.jdbcUrl = dbProperties.getProperty(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_URL);
     }
 
     /**
      * Begins a transaction internally
-     * </p>
      * <p>
      * Callers <strong>MUST</strong> ensure they use the return value in a try-with-resources block so that transactions
      * are promptly commited/rolled back as appropriate.  Callers should either {@link TransactionContext#commit()} the

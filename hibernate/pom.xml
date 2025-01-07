@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>parent</artifactId>
         <groupId>io.telicent.smart-caches.storage</groupId>
@@ -8,13 +9,20 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>hibernate</artifactId>
     <name>Telicent Smart Caches - Storage - Hibernate Store</name>
-    <description>Library providing a basic API and dependencies for building Smart Caches using Hibernate backed storage</description>
+    <description>Library providing a basic API and dependencies for building Smart Caches using Hibernate backed
+        storage
+    </description>
     <properties>
         <license.header.path>${project.parent.basedir}</license.header.path>
-        <coverage.minimum>0.3</coverage.minimum>
+        <coverage.minimum>0.8</coverage.minimum>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>io.telicent.smart-caches</groupId>
+            <artifactId>configurator</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
@@ -36,8 +44,25 @@
         </dependency>
 
         <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>${dependency.h2}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${dependency.postgres}</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-collections4</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
         </dependency>
 
         <dependency>
@@ -65,29 +90,9 @@
         </dependency>
 
         <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <version>${dependency.h2}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <version>${dependency.postgres}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <version>${dependency.commons-io}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
             <scope>test</scope>
         </dependency>
 
@@ -130,7 +135,9 @@
         <profile>
             <id>docker</id>
             <activation>
-                <activeByDefault>true</activeByDefault>
+                <os>
+                    <family>!Windows</family>
+                </os>
             </activation>
             <build>
                 <plugins>
