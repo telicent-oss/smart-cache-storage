@@ -20,14 +20,14 @@ public class OrderManager extends AbstractH2MemoryStorage {
 
     public List<Address> getAddresses() {
         ensureNotClosed();
-        try (TransactionContext transaction = this.beginInternal()) {
+        try (TransactionContext transaction = this.begin()) {
             return this.loadAll(transaction, Address.class);
         }
     }
 
     public List<Address> getAddresses(String postCode) {
         ensureNotClosed();
-        try (TransactionContext transaction = this.beginInternal()) {
+        try (TransactionContext transaction = this.begin()) {
             List<Address> addresses =
                     this.loadByNamedQuery(transaction, Address.class, "findByPostalCode",
                                           Map.of("postalCode", postCode));
@@ -38,7 +38,7 @@ public class OrderManager extends AbstractH2MemoryStorage {
 
     public Address saveAddress(String recipient, String nameOrNumber, String street, String city, String postalCode) {
         ensureNotClosed();
-        try (TransactionContext transaction = this.beginInternal()) {
+        try (TransactionContext transaction = this.begin()) {
             Address address = this.getOrCreateByNamedQuery(transaction, Address.class, "findByDetails",
                                                            Map.of("recipient", recipient, "nameOrNumber", nameOrNumber,
                                                                   "street", street, "city", city, "postalCode",
@@ -58,21 +58,21 @@ public class OrderManager extends AbstractH2MemoryStorage {
 
     public List<Product> listProducts() {
         ensureNotClosed();
-        try (TransactionContext transaction = this.beginInternal()) {
+        try (TransactionContext transaction = this.begin()) {
             return this.loadAll(transaction, Product.class);
         }
     }
 
     public List<Product> listProducts(boolean inStock) {
         ensureNotClosed();
-        try (TransactionContext transaction = this.beginInternal()) {
+        try (TransactionContext transaction = this.begin()) {
             return this.loadByNamedQuery(transaction, Product.class, inStock ? "inStock" : "outOfStock");
         }
     }
 
     public Product getProduct(String code) {
         ensureNotClosed();
-        try (TransactionContext transaction = this.beginInternal()) {
+        try (TransactionContext transaction = this.begin()) {
             Product product = this.loadByNaturalId(transaction, code, Product.class);
             transaction.commit();
             return product;
@@ -81,7 +81,7 @@ public class OrderManager extends AbstractH2MemoryStorage {
 
     public void saveProduct(String code, String name, String description, BigDecimal price, long available) {
         ensureNotClosed();
-        try (TransactionContext transaction = this.beginInternal()) {
+        try (TransactionContext transaction = this.begin()) {
             this.getOrCreateByNaturalId(transaction, code, Product.class,
                                         () -> new Product(null, code, name, description, price,
                                                           available));
@@ -91,7 +91,7 @@ public class OrderManager extends AbstractH2MemoryStorage {
 
     public void updateStock(String code, long diff) {
         ensureNotClosed();
-        try (TransactionContext transaction = this.beginInternal()) {
+        try (TransactionContext transaction = this.begin()) {
             Product product = this.loadByNaturalId(transaction, code, Product.class);
             if (product == null) {
                 throw new IllegalStateException("Product not found");
