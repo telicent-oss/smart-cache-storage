@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-@SuppressWarnings({"unused", "UnusedReturnValue"})
+@SuppressWarnings({ "unused", "UnusedReturnValue" })
 public class OrderManager extends AbstractHibernateStorage {
     /**
      * Creates a new order manager
@@ -32,9 +32,8 @@ public class OrderManager extends AbstractHibernateStorage {
     public List<Address> getAddresses(String postCode) {
         ensureNotClosed();
         try (TransactionContext transaction = this.begin()) {
-            List<Address> addresses =
-                    this.loadByNamedQuery(transaction, Address.class, "findByPostalCode",
-                                          Map.of("postalCode", postCode));
+            List<Address> addresses = this.loadByNamedQuery(transaction, Address.class, "findByPostalCode",
+                                                            Map.of("postalCode", postCode));
             transaction.commit();
             return addresses;
         }
@@ -46,15 +45,24 @@ public class OrderManager extends AbstractHibernateStorage {
             Address address = this.getOrCreateByNamedQuery(transaction, Address.class, "findByDetails",
                                                            Map.of("recipient", recipient, "nameOrNumber", nameOrNumber,
                                                                   "street", street, "city", city, "postalCode",
-                                                                  postalCode), () -> {
-                        Address newAddress = new Address();
-                        newAddress.setRecipient(recipient);
-                        newAddress.setNameOrNumber(nameOrNumber);
-                        newAddress.setStreet(street);
-                        newAddress.setCity(city);
-                        newAddress.setPostalCode(postalCode);
-                        return newAddress;
-                    });
+                                                                  postalCode),
+                                                           () -> new Address(null, recipient, nameOrNumber, street,
+                                                                             city, postalCode));
+            transaction.commit();
+            return address;
+        }
+    }
+
+    public Address badSaveAddress(String recipient, String nameOrNumber, String street, String city,
+                                  String postalCode) {
+        ensureNotClosed();
+        try (TransactionContext transaction = this.begin()) {
+            // This will always fail if the street has more than one address, this is included merely to allow for test
+            // validation and coverage of this corner case of behaviour.
+            Address address =
+                    this.getOrCreateByNamedQuery(transaction, Address.class, "findByStreet", Map.of("street", street),
+                                                 () -> new Address(null, recipient, nameOrNumber, street, city,
+                                                                   postalCode));
             transaction.commit();
             return address;
         }
@@ -87,8 +95,7 @@ public class OrderManager extends AbstractHibernateStorage {
         ensureNotClosed();
         try (TransactionContext transaction = this.begin()) {
             this.getOrCreateByNaturalId(transaction, code, Product.class,
-                                        () -> new Product(null, code, name, description, price,
-                                                          available));
+                                        () -> new Product(null, code, name, description, price, available));
             transaction.commit();
         }
     }

@@ -41,7 +41,7 @@ public class DockerTestOrderManagerPostgres extends AbstractOrderManagerTests {
                                                                                                   .hostname(
                                                                                                           this.postgres.getHost())
                                                                                                   .port(this.postgres.getMappedPort(
-                                                                                                          PostgresConfiguration.DEFAULT_POSTGRES_PORT))
+                                                                                                          PostgresConfiguration.DEFAULT_PORT))
                                                                                                   .database(
                                                                                                           this.postgres.getDatabaseName())
                                                                                                   .username(

@@ -22,7 +22,7 @@ public class PostgresConfiguration {
     /**
      * The default Postgres Port
      */
-    public static final int DEFAULT_POSTGRES_PORT = 5432;
+    public static final int DEFAULT_PORT = 5432;
 
     /**
      * Constructs a JDBC URL for Postgres based on general connection parameters
@@ -34,7 +34,7 @@ public class PostgresConfiguration {
         return String.format("jdbc:postgresql://%s:%d/%s", configuration.getHostname(),
                              configuration.getPort() != null ?
                              configuration.getPort() :
-                             DEFAULT_POSTGRES_PORT, configuration.getDatabase());
+                             DEFAULT_PORT, configuration.getDatabase());
     }
 
     /**

@@ -1,0 +1,113 @@
+/**
+ * Copyright (C) 2024-2025 Telicent Limited
+ */
+package io.telicent.smart.cache.storage.hibernate.configuration;
+
+import io.telicent.smart.cache.configuration.Configurator;
+import io.telicent.smart.cache.configuration.sources.NullSource;
+import io.telicent.smart.cache.configuration.sources.PropertiesSource;
+import io.telicent.smart.cache.storage.hibernate.configuration.postgres.PostgresConfiguration;
+import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.DataProvider;
+import org.testng.annotations.Test;
+
+import java.util.Map;
+import java.util.Properties;
+
+public class TestDatabaseConfiguration {
+
+    @AfterMethod
+    public void cleanup() {
+        Configurator.reset();
+    }
+
+    @Test(expectedExceptions = NullPointerException.class)
+    public void givenNoConfiguration_whenConfiguringDatabase_thenFails() {
+        // Given
+        Configurator.setSingleSource(NullSource.INSTANCE);
+
+        // When and Then
+        DatabaseConfiguration.fromConfigurator();
+    }
+
+    @DataProvider(name = "incompleteConfigs")
+    private Object[][] incompleteConfigurations() {
+        return new Object[][] {
+                { Map.of(DatabaseConfiguration.HOSTNAME, "localhost") },
+                { Map.of(DatabaseConfiguration.DB_NAME, "test") },
+                {
+                        Map.of(DatabaseConfiguration.HOSTNAME, "localhost", DatabaseConfiguration.PORT,
+                               PostgresConfiguration.DEFAULT_PORT)
+                },
+                { Map.of(DatabaseConfiguration.USER, "sa", DatabaseConfiguration.PASSWORD, "test")}
+                };
+    }
+
+    @Test(dataProvider = "incompleteConfigs", expectedExceptions = NullPointerException.class)
+    public void givenIncompleteConfiguration_whenConfiguringDatabase_thenFails(Map<String, Object> map) {
+        // Given
+        Properties properties = new Properties();
+        properties.putAll(map);
+        Configurator.setSingleSource(new PropertiesSource(properties));
+
+        // When and Then
+        DatabaseConfiguration.fromConfigurator();
+
+    }
+
+    @Test
+    public void givenMinimalConfig_whenConfiguringDatabase_thenSuccess() {
+        // Given
+        Properties properties = new Properties();
+        properties.put(DatabaseConfiguration.HOSTNAME, "localhost");
+        properties.put(DatabaseConfiguration.DB_NAME, "test");
+        Configurator.setSingleSource(new PropertiesSource(properties));
+
+        // When
+        DatabaseConfiguration config = DatabaseConfiguration.fromConfigurator();
+
+        // Then
+        Assert.assertEquals(config.getHostname(), "localhost");
+        Assert.assertNull(config.getPort());
+        Assert.assertEquals(config.getDatabase(), "test");
+        Assert.assertNull(config.getUsername());
+        Assert.assertNull(config.getPassword());
+    }
+
+    @Test
+    public void givenInvalidPort_whenConfiguringDatabase_thenNoPortIsSet() {
+        // Given
+        Properties properties = new Properties();
+        properties.put(DatabaseConfiguration.HOSTNAME, "localhost");
+        properties.put(DatabaseConfiguration.PORT, "ab123");
+        properties.put(DatabaseConfiguration.DB_NAME, "test");
+        Configurator.setSingleSource(new PropertiesSource(properties));
+
+        // When
+        DatabaseConfiguration config = DatabaseConfiguration.fromConfigurator();
+
+        // Then
+        Assert.assertEquals(config.getHostname(), "localhost");
+        Assert.assertNull(config.getPort());
+        Assert.assertEquals(config.getDatabase(), "test");
+    }
+
+    @Test
+    public void givenValidPort_whenConfiguringDatabase_thenPortIsSet() {
+        // Given
+        Properties properties = new Properties();
+        properties.put(DatabaseConfiguration.HOSTNAME, "localhost");
+        properties.put(DatabaseConfiguration.PORT, PostgresConfiguration.DEFAULT_PORT);
+        properties.put(DatabaseConfiguration.DB_NAME, "test");
+        Configurator.setSingleSource(new PropertiesSource(properties));
+
+        // When
+        DatabaseConfiguration config = DatabaseConfiguration.fromConfigurator();
+
+        // Then
+        Assert.assertEquals(config.getHostname(), "localhost");
+        Assert.assertEquals(config.getPort(), PostgresConfiguration.DEFAULT_PORT);
+        Assert.assertEquals(config.getDatabase(), "test");
+    }
+}

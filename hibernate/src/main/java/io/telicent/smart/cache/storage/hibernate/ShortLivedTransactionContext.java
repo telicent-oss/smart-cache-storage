@@ -61,7 +61,7 @@ final class ShortLivedTransactionContext implements TransactionContext {
         // If anything went wrong, and we're still in the transaction roll it back
         // Do this in a try block as we want to guarantee to close the session and entity manager regardless
         try {
-            if (this.entityManager.getTransaction().isActive()) {
+            if (this.isActive()) {
                 this.entityManager.getTransaction().rollback();
             }
         } catch (Throwable e) {

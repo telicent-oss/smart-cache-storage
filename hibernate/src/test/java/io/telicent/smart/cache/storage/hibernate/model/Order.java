@@ -8,7 +8,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.NaturalId;
-import org.testcontainers.shaded.org.checkerframework.checker.units.qual.N;
 
 import java.util.List;
 

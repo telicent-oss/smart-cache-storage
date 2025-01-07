@@ -162,7 +162,7 @@ public abstract class AbstractOrderManagerTests {
     }
 
     @Test
-    public void givenStorePopulatingWithManyAddresses_whenLoadingByPostcode_onlyPostcodeSpecificAddressesAreReturned() {
+    public void givenStorePopulatedWithManyAddresses_whenLoadingByPostcode_thenOnlyPostcodeSpecificAddressesAreReturned() {
         // Given
         try (OrderManager orderManager = createOrderManager()) {
             this.generateAddresses(orderManager, 10, 30);
@@ -184,6 +184,21 @@ public abstract class AbstractOrderManagerTests {
                 postCodeStart++;
                 postCodeEnd++;
             }
+        }
+    }
+
+    @Test(expectedExceptions = IllegalStateException.class, expectedExceptionsMessageRegExp = ".*more than one result")
+    public void givenStorePopulatedWithManyAddresses_whenBadSaveOperation_thenIllegalStateException() {
+        // Given
+        try (OrderManager orderManager = createOrderManager()) {
+            this.generateAddresses(orderManager, 10, 30);
+            List<Address> addresses = orderManager.getAddresses();
+            Assert.assertEquals(addresses.size(), 300);
+            Address address = addresses.get(0);
+
+            // When and Then
+            orderManager.badSaveAddress(address.getRecipient(), address.getNameOrNumber(), address.getStreet(),
+                                        address.getCity(), address.getPostalCode());
         }
     }
 

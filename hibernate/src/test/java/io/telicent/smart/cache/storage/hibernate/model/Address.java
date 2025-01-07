@@ -20,6 +20,9 @@ WHERE
   a.street = :street AND
   a.city = :city AND
   a.postalCode = :postalCode
+"""),
+                @NamedQuery(name = "findByStreet", query = """
+SELECT a FROM Address a WHERE a.street = :street
 """)
         }
 )
