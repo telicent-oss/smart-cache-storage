@@ -1,5 +1,10 @@
 # Smart Cache - Storage Libraries - Change Lang
 
+# 0.2.1
+
+- Build and test improvements:
+    - Fix test dependency incorrectly leaked to `compile` scope
+
 # 0.2.0
 
 - Add improved Javadoc to `AbstractHibernateStorage`
