@@ -4,7 +4,7 @@
 
     <groupId>io.telicent.smart-caches.storage</groupId>
     <artifactId>parent</artifactId>
-    <version>0.2.2-SNAPSHOT</version>
+    <version>0.3.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Telicent Smart Caches - Storage - Parent</name>
     <parent>
@@ -16,6 +16,8 @@
 
     <modules>
         <module>hibernate</module>
+        <module>mongodb</module>
+        <module>common</module>
     </modules>
 
     <distributionManagement>
@@ -61,6 +63,8 @@
         <dependency.h2>2.3.232</dependency.h2>
         <dependency.hibernate>6.6.4.Final</dependency.hibernate>
         <dependency.hypersistence>3.9.0</dependency.hypersistence>
+        <dependency.mongodb>5.2.1</dependency.mongodb>
+        <dependency.mongojack>5.0.2</dependency.mongojack>
         <dependency.postgres>42.7.4</dependency.postgres>
         <dependency.smart-caches>0.25.2</dependency.smart-caches>
     </properties>
@@ -97,6 +101,25 @@
                 <groupId>io.hypersistence</groupId>
                 <artifactId>hypersistence-utils-hibernate-63</artifactId>
                 <version>${dependency.hypersistence}</version>
+            </dependency>
+
+            <!-- MongoDB related dependencies -->
+            <dependency>
+                <groupId>org.mongodb</groupId>
+                <artifactId>mongodb-driver-sync</artifactId>
+                <version>${dependency.mongodb}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.mongojack</groupId>
+                <artifactId>mongojack</artifactId>
+                <version>${dependency.mongojack}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>mongodb</artifactId>
+                <version>${dependency.testcontainers}</version>
             </dependency>
         </dependencies>
 
