@@ -1,4 +1,8 @@
-# Smart Cache - Storage Libraries - Change Lang
+# Smart Cache - Storage Libraries - Change Log
+
+# 0.3.0
+
+- New `mongodb` module introduced
 
 # 0.2.1
 

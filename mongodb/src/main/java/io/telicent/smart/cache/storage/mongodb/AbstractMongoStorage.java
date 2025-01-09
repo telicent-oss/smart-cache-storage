@@ -16,10 +16,12 @@ import org.bson.Document;
 import org.bson.UuidRepresentation;
 import org.bson.conversions.Bson;
 import org.mongojack.JacksonMongoCollection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.persistence.Id;
 import java.util.*;
-import java.util.function.Supplier;
+import java.util.function.Consumer;
 
 import static com.mongodb.client.model.Filters.eq;
 
@@ -51,7 +53,9 @@ import static com.mongodb.client.model.Filters.eq;
  * </p>
  */
 public class AbstractMongoStorage extends AbstractStorage {
-    private static final String MONGO_ID_FIELD = "_id";
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractMongoStorage.class);
+
+    protected static final String MONGO_ID_FIELD = "_id";
     private final MongoClient mongo;
     private final MongoDatabase db;
     private final Map<String, JacksonMongoCollection<?>> collections = new HashMap<>();
@@ -70,9 +74,142 @@ public class AbstractMongoStorage extends AbstractStorage {
         this.db = this.mongo.getDatabase(database);
     }
 
+    /**
+     * Creates a new index on the collection, MongoDB may treat this as a no-op if the index already exists.
+     * <p>
+     * Use {@link #createIndexIfNotExist(JacksonMongoCollection, IndexOptions, String...)} if you want to conditionally
+     * create the index based on whether it already exists.
+     * </p>
+     *
+     * @param collection Collection
+     * @param options    Index Options
+     * @param fields     Fields to index on
+     * @return Index name
+     */
     protected String createIndex(JacksonMongoCollection<?> collection, IndexOptions options, String... fields) {
         ensureNotClosed();
+        ensureCollection(collection);
+        if (options == null) {
+            options = new IndexOptions();
+            LOGGER.warn("No index options provided so using default options");
+        }
+        if (StringUtils.isBlank(options.getName())) {
+            LOGGER.warn("Index name not provided, MongoDB will assign a name automatically");
+        }
         return collection.createIndex(Indexes.ascending(fields), options);
+    }
+
+    /**
+     * Ensures that a non-null collection has been provided
+     *
+     * @param collection Collection
+     */
+    protected final void ensureCollection(JacksonMongoCollection<?> collection) {
+        ensureNotClosed();
+        Objects.requireNonNull(collection, "Collection cannot be null");
+    }
+
+    /**
+     * Ensures that a non-null query has been provided
+     *
+     * @param query Query
+     */
+    protected final void ensureQuery(Bson query) {
+        Objects.requireNonNull(query, "Query cannot be null");
+    }
+
+    /**
+     * Ensures that the standard preconditions are met
+     *
+     * @param collection Collection
+     * @param query      Query
+     */
+    protected final void ensurePreconditionsMet(JacksonMongoCollection<?> collection, Bson query) {
+        ensureNotClosed();
+        ensureCollection(collection);
+        ensureQuery(query);
+    }
+
+    /**
+     * Checks whether an index with the given name exists on the collection
+     *
+     * @param collection Collection
+     * @param name       Index Name
+     * @return True if exists on the index, false otherwise
+     */
+    protected boolean hasIndex(JacksonMongoCollection<?> collection, String name) {
+        ensureNotClosed();
+        ensureCollection(collection);
+
+        // MongoDB indices always have a name
+        if (StringUtils.isBlank(name)) {
+            return false;
+        }
+
+        // Check whether an index exists with the name
+        ListIndexesIterable<Document> indices = collection.listIndexes();
+        for (Document index : indices) {
+            if (Objects.equals(index.getString("name"), name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Create a named index on the collection if one with the given name does not yet exist
+     * <p>
+     * NB: This <strong>DOES NOT</strong> check whether the pre-existing index matches the options and fields specified
+     * by the caller.  If you are looking to redefine an index with different options and/or fields, then you should
+     * first call {@link #dropIndex(JacksonMongoCollection, String)} to ensure the index does not exist.
+     * </p>
+     *
+     * @param collection Collection
+     * @param options    Index Options, this <strong>MUST</strong> include a name
+     * @param fields     Fields to use for the index
+     * @return Whether the index was created
+     */
+    protected boolean createIndexIfNotExist(JacksonMongoCollection<?> collection, IndexOptions options,
+                                            String... fields) {
+        ensureNotClosed();
+        ensureCollection(collection);
+        Objects.requireNonNull(options, "Index options cannot be null");
+
+        // Must supply a name in the index options
+        if (StringUtils.isBlank(options.getName())) {
+            throw new IllegalArgumentException("Index Options must include a non-empty name");
+        }
+
+        // Check whether the index already exists, if not create it
+        if (hasIndex(collection, options.getName())) {
+            LOGGER.debug("Index {} already exists on collection {}", options.getName(), collection.getName());
+            return false;
+        } else {
+            String created = this.createIndex(collection, options, fields);
+            LOGGER.info("Created index {} on collection {}", created, collection.getName());
+            return true;
+        }
+    }
+
+    /**
+     * Drops an index from the collection
+     *
+     * @param collection Collection
+     * @param name       Index name
+     * @throws IllegalArgumentException Thrown if index name is not provided, or no such index exists on the collection
+     */
+    protected void dropIndex(JacksonMongoCollection<?> collection, String name) {
+        ensureNotClosed();
+        ensureCollection(collection);
+        if (StringUtils.isBlank(name)) {
+            throw new IllegalArgumentException("Cannot drop index if no name provided");
+        }
+        if (this.hasIndex(collection, name)) {
+            collection.dropIndex(name);
+        } else {
+            throw new IllegalArgumentException(
+                    "No index " + name + " exists to drop on collection " + collection.getName());
+        }
     }
 
     /**
@@ -88,6 +225,11 @@ public class AbstractMongoStorage extends AbstractStorage {
     protected <T> JacksonMongoCollection<T> getCollection(String collectionName, Class<T> entityClass,
                                                           UuidRepresentation uuidRepresentation) {
         ensureNotClosed();
+        if (StringUtils.isBlank(collectionName)) {
+            throw new IllegalArgumentException("Collection name cannot be null or empty");
+        }
+        Objects.requireNonNull(entityClass, "Entity class cannot be null");
+        Objects.requireNonNull(uuidRepresentation, "uuid representation cannot be null");
 
         return (JacksonMongoCollection<T>) this.collections.computeIfAbsent(collectionName,
                                                                             n -> JacksonMongoCollection.builder()
@@ -98,26 +240,47 @@ public class AbstractMongoStorage extends AbstractStorage {
     }
 
     /**
-     * Gets all results from a collection that match the given query
+     * Gets all entities from a collection
+     *
+     * @param collection Collection
+     * @param <T>        Entity type
+     * @return Entities
+     */
+    protected <T> List<T> getAll(JacksonMongoCollection<T> collection) {
+        return getAll(collection, findAll());
+    }
+
+    /**
+     * Gets all entities from a collection that match the given query
      *
      * @param collection Collection
      * @param query      Query
      * @param <T>        Entity type
-     * @return Results
+     * @return Entities
      */
     protected <T> List<T> getAll(JacksonMongoCollection<T> collection, Bson query) {
-        ensureNotClosed();
+        ensurePreconditionsMet(collection, query);
 
-        MongoCursor<T> cursor = collection.find(query).iterator();
         List<T> results = new ArrayList<>();
-        try {
-            while (cursor.hasNext()) {
-                results.add(cursor.next());
-            }
-        } finally {
-            cursor.close();
-        }
+        processCursor(collection, query, results::add);
         return results;
+    }
+
+    /**
+     * Processes a Mongo cursor sending each entity to a consumer function
+     *
+     * @param collection Collection
+     * @param query      Query
+     * @param consumer   Consumer function
+     * @param <T>        Entity type
+     */
+    protected final <T> void processCursor(JacksonMongoCollection<T> collection, Bson query, Consumer<T> consumer) {
+        ensurePreconditionsMet(collection, query);
+        try (MongoCursor<T> cursor = collection.find(query).iterator()) {
+            while (cursor.hasNext()) {
+                consumer.accept(cursor.next());
+            }
+        }
     }
 
     /**
@@ -132,7 +295,7 @@ public class AbstractMongoStorage extends AbstractStorage {
      * @return Entity
      */
     protected <T> T get(JacksonMongoCollection<T> collection, Bson query) {
-        ensureNotClosed();
+        ensurePreconditionsMet(collection, query);
 
         return collection.findOne(query);
     }
@@ -148,7 +311,7 @@ public class AbstractMongoStorage extends AbstractStorage {
      * @return Entity, possibly updated
      */
     protected <T> T createOrUpdate(JacksonMongoCollection<T> collection, T entity, Bson query) {
-        ensureNotClosed();
+        ensurePreconditionsMet(collection, query);
 
         if (collection.findOne(query) != null) {
             collection.replaceOne(query, entity);
@@ -166,7 +329,7 @@ public class AbstractMongoStorage extends AbstractStorage {
      * @return True if an entity was deleted, false if nothing was deleted or the write operation wasn't acknowledged
      */
     protected boolean deleteOne(JacksonMongoCollection<?> collection, Bson query) {
-        ensureNotClosed();
+        ensurePreconditionsMet(collection, query);
 
         DeleteResult result = collection.deleteOne(query);
         return result.wasAcknowledged() && result.getDeletedCount() > 0;
@@ -181,7 +344,7 @@ public class AbstractMongoStorage extends AbstractStorage {
      * acknowledged
      */
     protected boolean deleteMany(JacksonMongoCollection<?> collection, Bson query) {
-        ensureNotClosed();
+        ensurePreconditionsMet(collection, query);
 
         DeleteResult result = collection.deleteMany(query);
         return result.wasAcknowledged() && result.getDeletedCount() > 0;
@@ -202,7 +365,17 @@ public class AbstractMongoStorage extends AbstractStorage {
      * @return A basic BSON query against the {@value MONGO_ID_FIELD}
      */
     protected Bson findById(String id) {
+        Objects.requireNonNull(id, "ID cannot be null");
         return eq(MONGO_ID_FIELD, id);
+    }
+
+    /**
+     * Creates a BSON query that matches all entities
+     *
+     * @return Find all query
+     */
+    protected final Bson findAll() {
+        return new Document();
     }
 
     @Override

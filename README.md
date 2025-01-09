@@ -13,9 +13,10 @@ working Docker environment.
 
 # Modules
 
-There is only a single storage module provided currently:
+The following modules are currently provided
 
 - [`hibernate`](#hibernate)
+- [`mongodb`](#mongodb)
 
 ## Hibernate
 
@@ -91,6 +92,29 @@ classes under [`hibernate/src/test/io/telicent/smart/cache/storage/hibernate/`]
 
 [2]: https://github.com/telicent-oss/smart-caches-core/blob/main/docs/configurator/index.md
 
+## MongoDB
+
+The `mongodb` module provides the building blocks for working with MongoDB, and other MongoDB API compatible storage
+e.g. AWS DocumentDB.  This is built using the official MongoDB Sync Driver and the MongoJack library that provides
+Jackson integration with MongoDB allowing for any Jackson serializable type to be read/written to a MongoDB collection.
+
+The only requirement is that your entity classes **MUST** either have a `@ObjectId`/`@Id` annotated field defined, see
+[`@ObjectId`][3] documentation for more details.  See the test
+[`User`](mongodb/src/test/java/io/telicent/smart/cache/storage/mongodb/model/User.java) class for an example of this. As
+noted in the MongoJack documentation if you use `@Id` instead of `@ObjectId` then your code **MUST** ensure the ID is
+approriately generated and populated.
+
+[3]: https://mongojack.org/object-ids.html
+
+Connecting to MongoDB requires providing a `MongoClient` that you have configured appropriately, and the name of the
+database you wish to access.
+
+The API consists of a single `AbstractMongoStorage` class which should be extended and its helper methods used to
+implement your actual storage logic.  See
+[`UserDataStore`](mongodb/src/test/java/io/telicent/smart/cache/storage/mongodb/model/UserDataStore.java) for an
+exemplar of this.  Most of the helper methods revolve around first obtaining a `JacksonMongoCollection<T>` via the
+`getCollection()` method and then passing that into relevant helper methods.
+
 ## Depending on these modules
 
 These modules have the Maven Group ID `io.telicent.smart-caches.storage`, and the Maven Artifact IDs noted above.  You
@@ -99,12 +123,13 @@ can add a dependency like so:
 ```xml
 <dependency>
     <groupId>io.telicent.smart-caches.storage</groupId>
-    <artifactId>hibernate</artifactId>
+    <artifactId>MODULE</artifactId>
     <version>X.Y.Z</version>
 </dependency>
 ```
 
-Where `X.Y.Z` is the desired version, refer to the [`CHANGELOG.md`] for available versions and latest changes.
+Where `MODULE` is the desired storage module and `X.Y.Z` is the desired version, refer to the [`CHANGELOG.md`] for
+available versions and latest changes.
 
 ## License
 

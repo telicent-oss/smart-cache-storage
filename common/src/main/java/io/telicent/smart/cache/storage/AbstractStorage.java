@@ -47,8 +47,13 @@ public abstract class AbstractStorage implements AutoCloseable {
     @Override
     public final synchronized void close() {
         if (!this.closed) {
-            this.closeInternal();
-            this.closed = true;
+            try {
+                this.closeInternal();
+            } finally {
+                // Always mark as closed even if internal close fails, this is done in the finally block so if an
+                // exception occurs it still gets thrown upwards for the caller to deal with
+                this.closed = true;
+            }
         }
     }
 
