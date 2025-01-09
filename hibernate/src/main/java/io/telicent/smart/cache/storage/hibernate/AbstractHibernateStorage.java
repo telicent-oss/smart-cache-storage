@@ -3,6 +3,7 @@
  */
 package io.telicent.smart.cache.storage.hibernate;
 
+import io.telicent.smart.cache.storage.AbstractStorage;
 import io.telicent.smart.cache.storage.hibernate.configuration.HibernateConfiguration;
 import io.telicent.smart.cache.storage.hibernate.configuration.JpaConfiguration;
 import jakarta.persistence.EntityManagerFactory;
@@ -39,13 +40,12 @@ import java.util.function.Supplier;
  * </p>
  */
 @ToString
-@SuppressWarnings({"unused", "UnusedReturnValue"})
-public abstract class AbstractHibernateStorage implements AutoCloseable {
+@SuppressWarnings({ "unused", "UnusedReturnValue" })
+public abstract class AbstractHibernateStorage extends AbstractStorage {
 
     @ToString.Exclude
     private final EntityManagerFactory entityManagerFactory;
 
-    private volatile boolean closed = false;
     /**
      * The JDBC URL of the underlying data source
      */
@@ -87,11 +87,8 @@ public abstract class AbstractHibernateStorage implements AutoCloseable {
     }
 
     @Override
-    public synchronized void close() {
-        if (!this.closed) {
-            this.entityManagerFactory.close();
-            this.closed = true;
-        }
+    protected void closeInternal() {
+        this.entityManagerFactory.close();
     }
 
     /**
@@ -159,27 +156,6 @@ public abstract class AbstractHibernateStorage implements AutoCloseable {
         } else {
             return results.get(0);
         }
-    }
-
-    /**
-     * Method that checks whether the storage has been closed and throws an {@link IllegalStateException} if it has
-     *
-     * @throws IllegalStateException Thrown when the storage has been closed
-     */
-    protected final void ensureNotClosed() {
-        if (this.closed) {
-            throw new IllegalStateException("Storage already closed");
-        }
-    }
-
-    /**
-     * Gets whether the storage has been closed, for most use cases derived implementations likely want to call
-     * {@link #ensureNotClosed()} instead.
-     *
-     * @return True if closed, false otherwise
-     */
-    protected boolean isClosed() {
-        return this.closed;
     }
 
     /**
