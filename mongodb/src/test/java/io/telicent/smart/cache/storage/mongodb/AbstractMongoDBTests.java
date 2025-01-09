@@ -8,7 +8,9 @@ import com.mongodb.client.MongoClients;
 import org.bson.Document;
 import org.jetbrains.annotations.NotNull;
 import org.testcontainers.containers.MongoDBContainer;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterSuite;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeSuite;
 
 public class AbstractMongoDBTests {
@@ -21,18 +23,18 @@ public class AbstractMongoDBTests {
               .deleteMany(new Document());
     }
 
-    @BeforeSuite
+    @BeforeClass
     public void setup() {
         this.mongo = new MongoDBContainer("mongo");
         this.mongo.start();
     }
 
-    @AfterSuite
+    @AfterClass
     public void teardown() {
         this.mongo.stop();
+        this.mongo.close();
     }
 
-    @NotNull
     protected MongoClient createMongoClient() {
         return MongoClients.create(this.mongo.getConnectionString());
     }

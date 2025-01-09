@@ -4,20 +4,16 @@
 package io.telicent.smart.cache.storage.mongodb;
 
 import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
 import io.telicent.smart.cache.storage.mongodb.model.SavedData;
 import io.telicent.smart.cache.storage.mongodb.model.User;
 import io.telicent.smart.cache.storage.mongodb.model.UserDataStore;
-import org.bson.Document;
 import org.bson.UuidRepresentation;
 import org.jetbrains.annotations.NotNull;
 import org.mongojack.JacksonMongoCollection;
-import org.testcontainers.containers.MongoDBContainer;
 import org.testng.Assert;
 import org.testng.annotations.*;
 
 import java.util.*;
-import java.util.function.BinaryOperator;
 
 public class DockerTestMongoDBStorage extends AbstractMongoDBTests {
 
@@ -28,9 +24,13 @@ public class DockerTestMongoDBStorage extends AbstractMongoDBTests {
 
     @BeforeMethod(onlyForGroups = { "basic" })
     public void resetCollection() {
-        try (MongoClient client = createMongoClient()) {
-            resetCollection(client, UserDataStore.USERS_COLLECTION);
-            resetCollection(client, UserDataStore.DATA_COLLECTION);
+        if (this.mongo != null) {
+            if (this.mongo.isRunning()) {
+                try (MongoClient client = createMongoClient()) {
+                    resetCollection(client, UserDataStore.USERS_COLLECTION);
+                    resetCollection(client, UserDataStore.DATA_COLLECTION);
+                }
+            }
         }
     }
 
