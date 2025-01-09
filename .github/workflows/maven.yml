@@ -16,10 +16,10 @@ concurrency:
 
 jobs:
   maven-build:
-    uses: Telicent-io/telicent-test/.github/workflows/maven.yml@main
+    uses: Telicent-io/telicent-test/.github/workflows/parallel-maven.yml@main
     with:
       # Some Docker based tests in this repository but should be fine to pull the images we need without login
-      USES_DOCKERHUB_IMAGES: false
+      USES_DOCKERHUB_IMAGES: true
       # Want SNAPSHOTs to be published from main
       PUBLISH_SNAPSHOTS: true
       MAIN_BRANCH: main
@@ -27,8 +27,6 @@ jobs:
       MAVEN_ARGS: -P-telicent-oss -Dtest.maxForks=1
       # If running in debug mode, use appropriate logging
       MAVEN_DEBUG_ARGS: -Dlogback.configurationFile=logback-debug.xml
-      # Disable Windows build
-      RUN_WINDOWS_BUILD: false
     secrets: inherit 
 
 
