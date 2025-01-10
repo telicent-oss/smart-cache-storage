@@ -1,5 +1,10 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.3.1
+
+- Build improvements:
+    - Upgrade Smart Cache Core Libraries to 0.26.1
+
 # 0.3.0
 
 - New `mongodb` module introduced
