@@ -1,5 +1,10 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.3.2
+
+- Added `MongoConfiguration` class to `mongodb` module
+- Added ability to supply default values to `DatabaseConfiguration.fromConfigurator()`
+
 # 0.3.1
 
 - Build improvements:

@@ -24,6 +24,11 @@
         </dependency>
 
         <dependency>
+            <groupId>io.telicent.smart-caches</groupId>
+            <artifactId>configurator</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
         </dependency>

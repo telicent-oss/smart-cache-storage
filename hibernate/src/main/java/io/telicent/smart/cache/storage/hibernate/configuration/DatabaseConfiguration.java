@@ -63,12 +63,41 @@ public class DatabaseConfiguration {
      * @throws NullPointerException If any of the required configuration is missing
      */
     public static DatabaseConfiguration fromConfigurator() {
+        return fromConfigurator(null, null, null, null, null);
+    }
+
+    /**
+     * Gets the database configuration based upon using the {@link Configurator} API to retrieve the configuration based
+     * upon the keys defined as constants on this class i.e.
+     * <ul>
+     *     <li>{@value #HOSTNAME} for database hostname</li>
+     *     <li>{@value #PORT} for database port</li>
+     *     <li>{@value #DB_NAME} for database name</li>
+     *     <li>{@value #USERNAME}/{@value #USER} for
+     *     database username</li>
+     *     <li>{@value #PASSWORD} for database password</li>
+     * </ul>
+     * <p>
+     * The default values supplied are used if no configuration is available from the configuration API.
+     * </p>
+     *
+     * @param defaultHostname Default database hostname
+     * @param defaultPort     Default database port
+     * @param defaultDatabase Default database name
+     * @param defaultUsername Default username
+     * @param defaultPassword Default password
+     * @return Database configuration
+     * @throws NullPointerException If any of the required configuration is missing
+     */
+    public static DatabaseConfiguration fromConfigurator(String defaultHostname, Integer defaultPort,
+                                                         String defaultDatabase, String defaultUsername,
+                                                         String defaultPassword) {
         return DatabaseConfiguration.builder()
-                                    .hostname(Configurator.get(HOSTNAME))
-                                    .port(Configurator.get(PORT, Integer::parseInt, null))
-                                    .database(Configurator.get(DB_NAME))
-                                    .username(Configurator.get(new String[] { USERNAME, USER }))
-                                    .password(Configurator.get(PASSWORD))
+                                    .hostname(Configurator.get(new String[] { HOSTNAME }, defaultHostname))
+                                    .port(Configurator.get(PORT, Integer::parseInt, defaultPort))
+                                    .database(Configurator.get(new String[] { DB_NAME }, defaultDatabase))
+                                    .username(Configurator.get(new String[] { USERNAME, USER }, defaultUsername))
+                                    .password(Configurator.get(new String[] { PASSWORD }, defaultPassword))
                                     .build();
     }
 }

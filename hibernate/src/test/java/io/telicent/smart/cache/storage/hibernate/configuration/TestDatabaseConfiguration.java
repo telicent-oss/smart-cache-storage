@@ -40,8 +40,8 @@ public class TestDatabaseConfiguration {
                         Map.of(DatabaseConfiguration.HOSTNAME, "localhost", DatabaseConfiguration.PORT,
                                PostgresConfiguration.DEFAULT_PORT)
                 },
-                { Map.of(DatabaseConfiguration.USER, "sa", DatabaseConfiguration.PASSWORD, "test")}
-                };
+                { Map.of(DatabaseConfiguration.USER, "sa", DatabaseConfiguration.PASSWORD, "test") }
+        };
     }
 
     @Test(dataProvider = "incompleteConfigs", expectedExceptions = NullPointerException.class)
@@ -109,5 +109,21 @@ public class TestDatabaseConfiguration {
         Assert.assertEquals(config.getHostname(), "localhost");
         Assert.assertEquals(config.getPort(), PostgresConfiguration.DEFAULT_PORT);
         Assert.assertEquals(config.getDatabase(), "test");
+    }
+
+    @Test
+    public void givenNoConfigurationAndDefault_whenConfiguringDatabase_thenDefaultsUsed() {
+        // Given
+        Configurator.setSingleSource(NullSource.INSTANCE);
+
+        // When
+        DatabaseConfiguration config =
+                DatabaseConfiguration.fromConfigurator("localhost", PostgresConfiguration.DEFAULT_PORT, "some-default",
+                                                       null, null);
+
+        // Then
+        Assert.assertEquals(config.getHostname(), "localhost");
+        Assert.assertEquals(config.getPort(), PostgresConfiguration.DEFAULT_PORT);
+        Assert.assertEquals(config.getDatabase(), "some-default");
     }
 }
