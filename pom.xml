@@ -65,7 +65,7 @@
         <dependency.hypersistence>3.9.2</dependency.hypersistence>
         <dependency.mongodb>5.3.1</dependency.mongodb>
         <dependency.mongojack>5.0.2</dependency.mongojack>
-        <dependency.postgres>42.7.4</dependency.postgres>
+        <dependency.postgres>42.7.5</dependency.postgres>
         <dependency.smart-caches>0.27.1</dependency.smart-caches>
     </properties>
 
