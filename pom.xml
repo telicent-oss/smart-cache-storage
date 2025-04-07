@@ -61,8 +61,8 @@
         <dependency.commons-codec>1.16.1</dependency.commons-codec>
         <dependency.commons-io>2.18.0</dependency.commons-io>
         <dependency.h2>2.3.232</dependency.h2>
-        <dependency.hibernate>6.6.12.Final</dependency.hibernate>
-        <dependency.hypersistence>3.9.8</dependency.hypersistence>
+        <dependency.hibernate>6.6.13.Final</dependency.hibernate>
+        <dependency.hypersistence>3.9.9</dependency.hypersistence>
         <dependency.mongodb>5.4.0</dependency.mongodb>
         <dependency.mongojack>5.0.2</dependency.mongojack>
         <dependency.postgres>42.7.5</dependency.postgres>
