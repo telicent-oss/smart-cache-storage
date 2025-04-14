@@ -59,7 +59,7 @@
 
         <!-- Dependency Versions -->
         <dependency.commons-codec>1.16.1</dependency.commons-codec>
-        <dependency.commons-io>2.18.0</dependency.commons-io>
+        <dependency.commons-io>2.19.0</dependency.commons-io>
         <dependency.h2>2.3.232</dependency.h2>
         <dependency.hibernate>6.6.13.Final</dependency.hibernate>
         <dependency.hypersistence>3.9.9</dependency.hypersistence>
