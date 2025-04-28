@@ -62,7 +62,7 @@
         <dependency.commons-io>2.19.0</dependency.commons-io>
         <dependency.h2>2.3.232</dependency.h2>
         <dependency.hibernate>6.6.13.Final</dependency.hibernate>
-        <dependency.hypersistence>3.9.9</dependency.hypersistence>
+        <dependency.hypersistence>3.9.10</dependency.hypersistence>
         <dependency.mongodb>5.4.0</dependency.mongodb>
         <dependency.mongojack>5.0.2</dependency.mongojack>
         <dependency.postgres>42.7.5</dependency.postgres>
