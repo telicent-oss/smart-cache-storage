@@ -10,7 +10,12 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import io.telicent.smart.cache.configuration.Configurator;
 import lombok.*;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Objects;
 
 /**
  * A representation of basic Mongo configuration which consists of a configured {@link MongoClient} and a database
@@ -20,6 +25,7 @@ import org.apache.commons.lang3.StringUtils;
 @ToString
 @EqualsAndHashCode
 public class MongoConfiguration {
+    private static final Logger LOGGER = LoggerFactory.getLogger(MongoConfiguration.class);
 
     /**
      * A configuration variable used to specify the URL of the Mongo server to connect to
@@ -104,16 +110,37 @@ public class MongoConfiguration {
         if (StringUtils.isNotBlank(mongoUrl)) {
             // Get the rest of the Mongo settings, some of which are optional
             String mongoDatabase = Configurator.get(new String[] { MONGO_DATABASE }, defaultDatabase);
-            String mongoUser = Configurator.get(new String[] { MONGO_USER }, defaultUsername);
-            String mongoPassword = Configurator.get(new String[] { MONGO_PASSWORD }, defaultPassword);
-            String mongoAuthDatabase =
-                    Configurator.get(new String[] { MONGO_AUTH_DATABASE, MONGO_AUTHZ_DATABASE }, defaultAuthDatabase);
 
             // Start building the client settings
+            ConnectionString connectionString = new ConnectionString(mongoUrl);
+            LOGGER.info("Configuring from MONGO_URL: {}", sanitiseMongoUrl(mongoUrl, connectionString));
             MongoClientSettings.Builder clientSettings =
-                    MongoClientSettings.builder().applyConnectionString(new ConnectionString(mongoUrl));
+                    MongoClientSettings.builder().applyConnectionString(connectionString);
+
+            // Apply authentication settings if explicitly configured
+            // They could have already been supplied in the MONGO_URL in which case these variables SHOULD NOT be set as
+            // these potentially override some configuration that could be provided in the connection string
+            String mongoUser = Configurator.get(new String[] { MONGO_USER }, defaultUsername);
+            String mongoPassword = Configurator.get(new String[] { MONGO_PASSWORD }, defaultPassword);
+            // In particular here we ensure that if the MONGO_URL already had an authSource present we use that as a
+            // default in preference to our usual default UNLESS they set MONGO_AUTH_DATABASE to override what's in
+            // their MONGO_URL
+            String mongoAuthDatabase =
+                    Configurator.get(new String[] { MONGO_AUTH_DATABASE, MONGO_AUTHZ_DATABASE },
+                                     connectionString.getCredential() != null ?
+                                     connectionString.getCredential().getSource() : defaultAuthDatabase);
             if (StringUtils.isNotBlank(mongoUser) && StringUtils.isNotBlank(mongoPassword)) {
                 // Enable authentication if supplied with a username and password
+                LOGGER.info("Configuring Mongo Authentication with user '{}' and authentication source '{}'", mongoUser,
+                            mongoAuthDatabase);
+                if (connectionString.getCredential() != null) {
+                    warnIfOverridingUrl(connectionString.getCredential().getUserName(), mongoUser, MONGO_USER);
+                    warnIfOverridingUrl(connectionString.getCredential().getPassword() != null ?
+                                        new String(connectionString.getCredential().getPassword()) : null,
+                                        mongoPassword, MONGO_PASSWORD);
+                    warnIfOverridingUrl(connectionString.getCredential().getSource(), mongoAuthDatabase,
+                                        MONGO_AUTH_DATABASE);
+                }
                 clientSettings.credential(
                         MongoCredential.createCredential(mongoUser, mongoAuthDatabase, mongoPassword.toCharArray()));
             }
@@ -126,5 +153,29 @@ public class MongoConfiguration {
         } else {
             throw new IllegalArgumentException("Mongo URL not configured");
         }
+    }
+
+    private static void warnIfOverridingUrl(String urlValue, String configValue, String configVariable) {
+        if (StringUtils.isNotBlank(urlValue) && !Objects.equals(urlValue, configValue)) {
+            LOGGER.warn("Configuration variable {} provides value '{}' which overrides Connection URL value '{}'",
+                        configVariable, configValue, urlValue);
+        }
+    }
+
+    /**
+     * Sanitises a Mongo Connection String URL to redact any passwords
+     *
+     * @param rawUrl           Raw Connection String URL
+     * @param connectionString The parsed Connection String URL
+     */
+    public static String sanitiseMongoUrl(String rawUrl, ConnectionString connectionString) {
+        String output = rawUrl;
+        if (connectionString.getPassword() != null && ArrayUtils.isNotEmpty(connectionString.getPassword())) {
+            output = output.replace(new String(connectionString.getPassword()), "<password>");
+        }
+        if (StringUtils.isNotBlank(connectionString.getProxyPassword())) {
+            output = output.replace(connectionString.getProxyPassword(), "<proxy-password>");
+        }
+        return output;
     }
 }

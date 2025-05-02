@@ -217,4 +217,30 @@ public class DockerTestSecureMongoDBStorage extends DockerTestMongoDBStorage {
             Configurator.reset();
         }
     }
+
+    @Test(expectedExceptions = MongoSecurityException.class)
+    public void givenConnectionStringWithWrongAuthDBAndCredentialsInConfig_whenConfiguring_thenConnectionFails() {
+        // NB - This test verifies that an authSource in the connection string is honoured when configuring, even if
+        //      it is the wrong authSource, and the credentials are supplied
+
+        // Given
+        String connectionString = this.mongo.getConnectionString();
+        connectionString = connectionString + "?authSource=test";
+        Properties properties = createMongoConnectionProperties(connectionString);
+        try {
+            Configurator.setSingleSource(new PropertiesSource(properties));
+
+            // When
+            MongoConfiguration config = MongoConfiguration.fromConfigurator();
+
+            // Then
+            Assert.assertNotNull(config);
+            try (MongoClient client = config.getClient()) {
+                verifyFailedConnection(client);
+            }
+
+        } finally {
+            Configurator.reset();
+        }
+    }
 }
