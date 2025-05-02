@@ -6,7 +6,6 @@ package io.telicent.smart.cache.storage.mongodb.model;
 import lombok.*;
 
 import javax.persistence.Id;
-import java.util.UUID;
 
 
 @NoArgsConstructor

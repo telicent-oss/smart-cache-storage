@@ -7,16 +7,21 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import org.testcontainers.containers.MongoDBContainer;
 
-import java.io.PrintStream;
-
 /**
- * A basic MongoDB test cluster with no authentication
+ * A basic MongoDB test cluster with no authentication using the standard Test Containers {@link MongoDBContainer}
+ * <p>
+ * To test with MongoDB authentication use the {@link SecureMongoTestCluster} instead.
+ * </p>
  */
 public class BasicMongoTestCluster implements MongoTestCluster {
 
-
+    /**
+     * The MongoDB container, populated by calling the {@link #createContainer()} method when {@link #setup()} is
+     * called
+     */
     protected MongoDBContainer mongo;
 
+    @Override
     public void setup() {
         this.mongo = createContainer();
         long start = ClusterUtils.logStart("Starting MongoDB test cluster");
@@ -27,6 +32,9 @@ public class BasicMongoTestCluster implements MongoTestCluster {
     /**
      * Creates the MongoDB container, potentially adding any extra customisation/configuration needed for the test
      * cluster
+     * <p>
+     * By default, this is a plain {@link MongoDBContainer}
+     * </p>
      *
      * @return MongoDB Container
      */

@@ -8,17 +8,13 @@ import com.mongodb.MongoClientSettings;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.IndexOptions;
-import com.mongodb.client.result.DeleteResult;
 import io.telicent.smart.cache.storage.AbstractStorage;
 import io.telicent.smart.cache.storage.mongodb.cluster.MongoTestCluster;
 import io.telicent.smart.cache.storage.mongodb.model.User;
 import io.telicent.smart.cache.storage.mongodb.model.UserDataStore;
 import org.apache.commons.lang3.ArrayUtils;
 import org.bson.UuidRepresentation;
-import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.conversions.Bson;
 import org.junit.Assert;
 import org.mongojack.JacksonMongoCollection;
@@ -29,13 +25,8 @@ import org.testng.annotations.Test;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class DockerTestMongoDBBadParameters extends AbstractMongoDBTests {
 

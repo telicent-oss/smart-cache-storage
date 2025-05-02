@@ -1,3 +1,6 @@
+/**
+ * Copyright (C) 2024-2025 Telicent Limited
+ */
 package io.telicent.smart.cache.storage.mongodb;
 
 import com.mongodb.MongoCommandException;
@@ -11,7 +14,6 @@ import io.telicent.smart.cache.storage.mongodb.cluster.MongoTestCluster;
 import io.telicent.smart.cache.storage.mongodb.cluster.SecureMongoTestCluster;
 import io.telicent.smart.cache.storage.mongodb.configuration.MongoConfiguration;
 import org.bson.Document;
-import org.jetbrains.annotations.NotNull;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

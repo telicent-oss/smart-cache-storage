@@ -1,5 +1,18 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.4.0
+
+- Introduced `MongoTestCluster` interface in `tests` classifier of `mongodb` module
+    - New `BasicMongoTestCluster` implementation for plain MongoDB cluster
+    - New `SecureMongoTestCluster` for MongoDB cluster with authentication enabled
+- Build improvements:
+    - Upgraded Apache Commons IO to 2.19.0
+    - Upgraded Hibernate to 6.6.13.Final
+    - Upgraded Hypersistence Utils to 3.9.10
+    - Upgraded MongoDB to 5.4.0
+    - Upgraded Postgres to 42.7.5
+    - Upgraded Smart Caches Core to 0.28.2
+
 # 0.3.2
 
 - Added `MongoConfiguration` class to `mongodb` module

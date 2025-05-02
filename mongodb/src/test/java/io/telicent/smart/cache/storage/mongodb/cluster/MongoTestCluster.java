@@ -1,12 +1,13 @@
+/**
+ * Copyright (C) 2024-2025 Telicent Limited
+ */
 package io.telicent.smart.cache.storage.mongodb.cluster;
 
 import com.mongodb.client.MongoClient;
 import org.bson.Document;
 
-import java.io.PrintStream;
-
 /**
- * Interface for MongoDB test clusters
+ * Interface for MongoDB test clusters to abstract spinning clusters up and down in unit/integration tests
  */
 public interface MongoTestCluster {
 
@@ -67,6 +68,10 @@ public interface MongoTestCluster {
 
     /**
      * Gets a {@link MongoClient} for interacting with the cluster
+     * <p>
+     * Implementations <strong>MUST</strong> guarantee that the returned client can connect to the cluster so the client
+     * <strong>MUST</strong> be configured with all necessary parameters to do so.
+     * </p>
      *
      * @return Mongo Client
      */

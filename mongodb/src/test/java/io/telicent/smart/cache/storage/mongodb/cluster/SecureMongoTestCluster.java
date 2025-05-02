@@ -1,3 +1,6 @@
+/**
+ * Copyright (C) 2024-2025 Telicent Limited
+ */
 package io.telicent.smart.cache.storage.mongodb.cluster;
 
 import com.mongodb.client.MongoClient;
@@ -6,8 +9,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 
-import java.io.PrintStream;
-
+/**
+ * A MongoDB test cluster that has authentication enabled with a single administrative user by default
+ */
 @Builder
 public class SecureMongoTestCluster implements MongoTestCluster {
     @NonNull
@@ -32,6 +36,7 @@ public class SecureMongoTestCluster implements MongoTestCluster {
         ClusterUtils.logFinished("Stopped Secure MongoDB test cluster", start);
     }
 
+    @Override
     public String getPlainConnectionString() {
         return this.mongo.getPlainConnectionString();
     }
