@@ -4,6 +4,7 @@
 package io.telicent.smart.cache.storage.mongodb;
 
 import com.mongodb.client.MongoClient;
+import io.telicent.smart.cache.storage.mongodb.cluster.MongoTestCluster;
 import io.telicent.smart.cache.storage.mongodb.model.SavedData;
 import io.telicent.smart.cache.storage.mongodb.model.User;
 import io.telicent.smart.cache.storage.mongodb.model.UserDataStore;
@@ -26,9 +27,9 @@ public class DockerTestMongoDBStorage extends AbstractMongoDBTests {
     public void resetCollection() {
         if (this.mongo != null) {
             if (this.mongo.isRunning()) {
-                try (MongoClient client = createMongoClient()) {
-                    resetCollection(client, UserDataStore.USERS_COLLECTION);
-                    resetCollection(client, UserDataStore.DATA_COLLECTION);
+                try (MongoClient client = this.mongo.createMongoClient()) {
+                    MongoTestCluster.resetCollection(client, UserDataStore.USERS_COLLECTION);
+                    MongoTestCluster.resetCollection(client, UserDataStore.DATA_COLLECTION);
                 }
             }
         }
@@ -37,7 +38,7 @@ public class DockerTestMongoDBStorage extends AbstractMongoDBTests {
     @Test(groups = "basic")
     public void givenEmptyStorage_whenListingUsers_thenNoUsers() {
         // Given
-        try (MongoClient client = createMongoClient()) {
+        try (MongoClient client = this.mongo.createMongoClient()) {
             try (UserDataStore store = createStorage(client)) {
                 // When
                 List<User> users = store.listUsers();
@@ -51,7 +52,7 @@ public class DockerTestMongoDBStorage extends AbstractMongoDBTests {
     @Test(groups = "basic")
     public void givenEmptyStorage_whenDeletingNonExistentSavedData_thenNothingDeleted() {
         // Given
-        try (MongoClient client = createMongoClient()) {
+        try (MongoClient client = this.mongo.createMongoClient()) {
             try (UserDataStore store = createStorage(client)) {
                 // When
                 boolean deleted = store.deleteSavedDataById(UUID.randomUUID().toString());
@@ -65,7 +66,7 @@ public class DockerTestMongoDBStorage extends AbstractMongoDBTests {
     @Test(groups = "basic")
     public void givenEmptyStorage_whenDeletingNonExistentSavedDataForUser_thenNothingDeleted() {
         // Given
-        try (MongoClient client = createMongoClient()) {
+        try (MongoClient client = this.mongo.createMongoClient()) {
             try (UserDataStore store = createStorage(client)) {
                 // When
                 boolean deleted = store.deleteSavedData(User.builder().name("test").build());
@@ -79,7 +80,7 @@ public class DockerTestMongoDBStorage extends AbstractMongoDBTests {
     @Test(groups = "basic", expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = ".* no name provided")
     public void givenEmptyStorage_whenDroppingIndexWithNoName_thenIllegalArgument() {
         // Given
-        try (MongoClient client = createMongoClient()) {
+        try (MongoClient client = this.mongo.createMongoClient()) {
             try (UserDataStore store = createStorage(client)) {
                 // When and Then
                 JacksonMongoCollection<User> users = store.getUsers();
@@ -91,7 +92,7 @@ public class DockerTestMongoDBStorage extends AbstractMongoDBTests {
     @Test(groups = "basic", expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "No index.*")
     public void givenEmptyStorage_whenDroppingNonExistentIndex_thenIllegalArgument() {
         // Given
-        try (MongoClient client = createMongoClient()) {
+        try (MongoClient client = this.mongo.createMongoClient()) {
             try (UserDataStore store = createStorage(client)) {
                 // When and Then
                 JacksonMongoCollection<User> users = store.getUsers();
@@ -103,7 +104,7 @@ public class DockerTestMongoDBStorage extends AbstractMongoDBTests {
     @Test(groups = "basic")
     public void givenEmptyStorage_whenDroppingIndexExistingIndex_thenSuccess() {
         // Given
-        try (MongoClient client = createMongoClient()) {
+        try (MongoClient client = this.mongo.createMongoClient()) {
             try (UserDataStore store = createStorage(client)) {
                 // When
                 JacksonMongoCollection<User> users = store.getUsers();
@@ -117,13 +118,13 @@ public class DockerTestMongoDBStorage extends AbstractMongoDBTests {
     }
 
     private static @NotNull UserDataStore createStorage(MongoClient client) {
-        return new UserDataStore(client, DEFAULT_TEST_DB);
+        return new UserDataStore(client, MongoTestCluster.DEFAULT_TEST_DB);
     }
 
     @Test(groups = "basic")
     public void givenStorage_whenAddingUsers_thenUsersArePresent() {
         // Given
-        try (MongoClient client = createMongoClient()) {
+        try (MongoClient client = this.mongo.createMongoClient()) {
             try (UserDataStore store = createStorage(client)) {
                 // When
                 User a = User.builder().name("Adam").build();
@@ -143,7 +144,7 @@ public class DockerTestMongoDBStorage extends AbstractMongoDBTests {
     @Test(groups = "basic")
     public void givenStorage_whenAddingSameUserMultipleTimes_thenOneUserIsPresent() {
         // Given
-        try (MongoClient client = createMongoClient()) {
+        try (MongoClient client = this.mongo.createMongoClient()) {
             try (UserDataStore store = createStorage(client)) {
                 // When
                 User a = User.builder().name("Adam").id("1").build();
@@ -161,7 +162,7 @@ public class DockerTestMongoDBStorage extends AbstractMongoDBTests {
     @Test(groups = "basic")
     public void givenStorage_whenAddingManyUsers_thenUsersAreAllPresent() {
         // Given
-        try (MongoClient client = createMongoClient()) {
+        try (MongoClient client = this.mongo.createMongoClient()) {
             try (UserDataStore store = createStorage(client)) {
                 // When
                 for (int i = 1; i <= 1_000; i++) {
@@ -176,10 +177,10 @@ public class DockerTestMongoDBStorage extends AbstractMongoDBTests {
         }
     }
 
-    @Test
+    @Test(groups = "basic")
     public void givenStorageWithUsers_whenSavingData_thenDataIsRetrievable_andNotRetrievableForDifferentUser() {
         // Given
-        try (MongoClient client = createMongoClient()) {
+        try (MongoClient client = this.mongo.createMongoClient()) {
             try (UserDataStore store = createStorage(client)) {
                 User a = User.builder().name("Adam").build();
                 User b = User.builder().name("Bob").build();
@@ -202,7 +203,7 @@ public class DockerTestMongoDBStorage extends AbstractMongoDBTests {
     @BeforeGroups({ "many-users-and-data" })
     public void setupManyUsersAndData() {
         Random random = new Random();
-        try (MongoClient client = createMongoClient()) {
+        try (MongoClient client = this.mongo.createMongoClient()) {
             try (UserDataStore store = createStorage(client)) {
                 manyUsers = new ArrayList<>();
                 manyUsersDataCounts = new HashMap<>();
@@ -234,7 +235,7 @@ public class DockerTestMongoDBStorage extends AbstractMongoDBTests {
     @Test(groups = { "many-users-and-data" }, timeOut = 1000L)
     public void givenStorageWithManyUsersAndData_whenRetrievingSavedData_thenReturnsPromptly() {
         // Given
-        try (MongoClient client = createMongoClient()) {
+        try (MongoClient client = this.mongo.createMongoClient()) {
             try (UserDataStore store = createStorage(client)) {
                 // When and Then
                 for (User user : manyUsers) {
@@ -250,7 +251,7 @@ public class DockerTestMongoDBStorage extends AbstractMongoDBTests {
     public void givenStorageWithManyUsersAndData_whenRetrievingAllSavedData_thenExpectedSize() {
         // Given
         Long expected = manyUsersDataCounts.values().stream().reduce(0L, Long::sum, Long::sum);
-        try (MongoClient client = createMongoClient()) {
+        try (MongoClient client = this.mongo.createMongoClient()) {
             try (UserDataStore store = createStorage(client)) {
                 // When
                 List<SavedData> saved = store.getSavedData();
@@ -265,7 +266,7 @@ public class DockerTestMongoDBStorage extends AbstractMongoDBTests {
     public void givenStorageWithManyUsersAndData_whenRandomlyAccessingSavedData_thenReturnsPromptly() {
         // Given
         Random random = new Random();
-        try (MongoClient client = createMongoClient()) {
+        try (MongoClient client = this.mongo.createMongoClient()) {
             try (UserDataStore store = createStorage(client)) {
                 // When and Then
                 for (int i = 1; i <= 25; i++) {
@@ -281,7 +282,7 @@ public class DockerTestMongoDBStorage extends AbstractMongoDBTests {
     public void givenStorageWithManyUsersAndData_whenRandomlyAccessingSavedDataById_thenReturnsPromptly() {
         // Given
         Random random = new Random();
-        try (MongoClient client = createMongoClient()) {
+        try (MongoClient client = this.mongo.createMongoClient()) {
             try (UserDataStore store = createStorage(client)) {
                 for (int i = 1; i <= 25; i++) {
                     // When
@@ -301,7 +302,7 @@ public class DockerTestMongoDBStorage extends AbstractMongoDBTests {
     public void givenStorageWithManyUsersAndData_whenRandomlyDeletingSavedData_thenChangesAreReflected() {
         // Given
         Random random = new Random();
-        try (MongoClient client = createMongoClient()) {
+        try (MongoClient client = this.mongo.createMongoClient()) {
             try (UserDataStore store = createStorage(client)) {
                 for (int i = 1; i <= 25; i++) {
                     // When
@@ -328,7 +329,7 @@ public class DockerTestMongoDBStorage extends AbstractMongoDBTests {
     public void givenStorageWithManyUsersAndData_whenRandomlyDeletingAllSavedDataForUser_thenChangesAreReflected() {
         // Given
         Random random = new Random();
-        try (MongoClient client = createMongoClient()) {
+        try (MongoClient client = this.mongo.createMongoClient()) {
             try (UserDataStore store = createStorage(client)) {
                 for (int i = 1; i <= 25; i++) {
                     // When
@@ -348,7 +349,7 @@ public class DockerTestMongoDBStorage extends AbstractMongoDBTests {
     public void givenStorageWithManyUsersAndData_whenRandomlyDeletingSavedDataByNonExistentIds_thenNothingChanges() {
         // Given
         Random random = new Random();
-        try (MongoClient client = createMongoClient()) {
+        try (MongoClient client = this.mongo.createMongoClient()) {
             try (UserDataStore store = createStorage(client)) {
                 JacksonMongoCollection<SavedData> data =
                         store.getCollection(UserDataStore.DATA_COLLECTION, SavedData.class,
@@ -370,7 +371,7 @@ public class DockerTestMongoDBStorage extends AbstractMongoDBTests {
     public void givenStorageWithManyUsersAndData_whenRandomlyAccessingUsers_thenReturnsPromptly() {
         // Given
         Random random = new Random();
-        try (MongoClient client = createMongoClient()) {
+        try (MongoClient client = this.mongo.createMongoClient()) {
             try (UserDataStore store = createStorage(client)) {
                 // When
                 for (int i = 1; i <= 25; i++) {

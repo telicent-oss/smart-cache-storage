@@ -13,6 +13,7 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.result.DeleteResult;
 import io.telicent.smart.cache.storage.AbstractStorage;
+import io.telicent.smart.cache.storage.mongodb.cluster.MongoTestCluster;
 import io.telicent.smart.cache.storage.mongodb.model.User;
 import io.telicent.smart.cache.storage.mongodb.model.UserDataStore;
 import org.apache.commons.lang3.ArrayUtils;
@@ -40,14 +41,14 @@ public class DockerTestMongoDBBadParameters extends AbstractMongoDBTests {
 
     @Test(expectedExceptions = NullPointerException.class, expectedExceptionsMessageRegExp = "Mongo Client.*")
     public void givenNoMongoClient_whenConstructing_thenNPE() {
-        try (BadStorage storage = new BadStorage(DEFAULT_TEST_DB)) {
+        try (BadStorage storage = new BadStorage(MongoTestCluster.DEFAULT_TEST_DB)) {
             Assert.fail("Constructor should have errored");
         }
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Database cannot.*")
     public void givenNoDatabase_whenConstructing_thenIllegalArgument() {
-        try (MongoClient client = this.createMongoClient()) {
+        try (MongoClient client = this.mongo.createMongoClient()) {
             try (BadStorage storage = new BadStorage(client)) {
                 Assert.fail("Constructor should have errored");
             }
@@ -57,8 +58,8 @@ public class DockerTestMongoDBBadParameters extends AbstractMongoDBTests {
     @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Collection.*")
     public void givenStorage_whenRetrievingCollectionWithoutName_thenIllegalArgument() {
         // Given
-        try (MongoClient client = this.createMongoClient()) {
-            try (BadStorage storage = new BadStorage(client, DEFAULT_TEST_DB)) {
+        try (MongoClient client = this.mongo.createMongoClient()) {
+            try (BadStorage storage = new BadStorage(client, MongoTestCluster.DEFAULT_TEST_DB)) {
                 // When and Then
                 storage.getCollection(null, User.class, UuidRepresentation.STANDARD);
             }
@@ -68,8 +69,8 @@ public class DockerTestMongoDBBadParameters extends AbstractMongoDBTests {
     @Test
     public void givenStorage_whenCheckingForUnnamedIndex_thenFalse() {
         // Given
-        try (MongoClient client = this.createMongoClient()) {
-            try (BadStorage storage = new BadStorage(client, DEFAULT_TEST_DB)) {
+        try (MongoClient client = this.mongo.createMongoClient()) {
+            try (BadStorage storage = new BadStorage(client, MongoTestCluster.DEFAULT_TEST_DB)) {
                 // When
                 boolean hasIndex = storage.hasIndex(getUsersCollection(storage), null);
 
@@ -82,8 +83,8 @@ public class DockerTestMongoDBBadParameters extends AbstractMongoDBTests {
     @Test(expectedExceptions = IllegalStateException.class, expectedExceptionsMessageRegExp = AbstractStorage.STORAGE_ALREADY_CLOSED)
     public void givenClosedStorage_whenAttemptingOperations_thenIllegalState() {
         // Given
-        try (MongoClient mongoClient = this.createMongoClient()) {
-            try (BadStorage storage = new BadStorage(mongoClient, DEFAULT_TEST_DB)) {
+        try (MongoClient mongoClient = this.mongo.createMongoClient()) {
+            try (BadStorage storage = new BadStorage(mongoClient, MongoTestCluster.DEFAULT_TEST_DB)) {
                 storage.close();
 
                 // When and Then
@@ -95,8 +96,8 @@ public class DockerTestMongoDBBadParameters extends AbstractMongoDBTests {
     @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = ".*must include a non-empty name")
     public void givenStorage_whenCreatingIndexIfNotExistWithoutName_thenIllegalArgument() {
         // Given
-        try (MongoClient mongoClient = this.createMongoClient()) {
-            try (BadStorage storage = new BadStorage(mongoClient, DEFAULT_TEST_DB)) {
+        try (MongoClient mongoClient = this.mongo.createMongoClient()) {
+            try (BadStorage storage = new BadStorage(mongoClient,MongoTestCluster.DEFAULT_TEST_DB)) {
                 // When
                 JacksonMongoCollection<User> collection = getUsersCollection(storage);
                 Assert.assertNotNull(collection);
@@ -112,8 +113,8 @@ public class DockerTestMongoDBBadParameters extends AbstractMongoDBTests {
     @Test
     public void givenStorage_whenCreatingIndexWithoutName_thenGeneratedNameReturned() {
         // Given
-        try (MongoClient mongoClient = this.createMongoClient()) {
-            try (BadStorage storage = new BadStorage(mongoClient, DEFAULT_TEST_DB)) {
+        try (MongoClient mongoClient = this.mongo.createMongoClient()) {
+            try (BadStorage storage = new BadStorage(mongoClient,MongoTestCluster.DEFAULT_TEST_DB)) {
                 // When
                 JacksonMongoCollection<User> collection = getUsersCollection(storage);
                 String name = storage.createIndex(collection, null, "user");
@@ -150,8 +151,8 @@ public class DockerTestMongoDBBadParameters extends AbstractMongoDBTests {
     public void givenStorage_whenCallingMethodWithNullCollection_thenNPE(String methodName,
                                                                          Class<?>[] parameterTypes) throws Throwable {
         // Given
-        try (MongoClient mongoClient = this.createMongoClient()) {
-            try (AbstractMongoStorage storage = new BadStorage(mongoClient, DEFAULT_TEST_DB)) {
+        try (MongoClient mongoClient = this.mongo.createMongoClient()) {
+            try (AbstractMongoStorage storage = new BadStorage(mongoClient,MongoTestCluster.DEFAULT_TEST_DB)) {
                 Method method = AbstractMongoStorage.class.getDeclaredMethod(methodName, parameterTypes);
                 method.setAccessible(true);
 
@@ -171,8 +172,8 @@ public class DockerTestMongoDBBadParameters extends AbstractMongoDBTests {
                                                                                      Class<?>[] parameterTypes) throws
             Throwable {
         // Given
-        try (MongoClient mongoClient = this.createMongoClient()) {
-            try (AbstractMongoStorage storage = new BadStorage(mongoClient, DEFAULT_TEST_DB)) {
+        try (MongoClient mongoClient = this.mongo.createMongoClient()) {
+            try (AbstractMongoStorage storage = new BadStorage(mongoClient,MongoTestCluster.DEFAULT_TEST_DB)) {
                 storage.close();
                 Method method = AbstractMongoStorage.class.getDeclaredMethod(methodName, parameterTypes);
                 method.setAccessible(true);
@@ -196,8 +197,8 @@ public class DockerTestMongoDBBadParameters extends AbstractMongoDBTests {
         }
 
         // Given
-        try (MongoClient mongoClient = this.createMongoClient()) {
-            try (BadStorage storage = new BadStorage(mongoClient, DEFAULT_TEST_DB)) {
+        try (MongoClient mongoClient = this.mongo.createMongoClient()) {
+            try (BadStorage storage = new BadStorage(mongoClient,MongoTestCluster.DEFAULT_TEST_DB)) {
                 Method method = AbstractMongoStorage.class.getDeclaredMethod(methodName, parameterTypes);
                 method.setAccessible(true);
                 JacksonMongoCollection<User> collection = getUsersCollection(storage);
@@ -223,7 +224,7 @@ public class DockerTestMongoDBBadParameters extends AbstractMongoDBTests {
                                                                                               this.mongo.getConnectionString()))
                                                                               .writeConcern(WriteConcern.UNACKNOWLEDGED)
                                                                               .build())) {
-            try (BadStorage storage = new BadStorage(mongoClient, DEFAULT_TEST_DB)) {
+            try (BadStorage storage = new BadStorage(mongoClient,MongoTestCluster.DEFAULT_TEST_DB)) {
                 // When
                 JacksonMongoCollection<User> users = getUsersCollection(storage);
                 boolean oneDeleted = storage.deleteOne(users, storage.findById("test"));
