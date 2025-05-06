@@ -21,8 +21,8 @@ import java.util.Properties;
 
 public class DockerTestSecureMongoDBStorage extends DockerTestMongoDBStorage {
 
-    private static final String USERNAME = "admin";
-    private static final String PASSWORD = "some-credential-123";
+    public static final String USERNAME = "admin";
+    public static final String PASSWORD = "some-credential-123";
 
     public DockerTestSecureMongoDBStorage() {
         this.mongo = SecureMongoTestCluster.builder().username(USERNAME).password(PASSWORD).build();
