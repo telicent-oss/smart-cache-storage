@@ -131,8 +131,10 @@ public class MongoConfiguration {
                                      connectionString.getCredential().getSource() : defaultAuthDatabase);
             if (StringUtils.isNotBlank(mongoUser) && StringUtils.isNotBlank(mongoPassword)) {
                 // Enable authentication if supplied with a username and password
-                LOGGER.info("Configuring Mongo Authentication with user '{}' and authentication source '{}'", mongoUser,
-                            mongoAuthDatabase);
+                LOGGER.info(
+                        "Configuring Mongo Authentication from MONGO_USER and MONGO_PASSWORD with user '{}' and authentication source '{}'",
+                        mongoUser,
+                        mongoAuthDatabase);
                 if (connectionString.getCredential() != null) {
                     warnIfOverridingUrl(connectionString.getCredential().getUserName(), mongoUser, MONGO_USER, false);
                     warnIfOverridingUrl(connectionString.getCredential().getPassword() != null ?
@@ -143,6 +145,10 @@ public class MongoConfiguration {
                 }
                 clientSettings.credential(
                         MongoCredential.createCredential(mongoUser, mongoAuthDatabase, mongoPassword.toCharArray()));
+            } else if (connectionString.getCredential() != null) {
+                LOGGER.info(
+                        "Configured Mongo Authentication from MONGO_URL with user '{}' and authentication soruce '{}'",
+                        connectionString.getCredential().getUserName(), connectionString.getCredential().getSource());
             }
 
             // Create the prepare configuration

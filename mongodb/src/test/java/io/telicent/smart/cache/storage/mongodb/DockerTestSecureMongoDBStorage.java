@@ -164,6 +164,33 @@ public class DockerTestSecureMongoDBStorage extends DockerTestMongoDBStorage {
     }
 
     @Test
+    public void givenConnectionStringWithCredentials_whenConfiguring_thenConnectsSuccessfully() {
+        // NB - This test verifies that if the credentials are given in the connection string they are used
+
+        // Given
+        String connectionString = this.mongo.getPlainConnectionString();
+        connectionString = connectionString.replace("://", "://" + USERNAME + ":" + PASSWORD + "@");
+        Properties properties = new Properties();
+        properties.put(MongoConfiguration.MONGO_URL, connectionString);
+        properties.put(MongoConfiguration.MONGO_DATABASE, MongoTestCluster.DEFAULT_TEST_DB);
+        try {
+            Configurator.setSingleSource(new PropertiesSource(properties));
+
+            // When
+            MongoConfiguration config = MongoConfiguration.fromConfigurator();
+
+            // Then
+            Assert.assertNotNull(config);
+            try (MongoClient client = config.getClient()) {
+                verifySuccessfulConnection(client);
+            }
+
+        } finally {
+            Configurator.reset();
+        }
+    }
+
+    @Test
     public void givenConnectionStringWithWrongAuthDBAndCorrectInConfig_whenConfiguring_thenConfigCredentialsAllowConnectSuccessfully() {
         // NB - This test verifies that if the MONGO_AUTH_DATABASE config is given then that takes
         //      precedence over any authSource given in the connection string itself
