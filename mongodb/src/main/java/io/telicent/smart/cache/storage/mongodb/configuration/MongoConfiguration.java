@@ -147,7 +147,7 @@ public class MongoConfiguration {
                         MongoCredential.createCredential(mongoUser, mongoAuthDatabase, mongoPassword.toCharArray()));
             } else if (connectionString.getCredential() != null) {
                 LOGGER.info(
-                        "Configured Mongo Authentication from MONGO_URL with user '{}' and authentication soruce '{}'",
+                        "Configured Mongo Authentication from MONGO_URL with user '{}' and authentication source '{}'",
                         connectionString.getCredential().getUserName(), connectionString.getCredential().getSource());
             }
 
