@@ -134,12 +134,12 @@ public class MongoConfiguration {
                 LOGGER.info("Configuring Mongo Authentication with user '{}' and authentication source '{}'", mongoUser,
                             mongoAuthDatabase);
                 if (connectionString.getCredential() != null) {
-                    warnIfOverridingUrl(connectionString.getCredential().getUserName(), mongoUser, MONGO_USER);
+                    warnIfOverridingUrl(connectionString.getCredential().getUserName(), mongoUser, MONGO_USER, false);
                     warnIfOverridingUrl(connectionString.getCredential().getPassword() != null ?
                                         new String(connectionString.getCredential().getPassword()) : null,
-                                        mongoPassword, MONGO_PASSWORD);
+                                        mongoPassword, MONGO_PASSWORD, true);
                     warnIfOverridingUrl(connectionString.getCredential().getSource(), mongoAuthDatabase,
-                                        MONGO_AUTH_DATABASE);
+                                        MONGO_AUTH_DATABASE, false);
                 }
                 clientSettings.credential(
                         MongoCredential.createCredential(mongoUser, mongoAuthDatabase, mongoPassword.toCharArray()));
@@ -155,10 +155,13 @@ public class MongoConfiguration {
         }
     }
 
-    private static void warnIfOverridingUrl(String urlValue, String configValue, String configVariable) {
+    private static void warnIfOverridingUrl(String urlValue, String configValue, String configVariable,
+                                            boolean redactValues) {
         if (StringUtils.isNotBlank(urlValue) && !Objects.equals(urlValue, configValue)) {
             LOGGER.warn("Configuration variable {} provides value '{}' which overrides Connection URL value '{}'",
-                        configVariable, configValue, urlValue);
+                        configVariable,
+                        redactValues ? redact(configValue, configValue, "<config-password>") : configValue,
+                        redactValues ? redact(urlValue, urlValue, "<url-password>") : urlValue);
         }
     }
 
@@ -171,11 +174,19 @@ public class MongoConfiguration {
     public static String sanitiseMongoUrl(String rawUrl, ConnectionString connectionString) {
         String output = rawUrl;
         if (connectionString.getPassword() != null && ArrayUtils.isNotEmpty(connectionString.getPassword())) {
-            output = output.replace(new String(connectionString.getPassword()), "<password>");
+            output = redact(output, connectionString.getPassword(), "<password>");
         }
         if (StringUtils.isNotBlank(connectionString.getProxyPassword())) {
-            output = output.replace(connectionString.getProxyPassword(), "<proxy-password>");
+            output = redact(output, connectionString.getProxyPassword(), "<proxy-password>");
         }
         return output;
+    }
+
+    private static String redact(String input, char[] valueToRedact, String redactionPlaceholder) {
+        return redact(input, new String(valueToRedact), redactionPlaceholder);
+    }
+
+    private static String redact(String input, String valueToRedact, String redactionPlaceholder) {
+        return input.replace(valueToRedact, redactionPlaceholder);
     }
 }
