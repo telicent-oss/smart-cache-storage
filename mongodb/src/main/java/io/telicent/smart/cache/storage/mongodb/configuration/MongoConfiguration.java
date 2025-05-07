@@ -108,14 +108,21 @@ public class MongoConfiguration {
         // Get the Mongo URL, i.e. connection string, if available
         String mongoUrl = Configurator.get(new String[] { MONGO_URL }, defaultUrl);
         if (StringUtils.isNotBlank(mongoUrl)) {
-            // Get the rest of the Mongo settings, some of which are optional
-            String mongoDatabase = Configurator.get(new String[] { MONGO_DATABASE }, defaultDatabase);
-
             // Start building the client settings
             ConnectionString connectionString = new ConnectionString(mongoUrl);
             LOGGER.info("Configuring from MONGO_URL: {}", sanitiseMongoUrl(mongoUrl, connectionString));
             MongoClientSettings.Builder clientSettings =
                     MongoClientSettings.builder().applyConnectionString(connectionString);
+
+            // Get the rest of the Mongo settings, some of which are optional
+            // Note that the database could be supplied in the MONGO_URL in which case we use that as a default unless
+            // MONGO_DATABASE was explicitly specified
+            String mongoDatabase = Configurator.get(new String[] { MONGO_DATABASE },
+                                                    StringUtils.isNotBlank(connectionString.getDatabase()) ?
+                                                    connectionString.getDatabase() : defaultDatabase);
+            if (StringUtils.isNotBlank(connectionString.getDatabase())) {
+                warnIfOverridingUrl(connectionString.getDatabase(), mongoDatabase, MONGO_DATABASE, false);
+            }
 
             // Apply authentication settings if explicitly configured
             // They could have already been supplied in the MONGO_URL in which case these variables SHOULD NOT be set as

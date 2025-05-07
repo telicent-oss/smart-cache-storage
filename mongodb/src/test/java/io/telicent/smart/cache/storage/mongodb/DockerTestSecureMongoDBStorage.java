@@ -107,6 +107,53 @@ public class DockerTestSecureMongoDBStorage extends DockerTestMongoDBStorage {
     }
 
     @Test
+    public void givenFullConnectionString_whenConfiguring_thenConnectsSuccessfully() {
+        // Given
+        String connectionString = this.mongo.getConnectionString() + "/" + MongoTestCluster.DEFAULT_TEST_DB + "?authSource=admin";
+        Properties properties = new Properties();
+        properties.put(MongoConfiguration.MONGO_URL, connectionString);
+
+        try {
+            Configurator.setSingleSource(new PropertiesSource(properties));
+
+            // When
+            MongoConfiguration config = MongoConfiguration.fromConfigurator();
+
+            // Then
+            Assert.assertNotNull(config);
+            try (MongoClient client = config.getClient()) {
+                verifySuccessfulConnection(client);
+            }
+        } finally {
+            Configurator.reset();
+        }
+    }
+
+    @Test
+    public void givenConnectionStringWithWrongDatabaseAndCorrectDatabaseInConfig_whenConfiguring_thenConnectsSuccessfully() {
+        // Given
+        String connectionString = this.mongo.getConnectionString() + "/wrong-db?authSource=admin";
+        Properties properties = new Properties();
+        properties.put(MongoConfiguration.MONGO_URL, connectionString);
+        properties.put(MongoConfiguration.MONGO_DATABASE, MongoTestCluster.DEFAULT_TEST_DB);
+
+        try {
+            Configurator.setSingleSource(new PropertiesSource(properties));
+
+            // When
+            MongoConfiguration config = MongoConfiguration.fromConfigurator();
+
+            // Then
+            Assert.assertNotNull(config);
+            try (MongoClient client = config.getClient()) {
+                verifySuccessfulConnection(client);
+            }
+        } finally {
+            Configurator.reset();
+        }
+    }
+
+    @Test
     public void givenPlainConnectionStringAndCredentialsInConfig_whenConfiguring_thenConnectsSuccessfully() {
         // Given
         String connectionString = this.mongo.getPlainConnectionString();
