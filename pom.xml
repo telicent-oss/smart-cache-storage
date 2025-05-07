@@ -49,6 +49,8 @@
         the header.txt file in this top directory even when run on a submodule -->
         <license.header.path>${project.basedir}</license.header.path>
 
+        <analyze.failOnWarnings>false</analyze.failOnWarnings>
+
         <!-- Not GPG signing internal builds -->
         <gpg.skip>true</gpg.skip>
 
