@@ -180,6 +180,7 @@
 
 			            <!-- Trivy Cache -->
                         <exclude>.trivy/**</exclude>
+                        <exclude>*-trivy-*</exclude>
                     </excludes>
                 </configuration>
                 <executions>
@@ -211,6 +212,7 @@
                         <exclude>docs/images/</exclude>
                         <exclude>.vscode/*</exclude>
                         <exclude>.trivy/**</exclude>
+                        <exclude>*-trivy-*</exclude>
                     </excludes>
                 </configuration>
             </plugin>

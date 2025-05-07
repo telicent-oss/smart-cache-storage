@@ -2,6 +2,14 @@
 
 # 0.4.0
 
+- Mongo Configuration improvements:
+    - Logs more information about detected and applied configuration
+    - If `authSource` is specified in `MONGO_URL` use that in preference to default unless `MONGO_AUTH_DATABASE` is
+      explicitly configured, log a warning if these two values are mismatched
+    - If user credentials are specified in `MONGO_URL` use those unless `MONGO_USER` and `MONGO_PASSWORD` are set, log a
+      warning if the credentials are mismatched
+    - If database is specified in `MONGO_URL` use that in preference to default unless `MONGO_DATABASE` is specified,
+      log a warning if the credentials are mismatched.
 - Introduced `MongoTestCluster` interface in `tests` classifier of `mongodb` module
     - New `BasicMongoTestCluster` implementation for plain MongoDB cluster
     - New `SecureMongoTestCluster` for MongoDB cluster with authentication enabled
@@ -11,7 +19,7 @@
     - Upgraded Hypersistence Utils to 3.9.10
     - Upgraded MongoDB to 5.4.0
     - Upgraded Postgres to 42.7.5
-    - Upgraded Smart Caches Core to 0.28.2
+    - Upgraded Smart Caches Core to 0.29.0
 
 # 0.3.2
 
