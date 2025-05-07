@@ -3,39 +3,29 @@
  */
 package io.telicent.smart.cache.storage.mongodb;
 
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
-import org.bson.Document;
-import org.jetbrains.annotations.NotNull;
-import org.testcontainers.containers.MongoDBContainer;
+import io.telicent.smart.cache.storage.mongodb.cluster.BasicMongoTestCluster;
+import io.telicent.smart.cache.storage.mongodb.cluster.ClusterUtils;
+import io.telicent.smart.cache.storage.mongodb.cluster.MongoTestCluster;
 import org.testng.annotations.AfterClass;
-import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.BeforeSuite;
 
 public class AbstractMongoDBTests {
-    public static final String DEFAULT_TEST_DB = "test";
-    protected MongoDBContainer mongo;
+    /**
+     * Protected so tests can override this to use a different test cluster e.g. SecureMongoTestCluster
+     */
+    protected MongoTestCluster mongo = new BasicMongoTestCluster();
 
-    protected static void resetCollection(MongoClient client, String collection) {
-        client.getDatabase(DEFAULT_TEST_DB)
-              .getCollection(collection)
-              .deleteMany(new Document());
-    }
+    private long started;
 
     @BeforeClass
     public void setup() {
-        this.mongo = new MongoDBContainer("mongo");
-        this.mongo.start();
+        this.started = ClusterUtils.logStart("Starting tests " + this.getClass().getCanonicalName());
+        this.mongo.setup();
     }
 
     @AfterClass
     public void teardown() {
-        this.mongo.stop();
-        this.mongo.close();
-    }
-
-    protected MongoClient createMongoClient() {
-        return MongoClients.create(this.mongo.getConnectionString());
+        this.mongo.teardown();
+        ClusterUtils.logFinished("Finished tests " + this.getClass().getCanonicalName(), this.started);
     }
 }

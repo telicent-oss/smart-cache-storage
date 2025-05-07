@@ -4,7 +4,7 @@
 
     <groupId>io.telicent.smart-caches.storage</groupId>
     <artifactId>parent</artifactId>
-    <version>0.3.4-SNAPSHOT</version>
+    <version>0.4.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Telicent Smart Caches - Storage - Parent</name>
     <parent>
@@ -48,6 +48,8 @@
         Note that all submodules need to declare this appropriately as well so that the plugin can correctly find
         the header.txt file in this top directory even when run on a submodule -->
         <license.header.path>${project.basedir}</license.header.path>
+
+        <analyze.failOnWarnings>false</analyze.failOnWarnings>
 
         <!-- Not GPG signing internal builds -->
         <gpg.skip>true</gpg.skip>

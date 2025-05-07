@@ -115,6 +115,55 @@ implement your actual storage logic.  See
 exemplar of this.  Most of the helper methods revolve around first obtaining a `JacksonMongoCollection<T>` via the
 `getCollection()` method and then passing that into relevant helper methods.
 
+### Testing with MongoDB
+
+To aid testing against MongoDB in unit/integration tests we provide a `MongoTestCluster` interface in our `tests`
+classifier for this module.  This has two concrete implementations:
+
+- `BasicMongoTestCluster` - For a plain MongoDB cluster with no authentication.
+- `SecureMongoTestCluster` - For a MongoDB cluster that requires authentication.
+
+In your unit tests you create an instance of one of these and then call the appropriate methods in your test
+setup/teardown, and actual test methods, as appropriate e.g.
+
+```java
+public class TestMongoDBExample {
+    private final MongoTestCluster mongo = new BasicMongoTestCluster();
+
+    @BeforeClass
+    public void setup() {
+        this.mongo.setup();
+    }
+
+    @AfterClass
+    public void teardown() {
+        this.mongo.teardown();
+    }
+
+    @AfterMethod
+    public void reset() {
+        try (MongoClient client = this.mongo.createMongoClient()) {
+            MongoTestCluster.resetCollection(client, "some-collection")
+        }
+    }
+
+    @Test
+    public void testSomething() {
+        // Given
+        try (MongoClient client = this.mongo.createMongoClient()) {
+            // When
+            // Perform some action with the client
+
+            // Then
+            // Verify the results of that action
+        }
+    }
+```
+
+Note that the Mongo test cluster will have a default database of `test` available for use in your tests, available as a constant `MongoTestCluster.DEFAULT_TEST_DB`.  The
+`resetCollection()` method shown above assumes that database.  You can of course create and work with multiple databases
+in your tests if necessary.
+
 ## Depending on these modules
 
 These modules have the Maven Group ID `io.telicent.smart-caches.storage`, and the Maven Artifact IDs noted above.  You
