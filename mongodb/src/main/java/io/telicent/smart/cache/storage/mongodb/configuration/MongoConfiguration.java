@@ -6,6 +6,7 @@ package io.telicent.smart.cache.storage.mongodb.configuration;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoCredential;
+import com.mongodb.MongoException;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import io.telicent.smart.cache.configuration.Configurator;
@@ -57,6 +58,16 @@ public class MongoConfiguration {
      * A configuration variable used to specify the password for authenticating to the Mongo server
      */
     public static final String MONGO_PASSWORD = "MONGO_PASSWORD";
+    /**
+     * Constant error message suffix used when the provided Mongo Connection string cannot be parsed successfully
+     */
+    static final String INVALID_URL_SUFFIX =
+            "Note that the required Mongo connection string parameters vary depending on provided parameters, try providing all the requested parameters in your connection string and/or correcting any reported syntax errors.  See https://www.mongodb.com/docs/manual/reference/connection-string-options/#std-label-connections-connection-options for more details.";
+    /**
+     * Constant error message prefix used when the provided {@code MONGO_URL} connection string cannot be parsed
+     * successfully
+     */
+    static final String INVALID_URL_PREFIX = "Invalid MONGO_URL:";
 
     @NonNull
     private final MongoClient client;
@@ -76,6 +87,9 @@ public class MongoConfiguration {
      * </ul>
      *
      * @return Mongo configuration
+     * @throws MongoException           Thrown if there is a problem with the provided Mongo Configuration
+     * @throws IllegalArgumentException Thrown if there is insufficient configuration provided to attempt to connect to
+     *                                  Mongo
      */
     public static MongoConfiguration fromConfigurator() {
         return fromConfigurator(null, null, DEFAULT_AUTH_DATABASE, null, null);
@@ -101,15 +115,18 @@ public class MongoConfiguration {
      * @param defaultAuthDatabase Default auth database
      * @param defaultPassword     Default password
      * @return Mongo configuration
+     * @throws MongoException           Thrown if there is a problem with the provided Mongo Configuration
+     * @throws IllegalArgumentException Thrown if there is insufficient configuration provided to attempt to connect to
+     *                                  Mongo
      */
     public static MongoConfiguration fromConfigurator(String defaultUrl, String defaultDatabase,
-                                                      String defaultAuthDatabase,
-                                                      String defaultUsername, String defaultPassword) {
+                                                      String defaultAuthDatabase, String defaultUsername,
+                                                      String defaultPassword) {
         // Get the Mongo URL, i.e. connection string, if available
         String mongoUrl = Configurator.get(new String[] { MONGO_URL }, defaultUrl);
         if (StringUtils.isNotBlank(mongoUrl)) {
             // Start building the client settings
-            ConnectionString connectionString = new ConnectionString(mongoUrl);
+            ConnectionString connectionString = parseConnectionString(mongoUrl);
             LOGGER.info("Configuring from MONGO_URL: {}", sanitiseMongoUrl(mongoUrl, connectionString));
             MongoClientSettings.Builder clientSettings =
                     MongoClientSettings.builder().applyConnectionString(connectionString);
@@ -132,16 +149,15 @@ public class MongoConfiguration {
             // In particular here we ensure that if the MONGO_URL already had an authSource present we use that as a
             // default in preference to our usual default UNLESS they set MONGO_AUTH_DATABASE to override what's in
             // their MONGO_URL
-            String mongoAuthDatabase =
-                    Configurator.get(new String[] { MONGO_AUTH_DATABASE, MONGO_AUTHZ_DATABASE },
-                                     connectionString.getCredential() != null ?
-                                     connectionString.getCredential().getSource() : defaultAuthDatabase);
+            String mongoAuthDatabase = Configurator.get(new String[] { MONGO_AUTH_DATABASE, MONGO_AUTHZ_DATABASE },
+                                                        connectionString.getCredential() != null ?
+                                                        connectionString.getCredential().getSource() :
+                                                        defaultAuthDatabase);
             if (StringUtils.isNotBlank(mongoUser) && StringUtils.isNotBlank(mongoPassword)) {
                 // Enable authentication if supplied with a username and password
                 LOGGER.info(
                         "Configuring Mongo Authentication from MONGO_USER and MONGO_PASSWORD with user '{}' and authentication source '{}'",
-                        mongoUser,
-                        mongoAuthDatabase);
+                        mongoUser, mongoAuthDatabase);
                 if (connectionString.getCredential() != null) {
                     warnIfOverridingUrl(connectionString.getCredential().getUserName(), mongoUser, MONGO_USER, false);
                     warnIfOverridingUrl(connectionString.getCredential().getPassword() != null ?
@@ -165,6 +181,15 @@ public class MongoConfiguration {
                                      .build();
         } else {
             throw new IllegalArgumentException("Mongo URL not configured");
+        }
+    }
+
+    private static ConnectionString parseConnectionString(String mongoUrl) {
+        try {
+            return new ConnectionString(mongoUrl);
+        } catch (Throwable e) {
+            throw new MongoException(String.format("%s %s. %s", INVALID_URL_PREFIX, e.getMessage(), INVALID_URL_SUFFIX),
+                                     e);
         }
     }
 

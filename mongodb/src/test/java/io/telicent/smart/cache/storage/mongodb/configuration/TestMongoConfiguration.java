@@ -4,6 +4,7 @@
 package io.telicent.smart.cache.storage.mongodb.configuration;
 
 import com.mongodb.ConnectionString;
+import com.mongodb.MongoException;
 import io.telicent.smart.cache.configuration.Configurator;
 import io.telicent.smart.cache.configuration.sources.NullSource;
 import io.telicent.smart.cache.configuration.sources.PropertiesSource;
@@ -127,7 +128,7 @@ public class TestMongoConfiguration {
 
     @Test(dataProvider = "credentials")
     public void givenCredentialsInConnectionString_whenSanitising_thenCredentialsAreRedacted(String password,
-                                                                                            String proxyPassword) {
+                                                                                             String proxyPassword) {
         // Given
         String rawUrl = "mongodb://localhost:27017";
         if (StringUtils.isNotBlank(password)) {
@@ -149,5 +150,41 @@ public class TestMongoConfiguration {
         if (StringUtils.isNotBlank(proxyPassword)) {
             Assert.assertFalse(StringUtils.contains(sanitised, proxyPassword));
         }
+    }
+
+    @Test(expectedExceptions = MongoException.class, expectedExceptionsMessageRegExp = ".*" + MongoConfiguration.INVALID_URL_SUFFIX)
+    public void givenInvalidMongoUrl_whenConfiguring_thenFails() {
+        // Given
+        String rawUrl = "mongodb://:password@localhost:27017";
+        Properties properties = new Properties();
+        properties.put(MongoConfiguration.MONGO_URL, rawUrl);
+        Configurator.setSingleSource(new PropertiesSource(properties));
+
+        // When and Then
+        MongoConfiguration.fromConfigurator();
+    }
+
+    @Test(expectedExceptions = MongoException.class, expectedExceptionsMessageRegExp = ".*" + MongoConfiguration.INVALID_URL_SUFFIX)
+    public void givenIncompleteMongoUrl_whenConfiguring_thenFails() {
+        // Given
+        String rawUrl = "mongodb://localhost:27017?authMechanism=SCRAM-SHA-256";
+        Properties properties = new Properties();
+        properties.put(MongoConfiguration.MONGO_URL, rawUrl);
+        Configurator.setSingleSource(new PropertiesSource(properties));
+
+        // When and Then
+        MongoConfiguration.fromConfigurator();
+    }
+
+    @Test(expectedExceptions = MongoException.class, expectedExceptionsMessageRegExp = ".*" + MongoConfiguration.INVALID_URL_SUFFIX)
+    public void givenMongoUrlWithUnknownAuthMechanism_whenConfiguring_thenFails() {
+        // Given
+        String rawUrl = "mongodb://localhost:27017?authMechanism=unknown";
+        Properties properties = new Properties();
+        properties.put(MongoConfiguration.MONGO_URL, rawUrl);
+        Configurator.setSingleSource(new PropertiesSource(properties));
+
+        // When and Then
+        MongoConfiguration.fromConfigurator();
     }
 }

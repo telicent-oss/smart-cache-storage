@@ -1,5 +1,10 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.4.1
+
+- Mongo Configuration improvements:
+    - Wraps low-level exceptions from parsing invalid `MONGO_URL` into a more informative error 
+
 # 0.4.0
 
 - Mongo Configuration improvements:
