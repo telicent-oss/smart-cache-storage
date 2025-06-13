@@ -63,7 +63,7 @@
         <dependency.commons-codec>1.16.1</dependency.commons-codec>
         <dependency.commons-io>2.19.0</dependency.commons-io>
         <dependency.h2>2.3.232</dependency.h2>
-        <dependency.hibernate>6.6.14.Final</dependency.hibernate>
+        <dependency.hibernate>7.0.2.Final</dependency.hibernate>
         <dependency.hypersistence>3.9.11</dependency.hypersistence>
         <dependency.mongodb>5.5.1</dependency.mongodb>
         <dependency.mongojack>5.0.2</dependency.mongojack>
