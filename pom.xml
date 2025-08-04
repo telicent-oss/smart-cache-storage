@@ -10,7 +10,7 @@
     <parent>
         <groupId>io.telicent.smart-caches</groupId>
         <artifactId>parent</artifactId>
-        <version>0.29.2</version>
+        <version>0.29.3</version>
     </parent>
     <description>Libraries to simplify using common storage layers across Smart Caches</description>
 
@@ -63,12 +63,12 @@
         <dependency.commons-codec>1.16.1</dependency.commons-codec>
         <dependency.commons-io>2.20.0</dependency.commons-io>
         <dependency.h2>2.3.232</dependency.h2>
-        <dependency.hibernate>7.0.7.Final</dependency.hibernate>
+        <dependency.hibernate>7.0.9.Final</dependency.hibernate>
         <dependency.hypersistence>3.10.3</dependency.hypersistence>
         <dependency.mongodb>5.5.1</dependency.mongodb>
         <dependency.mongojack>5.0.3</dependency.mongojack>
         <dependency.postgres>42.7.7</dependency.postgres>
-        <dependency.smart-caches>0.29.2</dependency.smart-caches>
+        <dependency.smart-caches>0.29.3</dependency.smart-caches>
     </properties>
 
     <dependencyManagement>
