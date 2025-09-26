@@ -4,7 +4,7 @@
 
     <groupId>io.telicent.smart-caches.storage</groupId>
     <artifactId>parent</artifactId>
-    <version>0.4.2-SNAPSHOT</version>
+    <version>0.5.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Telicent Smart Caches - Storage - Parent</name>
     <parent>
@@ -61,7 +61,6 @@
 
         <!-- Dependency Versions -->
         <dependency.commons-codec>1.16.1</dependency.commons-codec>
-        <dependency.commons-io>2.20.0</dependency.commons-io>
         <dependency.h2>2.3.232</dependency.h2>
         <dependency.hibernate>7.1.1.Final</dependency.hibernate>
         <dependency.hypersistence>3.11.0</dependency.hypersistence>

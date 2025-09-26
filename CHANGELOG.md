@@ -1,5 +1,16 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.5.0
+
+- Build improvements:
+    - Upgraded Hibernate to 7.1.1.Final
+    - Upgraded HyPersistence Utils to 3.11.0 and Hibernate 7 target
+    - Upgraded MongoDB to 5.6.0
+    - Upgraded Mongojack to 5.0.3
+    - Upgraded Postgres to 42.7.8
+    - Upgraded Smart Caches Core to 0.29.6
+        - Removed dependency properties that were unnecessarily duplicated those inherited from Smart Caches Core
+
 # 0.4.1
 
 - Mongo Configuration improvements:
