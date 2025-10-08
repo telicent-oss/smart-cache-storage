@@ -55,6 +55,10 @@ import static com.mongodb.client.model.Filters.eq;
 public class AbstractMongoStorage extends AbstractStorage {
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractMongoStorage.class);
 
+    /**
+     * The default MongoDB ID field populated from the {@link Id} or {@link org.mongojack.ObjectId} annotated field of
+     * your entity class
+     */
     protected static final String MONGO_ID_FIELD = "_id";
     private final MongoClient mongo;
     private final MongoDatabase db;
