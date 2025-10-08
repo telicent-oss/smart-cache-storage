@@ -33,8 +33,6 @@ Developers using this API should have their storage classes extend `AbstractHibe
 various protected methods to implement their actual storage. See the test [`OrderManager`][1] implementation for an
 exemplar of this pattern.
 
-[1]: hibernate/src/test/java/io/telicent/smart/cache/storage/hibernate/model/OrderManager.java
-
 `TransactionContext` is an internal helper interface used to allow developers to access the Hibernate `Session` and
 JPA `EntityManager` with minimal fuss. A `TransactionContext` can be obtained by calling the
 `AbstractHibernateStorage.begin()` method. It is `AutoCloseable` meaning it **SHOULD** be used in a try-with-resources
@@ -84,13 +82,15 @@ Then at runtime you populate and supply a `Properties` object with the necessary
 
 To help API consumers with this a `DatabaseConfiguration` object is provided, that can be automatically populated from
 configuration obtained using the Smart Caches [Configurator][2] API by using the static `DatabaseConfiguration.
-fromConfigurator()` method. There are also a `PostgresConfiguration` and `H2Configuration` classes that provide static
-methods that take in a `DatabaseConfiguration` object and product a populated `Properties` object with the necessary JPA
-configuration set for those database backends. Again you can find examples of these APIs being used in the various test
-classes under [`hibernate/src/test/io/telicent/smart/cache/storage/hibernate/`]
-(hibernate/src/test/io/telicent/smart/cache/storage/hibernate).
+fromConfigurator()` method.
 
-[2]: https://github.com/telicent-oss/smart-caches-core/blob/main/docs/configurator/index.md
+There are also a `PostgresConfiguration` and `H2Configuration` classes that provide static methods that take in a
+`DatabaseConfiguration` object and product a populated `Properties` object with the necessary JPA configuration set for
+those database backends.
+
+You can find examples of these APIs being used in the various test classes under
+[`hibernate/src/test/io/telicent/smart/cache/storage/hibernate/`][HibExamples].
+
 
 ## MongoDB
 
@@ -104,10 +104,11 @@ The only requirement is that your entity classes **MUST** either have a `@Object
 noted in the MongoJack documentation if you use `@Id` instead of `@ObjectId` then your code **MUST** ensure the ID is
 approriately generated and populated.
 
-[3]: https://mongojack.org/object-ids.html
-
 Connecting to MongoDB requires providing a `MongoClient` that you have configured appropriately, and the name of the
-database you wish to access.
+database you wish to access.  To help API consumers with this a `MongoConfiguration` object is provided, that can be
+automatically populated from configuration obtained using the Smart Caches [Configurator][2] API by using the static
+`MongoConfiguration.fromConfigurator()` method.  Once you have an instance of this it provides access to both the
+configured `MongoClient` and the database to connect to via that client.
 
 The API consists of a single `AbstractMongoStorage` class which should be extended and its helper methods used to
 implement your actual storage logic.  See
@@ -160,9 +161,9 @@ public class TestMongoDBExample {
     }
 ```
 
-Note that the Mongo test cluster will have a default database of `test` available for use in your tests, available as a constant `MongoTestCluster.DEFAULT_TEST_DB`.  The
-`resetCollection()` method shown above assumes that database.  You can of course create and work with multiple databases
-in your tests if necessary.
+Note that the Mongo test cluster will have a default database of `test` available for use in your tests, available as a
+constant `MongoTestCluster.DEFAULT_TEST_DB`.  The `resetCollection()` method shown above assumes that database.  You can
+of course create and work with multiple databases in your tests if necessary.
 
 ## Depending on these modules
 
@@ -177,11 +178,14 @@ can add a dependency like so:
 </dependency>
 ```
 
-Where `MODULE` is the desired storage module and `X.Y.Z` is the desired version, refer to the [`CHANGELOG.md`] for
-available versions and latest changes.
+Where `MODULE` is the desired storage module and `X.Y.Z` is the desired version, refer to the
+[`CHANGELOG.md`](CHANGELOG.md) for available versions and latest changes.
 
 ## License
 
 Copyright 2024-2025 and All Rights Reserved Telicent Ltd, see [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
-
+[1]: hibernate/src/test/java/io/telicent/smart/cache/storage/hibernate/model/OrderManager.java
+[2]: https://github.com/telicent-oss/smart-caches-core/blob/main/docs/configurator/index.md
+[3]: https://mongojack.org/object-ids.html
+[HibExamples]: hibernate/src/test/io/telicent/smart/cache/storage/hibernate/

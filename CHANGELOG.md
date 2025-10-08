@@ -1,5 +1,11 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.5.1
+
+- Build improvements:
+    - Upgraded Hibernate to 7.1.3.Final
+    - Upgraded Smart Caches Core to 0.30.1
+
 # 0.5.0
 
 - Build improvements:
