@@ -89,7 +89,7 @@ There are also a `PostgresConfiguration` and `H2Configuration` classes that prov
 those database backends.
 
 You can find examples of these APIs being used in the various test classes under
-[`hibernate/src/test/io/telicent/smart/cache/storage/hibernate/`][HibExamples].
+[`hibernate/src/test/java/io/telicent/smart/cache/storage/hibernate/`][HibExamples].
 
 
 ## MongoDB
@@ -188,4 +188,4 @@ Copyright 2024-2025 and All Rights Reserved Telicent Ltd, see [LICENSE](LICENSE)
 [1]: hibernate/src/test/java/io/telicent/smart/cache/storage/hibernate/model/OrderManager.java
 [2]: https://github.com/telicent-oss/smart-caches-core/blob/main/docs/configurator/index.md
 [3]: https://mongojack.org/object-ids.html
-[HibExamples]: hibernate/src/test/io/telicent/smart/cache/storage/hibernate/
+[HibExamples]: hibernate/src/test/java/io/telicent/smart/cache/storage/hibernate/
