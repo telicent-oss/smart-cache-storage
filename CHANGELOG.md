@@ -2,9 +2,12 @@
 
 # 0.5.1
 
+- Updated README to properly reflect improvements to Mongo support that were added back in 0.4.0
 - Build improvements:
     - Upgraded Hibernate to 7.1.3.Final
+    - Upgraded MongoDB to 5.6.1
     - Upgraded Smart Caches Core to 0.30.1
+    - Various build and test dependencies upgraded to latest available
 
 # 0.5.0
 
