@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>io.telicent.smart-caches.storage</groupId>
+        <artifactId>parent</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+    </parent>
+    <artifactId>label-stores</artifactId>
+    <packaging>pom</packaging>
+    <name>Telicent Smart Caches - Storage - Label Stores - Parent</name>
+    <description>Parent for concrete Label Store implementations
+    </description>
+
+    <modules>
+        <module>label-store-hibernate</module>
+        <module>label-store-mongodb</module>
+        <module>label-store-benchmarks</module>
+    </modules>
+
+    <properties>
+        <license.header.path>${project.parent.basedir}</license.header.path>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.telicent.smart-caches.storage</groupId>
+            <artifactId>common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Test Dependencies -->
+        <dependency>
+            <groupId>io.telicent.smart-caches.storage</groupId>
+            <artifactId>common</artifactId>
+            <version>${project.version}</version>
+            <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>

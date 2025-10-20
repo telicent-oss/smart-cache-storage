@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import javax.persistence.Id;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import static com.mongodb.client.model.Filters.eq;
 
@@ -302,6 +303,29 @@ public class AbstractMongoStorage extends AbstractStorage {
         ensurePreconditionsMet(collection, query);
 
         return collection.findOne(query);
+    }
+
+    /**
+     * Gets/creates an entity in the collection
+     *
+     * @param collection Collection
+     * @param creator    Supplier that creates the entity to save if a matching entity does not exist
+     * @param query      Query used to identify the existing entity to return, if this returns nothing then a new entity
+     *                   is created
+     * @param <T>        Entity type
+     * @return Entity, possibly updated
+     */
+    protected <T> T getOrCreate(JacksonMongoCollection<T> collection, Supplier<T> creator, Bson query) {
+        ensurePreconditionsMet(collection, query);
+
+        T found = collection.findOne(query);
+        if (found != null) {
+            return found;
+        } else {
+            T created = creator.get();
+            collection.save(created);
+            return created;
+        }
     }
 
     /**

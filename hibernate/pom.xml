@@ -185,7 +185,7 @@
                             </includes>
                             <forkCount>${test.maxForks}</forkCount>
                             <reuseForks>true</reuseForks>
-                            <argLine>-javaagent:${org.mockito:mockito-core:jar} -XX:+EnableDynamicAgentLoading -Xshare:off</argLine>
+                            <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar} -XX:+EnableDynamicAgentLoading -Xshare:off</argLine>
                         </configuration>
                     </plugin>
                 </plugins>

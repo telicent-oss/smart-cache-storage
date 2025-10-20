@@ -9,6 +9,7 @@ import io.telicent.smart.cache.configuration.Configurator;
 import io.telicent.smart.cache.configuration.sources.NullSource;
 import io.telicent.smart.cache.configuration.sources.PropertiesSource;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.DataProvider;
@@ -145,10 +146,10 @@ public class TestMongoConfiguration {
         // Then
         Assert.assertNotEquals(sanitised, rawUrl);
         if (StringUtils.isBlank(password)) {
-            Assert.assertFalse(StringUtils.contains(sanitised, password));
+            Assert.assertFalse(Strings.CS.contains(sanitised, password));
         }
         if (StringUtils.isNotBlank(proxyPassword)) {
-            Assert.assertFalse(StringUtils.contains(sanitised, proxyPassword));
+            Assert.assertFalse(Strings.CS.contains(sanitised, proxyPassword));
         }
     }
 

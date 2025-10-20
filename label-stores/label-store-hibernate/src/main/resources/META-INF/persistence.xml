@@ -1,0 +1,35 @@
+<!--
+
+    Copyright (C) 2024-2025 Telicent Limited
+
+-->
+<persistence xmlns="http://java.sun.com/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://java.sun.com/xml/ns/persistence http://java.sun.com/xml/ns/persistence/persistence_2_0.xsd"
+             version="2.0">
+
+    <persistence-unit name="hibernate-labels-store" transaction-type="RESOURCE_LOCAL">
+        <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+
+        <!-- Our Entity Classes -->
+        <class>io.telicent.smart.cache.storage.labels.hibernate.EncodedLabel</class>
+
+        <properties>
+            <!--
+            NB - No database connection properties are supplied in this persistence unit, a consumer of this API is
+                 expected to supply the relevant properties when they create an entity manager
+            -->
+
+            <!-- Don't automatically create the schema -->
+            <property name="jakarta.persistence.schema-generation.database.action" value="create"/>
+
+            <!-- Echo all executed SQL to console -->
+            <!-- Uncomment when debugging if you're changing the model or adding new named queries -->
+            <!--<property name="hibernate.show_sql" value="true"/>
+            <property name="hibernate.format_sql" value="true"/>
+            <property name="hibernate.highlight_sql" value="true"/>-->
+        </properties>
+
+    </persistence-unit>
+
+</persistence>

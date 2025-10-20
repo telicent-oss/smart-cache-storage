@@ -1,0 +1,42 @@
+package io.telicent.smart.cache.storage.labels.benchmarks.stores;
+
+import io.telicent.smart.cache.storage.hibernate.configuration.DatabaseConfiguration;
+import io.telicent.smart.cache.storage.hibernate.configuration.h2.H2Configuration;
+import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
+import io.telicent.smart.cache.storage.labels.hibernate.HibernateLabelsStore;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class H2File implements StoreImplementation{
+    private static final AtomicInteger counter = new AtomicInteger();
+
+    private File tempDir;
+
+    @Override
+    public DictionaryLabelsStore newStore() {
+        String dbName = "benchmark-" + counter.incrementAndGet();
+        Properties props = H2Configuration.prepareFileConnectionProperties(
+                DatabaseConfiguration.builder().hostname("localhost").database(dbName).build(), this.tempDir);
+        return new HibernateLabelsStore(props);
+    }
+
+    @Override
+    public void setup() {
+        if (tempDir == null) {
+            try {
+                this.tempDir = Files.createTempDirectory("h2db").toFile();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    @Override
+    public void teardown() {
+
+    }
+}

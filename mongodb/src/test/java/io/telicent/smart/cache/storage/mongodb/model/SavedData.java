@@ -26,6 +26,7 @@ public class SavedData {
     @Setter
     private String name, user;
 
+    @Builder.Default
     private Map<String, Object> data = new HashMap<>();
 
     @JsonAnySetter
