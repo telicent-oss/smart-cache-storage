@@ -1,3 +1,7 @@
 #!/usr/bin/env bash
+#
+# Copyright (C) 2024-2025 Telicent Limited
+#
 
-java -cp target/label-store-benchmarks.jar -o target/label-store-benchmark-results.json -rf JSON
+
+exec java -jar target/benchmarks.jar -rff target/label-store-benchmark-results.json -rf JSON

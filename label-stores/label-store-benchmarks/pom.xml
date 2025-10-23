@@ -9,6 +9,8 @@
         <version>0.5.1-SNAPSHOT</version>
     </parent>
     <artifactId>label-store-benchmarks</artifactId>
+    <name>Telicent Smart Caches - Storage - Label Stores - JMH Benchmarks</name>
+    <description>JMH Benchmarks for the Label Store implementations in this repository</description>
 
     <properties>
         <license.header.path>${project.parent.parent.basedir}</license.header.path>
@@ -42,8 +44,19 @@
         </dependency>
 
         <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <!-- JMH Dependencies -->
@@ -86,7 +99,6 @@
     </dependencies>
 
     <build>
-        <finalName>label-store-benchmarks</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

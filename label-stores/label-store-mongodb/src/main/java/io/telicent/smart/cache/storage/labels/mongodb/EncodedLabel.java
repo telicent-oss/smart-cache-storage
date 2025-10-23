@@ -1,3 +1,6 @@
+/**
+ * Copyright (C) 2024-2025 Telicent Limited
+ */
 package io.telicent.smart.cache.storage.labels.mongodb;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;

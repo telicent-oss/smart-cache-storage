@@ -8,6 +8,8 @@ import io.telicent.smart.cache.storage.hibernate.TransactionContext;
 import io.telicent.smart.cache.storage.hibernate.configuration.HibernateConfiguration;
 import io.telicent.smart.cache.storage.hibernate.configuration.JpaConfiguration;
 import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
+import jakarta.persistence.RollbackException;
+import org.hibernate.exception.ConstraintViolationException;
 
 import java.util.Base64;
 import java.util.Properties;
@@ -38,6 +40,15 @@ public class HibernateLabelsStore extends AbstractHibernateStorage implements Di
                      .getId();
             context.commit();
             return id;
+        } catch (RollbackException e) {
+            // This can happen if two threads try to insert the same label at the same time
+            if (e.getCause() instanceof ConstraintViolationException cv) {
+                // Just recurse since the other thread likely already successfully inserted the label and in a fresh
+                // transaction we'll successfully retrieve the label
+                return idForLabel(label);
+            } else {
+                throw e;
+            }
         }
     }
 
