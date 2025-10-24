@@ -3,7 +3,6 @@
  */
 package io.telicent.smart.cache.storage.labels;
 
-import io.telicent.smart.cache.storage.CachingLabelsStore;
 import org.testng.annotations.Test;
 
 public class TestCachingLabelsStore extends AbstractDictionaryLabelStoreTests{

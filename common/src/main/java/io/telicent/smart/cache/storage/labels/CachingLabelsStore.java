@@ -1,11 +1,11 @@
 /**
  * Copyright (C) 2024-2025 Telicent Limited
  */
-package io.telicent.smart.cache.storage;
+package io.telicent.smart.cache.storage.labels;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
+import io.telicent.smart.cache.storage.AbstractStorage;
 
 import java.util.Base64;
 import java.util.Objects;

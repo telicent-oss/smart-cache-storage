@@ -3,7 +3,7 @@
  */
 package io.telicent.smart.cache.storage.labels.benchmarks.states;
 
-import io.telicent.smart.cache.storage.CachingLabelsStore;
+import io.telicent.smart.cache.storage.labels.CachingLabelsStore;
 import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
 import io.telicent.smart.cache.storage.labels.benchmarks.stores.StoreImplementation;
 import io.telicent.smart.cache.storage.mongodb.cluster.ClusterUtils;
