@@ -7,8 +7,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.telicent.smart.cache.storage.AbstractStorage;
 
-import java.util.Base64;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * A caching decorator over another labels store
@@ -42,8 +41,71 @@ public class CachingLabelsStore extends AbstractStorage implements DictionaryLab
     }
 
     @Override
+    public Map<byte[], Long> idsForLabels(List<byte[]> labels) {
+        // Can everything be satisfied from the cache?
+        boolean allCached = true;
+        Map<byte[], Long> ids = new LinkedHashMap<>();
+        for (byte[] label : labels) {
+            if (label == null) {
+                continue;
+            }
+            String encoded = this.encoder.encodeToString(label);
+            Long id = this.labelsToIds.getIfPresent(encoded);
+            ids.put(label, id);
+            if (id == null) {
+                allCached = false;
+            }
+        }
+
+        if (allCached) {
+            return ids;
+        }
+
+        // If not then get the rest from the underlying store and combine the results
+        List<byte[]> uncachedLabels =
+                ids.entrySet().stream().filter(e -> e.getValue() == null).map(Map.Entry::getKey).toList();
+        Map<byte[], Long> uncachedIds = this.store.idsForLabels(uncachedLabels);
+        ids.putAll(uncachedIds);
+
+        return ids;
+    }
+
+    @Override
     public byte[] labelForId(long id) {
         return this.idsToLabels.get(id, this.store::labelForId);
+    }
+
+    @Override
+    public Map<Long, byte[]> labelsForIds(List<Long> ids) {
+        // Can everything be satisfied from the cache?
+        boolean allCached = true;
+        Map<Long, byte[]> labels = new LinkedHashMap<>();
+        for (Long id : ids) {
+            // Ignore null IDs
+            if (id == null) {
+                continue;
+            }
+            // NB - The list might contain duplicate IDs
+            if (labels.containsKey(id)) {
+                continue;
+            }
+            labels.put(id, this.idsToLabels.getIfPresent(id));
+            if (labels.get(id) == null) {
+                allCached = false;
+            }
+        }
+        if (allCached) {
+            return labels;
+        }
+
+        // For any uncached IDs lookup in the underlying store then combine the results
+        List<Long> uncachedIds =
+                labels.entrySet().stream().filter(e -> e.getValue() == null).map(Map.Entry::getKey).toList();
+        Map<Long, byte[]> uncachedLabels = this.store.labelsForIds(uncachedIds);
+        labels.putAll(uncachedLabels);
+
+        return labels;
+
     }
 
     @Override

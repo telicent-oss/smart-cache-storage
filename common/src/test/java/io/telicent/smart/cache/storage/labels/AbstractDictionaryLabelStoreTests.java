@@ -8,6 +8,7 @@ import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import java.security.KeyStore;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -150,6 +151,29 @@ public abstract class AbstractDictionaryLabelStoreTests {
         }
     }
 
+    @Test(dataProvider = "uniqueSizes", dataProviderClass = AbstractDictionaryLabelStoreTests.class)
+    public void givenLabelStore_whenBulkInsertingManyUniqueLabels_thenAllUniqueIdsReturned_andBulkIdsResolveToOriginalLabel(
+            int uniqueLabels) {
+        // Given
+        try (DictionaryLabelsStore store = newStore()) {
+            List<byte[]> labels = new ArrayList<>(generateUniqueLabels(uniqueLabels));
+
+            // When
+            Map<byte[], Long> ids = store.idsForLabels(labels);
+
+            // Then
+            Assert.assertEquals(ids.size(), labels.size());
+            Assert.assertEquals(ids.values().stream().distinct().count(), labels.size());
+
+            // And
+            Map<Long, byte[]> retrieved = store.labelsForIds(ids.values().stream().toList());
+            for (Map.Entry<byte[], Long> entry : ids.entrySet()) {
+                Assert.assertNotNull(retrieved.get(entry.getValue()));
+                Assert.assertEquals(retrieved.get(entry.getValue()), entry.getKey());
+            }
+        }
+    }
+
     @DataProvider(name = "repeatedSizes")
     protected static Object[][] repeatedSizes() {
         return new Object[][] {
@@ -167,6 +191,23 @@ public abstract class AbstractDictionaryLabelStoreTests {
 
             // When
             insertLabelsAndTrackAssignedIds(labels, ids, store);
+
+            // Then
+            // NB - Randomness means not all unique labels might have been in generated labels
+            Assert.assertTrue(ids.size() <= uniqueLabels,
+                              "Expected at most " + uniqueLabels + " IDs but found " + ids.size());
+        }
+    }
+
+    @Test(dataProvider = "repeatedSizes", dataProviderClass = AbstractDictionaryLabelStoreTests.class)
+    public void givenLabelStore_whenBulkInsertingManyNonUniqueLabels_thenIdsReusedAppropriately(int total,
+                                                                                            int uniqueLabels) {
+        // Given
+        try (DictionaryLabelsStore store = newStore()) {
+            List<byte[]> labels = generateRepeatingLabels(total, uniqueLabels);
+
+            // When
+            Map<byte[], Long> ids = store.idsForLabels(labels);
 
             // Then
             // NB - Randomness means not all unique labels might have been in generated labels
@@ -210,6 +251,77 @@ public abstract class AbstractDictionaryLabelStoreTests {
             // NB - Randomness means not all unique labels might have been in generated labels
             Assert.assertTrue(ids.size() <= uniqueLabels,
                               "Expected at most " + uniqueLabels + " IDs but found " + ids.size());
+        }
+    }
+
+    @Test
+    public void givenLabelStore_whenBulkInsertingLabelsWithSomeNulls_thenNullLabelsIgnored() {
+        // Given
+        try (DictionaryLabelsStore store = newStore()) {
+            List<byte[]> labels = new ArrayList<>(generateUniqueLabels(100));
+            insertNulls(labels, 5);
+
+            // When
+            Map<byte[], Long> ids = store.idsForLabels(labels);
+
+            // Then
+            Assert.assertEquals(ids.size(), 100);
+        }
+    }
+
+    private static void insertNulls(List<?> labels, int total) {
+        for (int i = 1; i <= total; i++) {
+            labels.add(RandomUtils.insecure().randomInt(0, labels.size()), null);
+        }
+    }
+
+    @Test
+    public void givenLabelStore_whenBulkLookupIdsWithSomeNulls_thenNullIdsIgnored() {
+        // Given
+        try (DictionaryLabelsStore store = newStore()) {
+            List<byte[]> labels = new ArrayList<>(generateUniqueLabels(100));
+            Map<byte[], Long> ids = store.idsForLabels(labels);
+
+            // When
+            List<Long> lookupIds = new ArrayList<>(ids.values());
+            insertNulls(lookupIds, 15);
+            Map<Long, byte[]> retrieved = store.labelsForIds(lookupIds);
+
+            // Then
+            Assert.assertEquals(retrieved.size(), 100);
+            for (byte[] label : retrieved.values()) {
+                Assert.assertNotNull(label);
+            }
+        }
+    }
+
+    @Test
+    public void givenLabelStore_whenBulkInsertingAllNulls_thenNothingInserted() {
+        // Given
+        try (DictionaryLabelsStore store = newStore()) {
+            List<byte[]> labels = new ArrayList<>();
+            insertNulls(labels, 50);
+
+            // When
+            Map<byte[], Long> ids = store.idsForLabels(labels);
+
+            // Then
+            Assert.assertTrue(ids.isEmpty());
+        }
+    }
+
+    @Test
+    public void givenLabelStore_whenBulkLookupAllNulls_thenNothingReturned() {
+        // Given
+        try (DictionaryLabelsStore store = newStore()) {
+            List<Long> ids = new ArrayList<>();
+            insertNulls(ids, 50);
+
+            // When
+            Map<Long, byte[]> labels = store.labelsForIds(ids);
+
+            // Then
+            Assert.assertTrue(labels.isEmpty());
         }
     }
 }

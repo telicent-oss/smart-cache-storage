@@ -5,9 +5,7 @@ package io.telicent.smart.cache.storage.labels;
 
 import io.telicent.smart.cache.storage.AbstractStorage;
 
-import java.util.Base64;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -43,6 +41,19 @@ public class MemoryLabelsStore extends AbstractStorage implements DictionaryLabe
     }
 
     @Override
+    public Map<byte[], Long> idsForLabels(List<byte[]> labels) {
+        Map<byte[], Long> ids = new LinkedHashMap<>();
+        for (byte[] label : labels) {
+            // Per contract ignore null labels
+            if (label == null) {
+                continue;
+            }
+            ids.put(label, this.idForLabel(label));
+        }
+        return ids;
+    }
+
+    @Override
     public byte[] labelForId(long id) {
         ensureNotClosed();
         String encoded = this.idsToLabels.get(id);
@@ -50,6 +61,23 @@ public class MemoryLabelsStore extends AbstractStorage implements DictionaryLabe
             return null;
         }
         return this.decoder.decode(encoded);
+    }
+
+    @Override
+    public Map<Long, byte[]> labelsForIds(List<Long> ids) {
+        Map<Long, byte[]> labels = new LinkedHashMap<>();
+        for (Long id : ids) {
+            // Ignore null IDs
+            if (id == null) {
+                continue;
+            }
+            // NB - The list might contain duplicate IDs
+            if (labels.containsKey(id)) {
+                continue;
+            }
+            labels.put(id, this.labelForId(id));
+        }
+        return labels;
     }
 
     @Override

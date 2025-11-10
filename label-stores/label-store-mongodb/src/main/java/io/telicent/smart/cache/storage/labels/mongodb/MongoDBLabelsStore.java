@@ -10,8 +10,7 @@ import io.telicent.smart.cache.storage.mongodb.AbstractMongoStorage;
 import org.bson.UuidRepresentation;
 import org.mongojack.JacksonMongoCollection;
 
-import java.util.Base64;
-import java.util.Objects;
+import java.util.*;
 
 public class MongoDBLabelsStore extends AbstractMongoStorage implements DictionaryLabelsStore {
 
@@ -40,6 +39,10 @@ public class MongoDBLabelsStore extends AbstractMongoStorage implements Dictiona
 
         JacksonMongoCollection<EncodedLabel> labels = getLabelsCollection();
         String encoded = this.encoder.encodeToString(label);
+        return getOrCreateLabel(labels, encoded);
+    }
+
+    private Long getOrCreateLabel(JacksonMongoCollection<EncodedLabel> labels, String encoded) {
         return this.getOrCreate(labels, () -> {
                                     EncodedLabel created = EncodedLabel.of(encoded);
                                     synchronized (lock) {
@@ -48,6 +51,25 @@ public class MongoDBLabelsStore extends AbstractMongoStorage implements Dictiona
                                     return created;
                                 },
                                 Filters.eq("label", encoded)).getId();
+    }
+
+    @Override
+    public Map<byte[], Long> idsForLabels(List<byte[]> labels) {
+        ensureNotClosed();
+
+        JacksonMongoCollection<EncodedLabel> collection = getLabelsCollection();
+        Map<byte[], Long> ids = new LinkedHashMap<>();
+        for (byte[] label : labels) {
+            if (label == null) {
+                continue;
+            }
+            if (ids.containsKey(label)) {
+                continue;
+            }
+            String encoded = this.encoder.encodeToString(label);
+            ids.put(label, getOrCreateLabel(collection, encoded));
+        }
+        return ids;
     }
 
     private JacksonMongoCollection<EncodedLabel> getLabelsCollection() {
@@ -61,5 +83,26 @@ public class MongoDBLabelsStore extends AbstractMongoStorage implements Dictiona
         JacksonMongoCollection<EncodedLabel> labels = getLabelsCollection();
         EncodedLabel label = this.get(labels, Filters.eq(MONGO_ID_FIELD, id));
         return label != null ? label.getDecodedLabel() : null;
+    }
+
+    @Override
+    public Map<Long, byte[]> labelsForIds(List<Long> ids) {
+        ensureNotClosed();
+
+        JacksonMongoCollection<EncodedLabel> labels = getLabelsCollection();
+        List<EncodedLabel> encodedLabels = this.getAll(labels, Filters.in(MONGO_ID_FIELD, ids.stream()
+                                                                                             .filter(Objects::nonNull)
+                                                                                             .distinct()
+                                                                                             .toList()));
+        Map<Long, byte[]> result = new LinkedHashMap<>();
+        for (EncodedLabel label : encodedLabels) {
+            result.put(label.getId(), label.getDecodedLabel());
+        }
+        for (Long id : ids) {
+            if (id != null && !result.containsKey(id)) {
+                result.put(id, null);
+            }
+        }
+        return result;
     }
 }

@@ -13,6 +13,15 @@ import java.util.Base64;
 
 @Table(name = "ENCODED_LABELS")
 @Entity
+@NamedQueries(
+        value = {
+                @NamedQuery(name = "findByIds", query = """
+SELECT l FROM EncodedLabel l
+WHERE
+  l.id IN :ids
+""")
+        }
+)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
