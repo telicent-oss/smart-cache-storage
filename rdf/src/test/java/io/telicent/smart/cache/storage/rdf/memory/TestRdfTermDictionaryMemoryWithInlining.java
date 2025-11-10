@@ -3,12 +3,12 @@
  */
 package io.telicent.smart.cache.storage.rdf.memory;
 
-import io.telicent.smart.cache.storage.rdf.AbstractRdfTermDictionaryTests;
+import io.telicent.smart.cache.storage.rdf.InliningRdfTermDictionary;
 import io.telicent.smart.cache.storage.rdf.RdfTermDictionary;
 
-public class TestRdfTermDictionaryMemory extends AbstractRdfTermDictionaryTests {
+public class TestRdfTermDictionaryMemoryWithInlining extends TestRdfTermDictionaryMemory {
     @Override
     protected RdfTermDictionary create() {
-        return new MemoryRdfTermDictionary();
+        return new InliningRdfTermDictionary(super.create());
     }
 }

@@ -1,22 +1,7 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+/**
+ * Copyright (C) 2024-2025 Telicent Limited
  */
-
-package io.telicent.smart.cache.storage.rdf;
+package io.telicent.smart.cache.storage.rdf.nodetable;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -36,6 +21,7 @@ import org.apache.jena.dboe.transaction.txn.journal.Journal;
 import org.apache.jena.tdb2.params.StoreParams;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
 import org.apache.jena.tdb2.store.nodetable.NodeTableCache;
+import org.apache.jena.tdb2.store.nodetable.NodeTableInline;
 import org.apache.jena.tdb2.store.nodetable.NodeTableTRDF;
 import org.apache.jena.tdb2.sys.ComponentIdMgr;
 import org.apache.jena.tdb2.sys.SystemTDB;
@@ -95,19 +81,22 @@ public class NodeTableBuilder {
     private NodeTable buildNodeTable() {
         NodeTable nodeTable = buildBaseNodeTable();
 
-        //nodeTable = addNodeTableCache(nodeTable, params, isData);
-
+        // Add cache to speed up lookups
+        nodeTable = addNodeTableCache(nodeTable, StoreParams.getDftStoreParams());
         if (nodeTable instanceof NodeTableCache nodeTableCache) {
             listeners.add(nodeTableCache);
         }
 
+        // Add inlining wrapper so values that can be inlined don't need the underlying node table at all
+        nodeTable = NodeTableInline.create(nodeTable);
+
         return nodeTable;
     }
 
-    private static NodeTable addNodeTableCache(NodeTable nodeTable, StoreParams params, boolean isData) {
-        int nodeToIdCacheSize = isData ? params.getNode2NodeIdCacheSize() : params.getPrefixNode2NodeIdCacheSize();
-        int idToNodeCacheSize = isData ? params.getNodeId2NodeCacheSize() : params.getPrefixNodeId2NodeCacheSize();
-        int missCacheSize = isData ? params.getNodeMissCacheSize() : params.getPrefixNodeMissCacheSize();
+    private static NodeTable addNodeTableCache(NodeTable nodeTable, StoreParams params) {
+        int nodeToIdCacheSize = params.getNode2NodeIdCacheSize();
+        int idToNodeCacheSize = params.getNodeId2NodeCacheSize();
+        int missCacheSize = params.getNodeMissCacheSize();
         double nodeCacheInitialCapacityFactor = params.getNodeCacheInitialCapacityFactor();
         nodeTable = NodeTableCache.create(nodeTable, nodeToIdCacheSize, idToNodeCacheSize, missCacheSize,
                                           nodeCacheInitialCapacityFactor);

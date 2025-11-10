@@ -1,4 +1,7 @@
-package io.telicent.smart.cache.storage.rdf;
+/**
+ * Copyright (C) 2024-2025 Telicent Limited
+ */
+package io.telicent.smart.cache.storage.rdf.nodetable;
 
 import org.apache.jena.dboe.transaction.Transactional;
 import org.apache.jena.dboe.transaction.txn.TransactionalSystem;
@@ -11,10 +14,11 @@ import java.util.function.Supplier;
 
 public class NodeTableTransactional extends NodeTableWrapper implements Transactional {
 
-    private TransactionalSystem txnSystem;
+    private final TransactionalSystem txnSystem;
 
     protected NodeTableTransactional(NodeTable nodeTable, TransactionalSystem txnSystem) {
         super(nodeTable);
+        this.txnSystem = txnSystem;
     }
 
     @Override
