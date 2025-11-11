@@ -9,6 +9,9 @@ import io.telicent.smart.cache.storage.labels.mongodb.MongoDBLabelsStore;
 import io.telicent.smart.cache.storage.mongodb.cluster.BasicMongoTestCluster;
 import io.telicent.smart.cache.storage.mongodb.cluster.MongoTestCluster;
 
+/**
+ * Tests the {@link MongoDBLabelsStore} which uses a MongoDB backend
+ */
 public class MongoDB implements StoreImplementation {
 
     private MongoTestCluster mongo;

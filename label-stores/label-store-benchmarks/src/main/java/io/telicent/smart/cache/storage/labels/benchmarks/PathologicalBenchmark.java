@@ -5,14 +5,10 @@ package io.telicent.smart.cache.storage.labels.benchmarks;
 
 import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
 import io.telicent.smart.cache.storage.labels.benchmarks.states.PerIterationStore;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -31,17 +27,13 @@ public class PathologicalBenchmark {
     private final Random random = new Random(334455);
 
     public static void main(String[] args) {
-        try {
-            org.openjdk.jmh.Main.main(new String[] { "Pathological*" });
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        BenchmarkUtils.run(PathologicalBenchmark.class);
     }
 
     @Benchmark
     public void getIdForAlwaysUniqueLabel(PerIterationStore state, Blackhole blackhole) {
         DictionaryLabelsStore store = state.getStore();
         byte[] label = RandomUtils.insecure().randomBytes(this.random.nextInt(10, 250));
-        store.idForLabel(label);
+        blackhole.consume(store.idForLabel(label));
     }
 }

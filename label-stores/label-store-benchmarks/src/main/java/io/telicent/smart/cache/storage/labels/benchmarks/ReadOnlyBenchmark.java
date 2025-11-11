@@ -8,9 +8,12 @@ import io.telicent.smart.cache.storage.labels.benchmarks.states.PerBenchmarkStor
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
-import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * A benchmark that looks at read-only performance i.e. what happens when a data store is already populated and merely
+ * needs to retrieve labels by their IDs as part of its security filtering
+ */
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @Fork(1)
@@ -22,11 +25,7 @@ public class ReadOnlyBenchmark {
     private int counter = 0;
 
     public static void main(String[] args) {
-        try {
-            org.openjdk.jmh.Main.main(new String[] { "ReadOnly*" });
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        BenchmarkUtils.run(ReadOnlyBenchmark.class);
     }
 
     @Benchmark

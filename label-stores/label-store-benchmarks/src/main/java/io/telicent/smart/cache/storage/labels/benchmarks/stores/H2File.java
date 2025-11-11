@@ -14,6 +14,9 @@ import java.nio.file.Files;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Tests the {@link HibernateLabelsStore} with an H2 file backend
+ */
 public class H2File implements StoreImplementation{
     private static final AtomicInteger counter = new AtomicInteger();
 

@@ -13,11 +13,11 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * JMH state where there is a single instance of the {@link DictionaryLabelsStore} used for the benchmark and it is
- * pre-populated with data prior to the benchmark running
+ * JMH state where the store is shared across a group of threads and has a pool of 500 random labels pre-populated into
+ * the store
  */
-@State(Scope.Thread)
-public class PerBenchmarkStore extends AbstractStoresState {
+@State(Scope.Group)
+public class PerGroupStore extends AbstractStoresState {
 
     public static final List<byte[]> RANDOM_LABELS = new ArrayList<>();
     @Getter

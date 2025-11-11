@@ -29,11 +29,7 @@ public class BasicBenchmark {
     private int counter = 0;
 
     public static void main(String[] args) {
-        try {
-            org.openjdk.jmh.Main.main(new String[] { "Basic*" });
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        BenchmarkUtils.run(BasicBenchmark.class);
     }
 
     private static final List<byte[]> RANDOM_LABELS;

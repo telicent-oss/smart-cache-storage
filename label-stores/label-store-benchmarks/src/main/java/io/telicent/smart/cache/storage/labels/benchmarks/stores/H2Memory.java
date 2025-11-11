@@ -11,6 +11,9 @@ import io.telicent.smart.cache.storage.labels.hibernate.HibernateLabelsStore;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * Tests the {@link HibernateLabelsStore} with a non-persistent H2 in-memory backend
+ */
 public class H2Memory implements StoreImplementation{
     private final AtomicLong counter = new AtomicLong();
 

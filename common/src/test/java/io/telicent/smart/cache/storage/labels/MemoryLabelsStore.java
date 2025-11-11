@@ -12,6 +12,10 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * A simple non-persistent in-memory implementation of a labels store purely to have something to write abstract test
  * suite against that can then be reused for real concrete implementations
+ * <p>
+ * This is intentionally included only in the {@code tests} module as this merely provides an upper limit for maximum
+ * performance and <strong>MUST NOT</strong> ever be used in a production setting because it isn't persistent!
+ * </p>
  */
 public class MemoryLabelsStore extends AbstractStorage implements DictionaryLabelsStore {
 

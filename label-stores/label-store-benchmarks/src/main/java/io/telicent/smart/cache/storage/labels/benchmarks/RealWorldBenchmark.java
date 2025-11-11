@@ -9,16 +9,15 @@ import org.apache.commons.lang3.RandomUtils;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 /**
- * A benchmark that looks at assumed "real-world" performance, a relatively small pool of 500 unique labels of varying
- * sizes which are randomly reused across 10,000 items.  Tests both being written into the label store and being read
- * out of the label store.
+ * A benchmark that tries to capture "real-world" performance i.e. how a shared label store might be actively used by a
+ * production application.  It has a relatively small pool of 500 unique labels of varying sizes which are randomly
+ * reused across 10,000 items.  Tests both being written into the label store and being read out of the label store.
  */
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -29,11 +28,7 @@ import java.util.concurrent.TimeUnit;
 public class RealWorldBenchmark {
 
     public static void main(String[] args) {
-        try {
-            org.openjdk.jmh.Main.main(new String[] { "RealWorld*" });
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        BenchmarkUtils.run(RealWorldBenchmark.class);
     }
 
     private static final List<byte[]> RANDOM_LABELS;
@@ -77,5 +72,11 @@ public class RealWorldBenchmark {
         byte[] label = RANDOM_LABELS.get(this.counter++ % RANDOM_LABELS.size());
         long id = store.idForLabel(label);
         blackhole.consume(store.labelForId(id));
+    }
+
+    @Benchmark
+    public void bulkIdsForLabels(PerIterationStore state, Blackhole blackhole) {
+        DictionaryLabelsStore store = state.getStore();
+        blackhole.consume(store.idsForLabels(RANDOM_LABELS));
     }
 }

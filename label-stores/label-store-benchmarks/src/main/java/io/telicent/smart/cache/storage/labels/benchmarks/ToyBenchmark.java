@@ -23,11 +23,7 @@ import java.util.concurrent.TimeUnit;
 public class ToyBenchmark {
 
     public static void main(String[] args) {
-        try {
-            org.openjdk.jmh.Main.main(new String[] { "Toy*"});
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        BenchmarkUtils.run(ToyBenchmark.class);
     }
 
     private static final byte[] RANDOM_LABEL = RandomUtils.insecure().randomBytes(50);

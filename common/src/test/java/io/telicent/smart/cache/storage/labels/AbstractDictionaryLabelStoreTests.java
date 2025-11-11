@@ -324,4 +324,26 @@ public abstract class AbstractDictionaryLabelStoreTests {
             Assert.assertTrue(labels.isEmpty());
         }
     }
+
+    @Test
+    public void givenLabelStore_whenBulkLookupMixOfValidAndInvalidIds_thenOnlyValidIdsReturnNonNull() {
+        // Given
+        try (DictionaryLabelsStore store = newStore()) {
+            List<byte[]> labels = new ArrayList<>(generateUniqueLabels(5));
+            Map<byte[], Long> ids = store.idsForLabels(labels);
+
+            // When
+            List<Long> lookups = new ArrayList<>(ids.values());
+            insertNulls(lookups, 1);
+            lookups.add(Long.MAX_VALUE);
+            lookups.add(Long.MAX_VALUE);
+            Map<Long, byte[]> retrieved = store.labelsForIds(lookups);
+
+            // Then
+            for (Long knownId : ids.values()) {
+                Assert.assertNotNull(retrieved.get(knownId));
+            }
+            Assert.assertNull(retrieved.get(Long.MAX_VALUE));
+        }
+    }
 }

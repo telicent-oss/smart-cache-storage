@@ -4,16 +4,15 @@
 package io.telicent.smart.cache.storage.labels.benchmarks;
 
 import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
-import io.telicent.smart.cache.storage.labels.benchmarks.states.PerBenchmarkStore;
+import io.telicent.smart.cache.storage.labels.benchmarks.states.PerGroupStore;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
-import java.io.IOException;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import static io.telicent.smart.cache.storage.labels.benchmarks.states.PerBenchmarkStore.ASSIGNED_IDS;
-import static io.telicent.smart.cache.storage.labels.benchmarks.states.PerBenchmarkStore.RANDOM_LABELS;
+import static io.telicent.smart.cache.storage.labels.benchmarks.states.PerGroupStore.RANDOM_LABELS;
 
 /**
  * A benchmark that looks at assumed "real-world" performance, a relatively small pool of 500 unique labels of varying
@@ -37,7 +36,7 @@ public class MultiThreadedBenchmark {
     @Benchmark
     @Group("ReadWrite")
     @GroupThreads(1)
-    public void writer(PerBenchmarkStore state, Blackhole blackhole) {
+    public void writer(PerGroupStore state, Blackhole blackhole) {
         DictionaryLabelsStore store = state.getStore();
         blackhole.consume(store.idForLabel(RANDOM_LABELS.get(this.random.nextInt(RANDOM_LABELS.size()))));
     }
@@ -45,8 +44,17 @@ public class MultiThreadedBenchmark {
     @Benchmark
     @Group("ReadWrite")
     @GroupThreads(4)
-    public void reader(PerBenchmarkStore state, Blackhole blackhole) {
+    public void reader(PerGroupStore state, Blackhole blackhole) {
         DictionaryLabelsStore store = state.getStore();
-        blackhole.consume(store.labelForId(ASSIGNED_IDS.get(this.random.nextInt(ASSIGNED_IDS.size()))));
+        List<Long> assignedIds = state.getAssignedIds();
+        blackhole.consume(store.labelForId(assignedIds.get(this.random.nextInt(assignedIds.size()))));
+    }
+
+    @Benchmark
+    @Group("ReadWrite")
+    @GroupThreads(4)
+    public void bulkReader(PerGroupStore state, Blackhole blackhole) {
+        DictionaryLabelsStore store = state.getStore();
+        blackhole.consume(store.labelsForIds(state.getAssignedIds()));
     }
 }

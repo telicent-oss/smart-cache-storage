@@ -11,6 +11,9 @@ import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.util.Properties;
 
+/**
+ * Test the {@link HibernateLabelsStore} with a Postgres backend
+ */
 public class Postgres implements StoreImplementation {
 
     private PostgreSQLContainer<?> postgres;
