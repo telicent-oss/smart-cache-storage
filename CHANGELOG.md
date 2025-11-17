@@ -1,5 +1,12 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.5.2
+
+- Build improvements
+    - Upgraded Hibernate to 7.1.8.Final
+    - Upgraded Hypersistence Utils to 3.12.0
+    - Upgraded Smart Caches Core to 0.31.1
+
 # 0.5.1
 
 - Updated README to properly reflect improvements to Mongo support that were added back in 0.4.0
