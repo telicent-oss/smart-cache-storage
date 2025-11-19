@@ -24,7 +24,7 @@ public abstract class AbstractDictionaryLabelStoreTests {
      */
     protected abstract DictionaryLabelsStore newStore();
 
-    @Test(expectedExceptions = NullPointerException.class)
+    @Test(expectedExceptions = {IllegalArgumentException.class, NullPointerException.class})
     public void givenLabelsStore_whenInsertingNullLabels_thenNPE() {
         // Given
         try (DictionaryLabelsStore store = newStore()) {
@@ -72,7 +72,10 @@ public abstract class AbstractDictionaryLabelStoreTests {
             byte[] label = store.labelForId(badId);
 
             // Then
-            Assert.assertNull(label);
+            if (label != null) {
+                System.out.println(badId);
+            }
+            Assert.assertNull(label, "Label for id " + badId + " was not null");
         }
     }
 

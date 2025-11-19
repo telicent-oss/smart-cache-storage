@@ -31,6 +31,12 @@
 
         <dependency>
             <groupId>io.telicent.smart-caches.storage</groupId>
+            <artifactId>label-store-rocksdb</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.telicent.smart-caches.storage</groupId>
             <artifactId>mongodb</artifactId>
             <version>${project.version}</version>
             <classifier>tests</classifier>
