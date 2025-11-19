@@ -17,6 +17,7 @@
     <modules>
         <module>label-store-hibernate</module>
         <module>label-store-mongodb</module>
+        <module>label-store-rocksdb</module>
         <module>label-store-benchmarks</module>
     </modules>
 
