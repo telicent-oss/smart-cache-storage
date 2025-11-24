@@ -19,6 +19,7 @@
         <module>label-store-mongodb</module>
         <module>label-store-rocksdb</module>
         <module>label-store-benchmarks</module>
+        <module>label-store-alternates</module>
     </modules>
 
     <properties>

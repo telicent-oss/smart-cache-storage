@@ -15,7 +15,7 @@ public class PerIterationStore extends AbstractStoresState {
      * Provides the simple class names of the backend implementations to test, see
      * {@link AbstractStoresState#setupInternal(String, int)} for details
      */
-    @Param({ "Memory", "H2Memory", "H2File", "Postgres", "MongoDB", "RocksDB" })
+    @Param({ "Memory", "H2Memory", "H2File", "Postgres", "MongoDB", "RocksDB", "MapDB", "LMDB" })
     private String implementation;
 
     /**
