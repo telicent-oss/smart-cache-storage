@@ -70,9 +70,13 @@ public class CachingLabelsStore extends AbstractStorage implements LabelsStore {
         }
 
         // If not then get the rest from the underlying store and combine the results
+        // We also update the cache as we do this to improve subsequent insert performance
         List<byte[]> uncachedLabels =
                 ids.entrySet().stream().filter(e -> e.getValue() == null).map(Map.Entry::getKey).toList();
         Map<byte[], Long> uncachedIds = this.store.idsForLabels(uncachedLabels);
+        for (Map.Entry<byte[], Long> entry : uncachedIds.entrySet()) {
+            this.labelsToIds.put(encoder.encodeToString(entry.getKey()), entry.getValue());
+        }
         ids.putAll(uncachedIds);
 
         return ids;
@@ -111,9 +115,16 @@ public class CachingLabelsStore extends AbstractStorage implements LabelsStore {
         }
 
         // For any uncached IDs lookup in the underlying store then combine the results
+        // We also update the cache to improve subsequent lookup performance
         List<Long> uncachedIds =
                 labels.entrySet().stream().filter(e -> e.getValue() == null).map(Map.Entry::getKey).toList();
         Map<Long, byte[]> uncachedLabels = this.store.labelsForIds(uncachedIds);
+        for (Map.Entry<Long, byte[]> entry : uncachedLabels.entrySet()) {
+            if (entry.getValue() == null) {
+                continue;
+            }
+            this.idsToLabels.put(entry.getKey(), entry.getValue());
+        }
         labels.putAll(uncachedLabels);
 
         return labels;

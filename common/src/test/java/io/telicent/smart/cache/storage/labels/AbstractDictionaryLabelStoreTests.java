@@ -3,6 +3,8 @@
  */
 package io.telicent.smart.cache.storage.labels;
 
+import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
@@ -193,6 +195,34 @@ public abstract class AbstractDictionaryLabelStoreTests {
         }
     }
 
+    @Test(dataProvider = "uniqueSizes", dataProviderClass = AbstractDictionaryLabelStoreTests.class)
+    public void givenDictionaryLabelStore_whenInsertingManyUniqueLabelsTwice_thenAllUniqueIdsReturned_andAllIdsResolveToOriginalLabel(
+            int uniqueLabels) {
+        // Given
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
+            Collection<byte[]> labels = generateUniqueLabels(uniqueLabels);
+            List<Long> ids = new ArrayList<>();
+
+            // When
+            insertLabelsAndTrackAssignedIds(labels, ids, store);
+            insertLabelsAndTrackAssignedIds(labels, ids, store);
+
+            // Then
+            Assert.assertEquals(ids.size(), labels.size() * 2);
+            Assert.assertEquals(ids.stream().distinct().count(), labels.size());
+            Assert.assertEquals(ids.stream().distinct().count(), uniqueLabels);
+
+            // And
+            int i = 0;
+            for (byte[] label : labels) {
+                long expectedId = ids.get(i++);
+                Assert.assertEquals(store.idForLabel(label), expectedId);
+                Assert.assertEquals(store.labelForId(expectedId), label);
+            }
+            Assert.assertEquals(store.labelSize(), uniqueLabels);
+        }
+    }
+
     protected static void insertLabelsAndTrackAssignedIds(Collection<byte[]> labels, Collection<Long> ids,
                                                           DictionaryLabelsStore store) {
         for (byte[] label : labels) {
@@ -345,9 +375,59 @@ public abstract class AbstractDictionaryLabelStoreTests {
         }
     }
 
+    @Test
+    public void givenDictionaryLabelStore_whenBulkInsertingLabelsWithSomeNullsTwice_thenNullLabelsIgnored() {
+        // Given
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
+            List<byte[]> labels = new ArrayList<>(generateUniqueLabels(100));
+            insertNulls(labels, 5);
+
+            // When
+            Map<byte[], Long> ids1 = store.idsForLabels(labels);
+            Map<byte[], Long> ids2 = store.idsForLabels(labels);
+
+            // Then
+            Assert.assertEquals(ids1.size(), 100);
+            Assert.assertEquals(store.labelSize(), 100);
+            for (byte[] label : labels) {
+                if (label != null) {
+                    Assert.assertNotNull(ids1.get(label));
+                    Assert.assertNotNull(ids2.get(label));
+                    Assert.assertEquals(ids1.get(label), ids2.get(label));
+                } else {
+                    Assert.assertNull(ids1.get(label));
+                    Assert.assertNull(ids2.get(label));
+                }
+            }
+        }
+    }
+
     private static void insertNulls(List<?> labels, int total) {
         for (int i = 1; i <= total; i++) {
             labels.add(RandomUtils.insecure().randomInt(0, labels.size()), null);
+        }
+    }
+
+    @Test
+    public void givenDictionaryLabelStore_whenBulkInsertingSomePreviouslyInsertedLabels_thenExistingLabelsHaveSameIds() {
+        // Given
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
+            List<byte[]> labels = new ArrayList<>(generateUniqueLabels(100));
+            List<byte[]> additionalLabels = new ArrayList<>(generateUniqueLabels(100));
+
+            // When
+            Map<byte[], Long> ids1 = store.idsForLabels(labels);
+            labels.addAll(additionalLabels);
+            Map<byte[], Long> ids2 = store.idsForLabels(labels);
+
+            // Then
+            Assert.assertEquals(ids1.size(), 100);
+            Assert.assertEquals(ids2.size(), 200);
+            Assert.assertEquals(store.labelSize(), 200);
+            for (byte[] label : ids1.keySet()) {
+                Assert.assertNotNull(ids2.get(label));
+                Assert.assertEquals(ids1.get(label), ids2.get(label));
+            }
         }
     }
 
@@ -453,6 +533,25 @@ public abstract class AbstractDictionaryLabelStoreTests {
     }
 
     @Test
+    public void givenDictionaryLabelStore_whenBulkLookupUniqueIdsTwice_thenSameLabelsReturnedEachTime() {
+        // Given
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
+            List<byte[]> labels = new ArrayList<>(generateUniqueLabels(5));
+            Map<byte[], Long> ids = store.idsForLabels(labels);
+
+            // When
+            List<Long> lookups = new ArrayList<>(ids.values());
+            Map<Long, byte[]> retrieved1 = store.labelsForIds(lookups);
+            Map<Long, byte[]> retrieved2 = store.labelsForIds(lookups);
+
+            // Then
+            for (Long key : retrieved1.keySet()) {
+                Assert.assertEquals(retrieved1.get(key), retrieved2.get(key));
+            }
+        }
+    }
+
+    @Test
     public void givenDictionaryLabelStore_whenBulkLookupMixOfValidAndInvalidIds_thenOnlyValidIdsReturnNonNull() {
         // Given
         try (DictionaryLabelsStore store = newDictionaryStore()) {
@@ -464,6 +563,51 @@ public abstract class AbstractDictionaryLabelStoreTests {
             insertNulls(lookups, 1);
             lookups.add(Long.MIN_VALUE);
             lookups.add(Long.MAX_VALUE);
+            Map<Long, byte[]> retrieved = store.labelsForIds(lookups);
+
+            // Then
+            for (Long knownId : ids.values()) {
+                Assert.assertNotNull(retrieved.get(knownId));
+            }
+            Assert.assertNull(retrieved.get(Long.MAX_VALUE));
+        }
+    }
+
+    @Test
+    public void givenDictionaryLabelStore_whenBulkLookupMixOfValidAndInvalidIdsTwice_thenSameValidLabelsReturned() {
+        // Given
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
+            List<byte[]> labels = new ArrayList<>(generateUniqueLabels(5));
+            Map<byte[], Long> ids = store.idsForLabels(labels);
+
+            // When
+            List<Long> lookups = new ArrayList<>(ids.values());
+            insertNulls(lookups, 1);
+            lookups.add(Long.MIN_VALUE);
+            lookups.add(Long.MAX_VALUE);
+            Map<Long, byte[]> retrieved1 = store.labelsForIds(lookups);
+            Map<Long, byte[]> retrieved2 = store.labelsForIds(lookups);
+
+            // Then
+            for (Long knownId : ids.values()) {
+                Assert.assertNotNull(retrieved1.get(knownId));
+                Assert.assertNotNull(retrieved2.get(knownId));
+                Assert.assertEquals(retrieved1.get(knownId), retrieved2.get(knownId));
+            }
+        }
+    }
+
+    @Test
+    public void givenDictionaryLabelStore_whenBulkLookupRepeatedIds_thenEachUniqueIdReturned() {
+        // Given
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
+            List<byte[]> labels = new ArrayList<>(generateUniqueLabels(5));
+            Map<byte[], Long> ids = store.idsForLabels(labels);
+
+            // When
+            List<Long> lookups = new ArrayList<>(ids.values());
+            lookups.addAll(ids.values());
+            Collections.shuffle(lookups);
             Map<Long, byte[]> retrieved = store.labelsForIds(lookups);
 
             // Then
