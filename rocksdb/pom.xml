@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>io.telicent.smart-caches.storage</groupId>
+        <artifactId>parent</artifactId>
+        <version>0.5.2-SNAPSHOT</version>
+    </parent>
+    <artifactId>rocksdb</artifactId>
+    <name>Telicent Smart Caches - Storage - RocksDB Store</name>
+    <description>Library providing a basic API and dependencies for building Smart Caches using RocksDB backed
+        storage
+    </description>
+
+    <properties>
+        <license.header.path>${project.parent.basedir}</license.header.path>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.telicent.smart-caches.storage</groupId>
+            <artifactId>common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.rocksdb</groupId>
+            <artifactId>rocksdbjni</artifactId>
+            <version>${dependency.rocksdb}</version>
+        </dependency>
+    </dependencies>
+
+</project>

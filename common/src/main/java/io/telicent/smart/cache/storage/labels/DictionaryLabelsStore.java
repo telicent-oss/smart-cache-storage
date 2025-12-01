@@ -73,6 +73,13 @@ public interface DictionaryLabelsStore extends Closeable {
     Map<Long, byte[]> labelsForIds(List<Long> ids);
 
     /**
+     * Returns the label store size in terms of number of unique label IDs assigned
+     *
+     * @return Number of unique label IDs in the store
+     */
+    long labelSize();
+
+    /**
      * Closes the labels store releasing any resources it might be holding
      */
     void close();

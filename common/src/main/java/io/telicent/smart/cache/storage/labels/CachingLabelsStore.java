@@ -6,17 +6,20 @@ package io.telicent.smart.cache.storage.labels;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.telicent.smart.cache.storage.AbstractStorage;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 
 import java.util.*;
 
 /**
  * A caching decorator over another labels store
  */
-public class CachingLabelsStore extends AbstractStorage implements DictionaryLabelsStore {
+public class CachingLabelsStore extends AbstractStorage implements LabelsStore {
 
-    private final DictionaryLabelsStore store;
+    private final LabelsStore store;
     private final Cache<String, Long> labelsToIds;
     private final Cache<Long, byte[]> idsToLabels;
+    private final Cache<String, Long> keysToLabels;
     private final Base64.Encoder encoder = Base64.getEncoder();
 
     /**
@@ -24,13 +27,14 @@ public class CachingLabelsStore extends AbstractStorage implements DictionaryLab
      *
      * @param store Underlying labels store
      */
-    public CachingLabelsStore(DictionaryLabelsStore store, int cacheSize) {
+    public CachingLabelsStore(LabelsStore store, int cacheSize) {
         this.store = Objects.requireNonNull(store, "Underlying store cannot be null");
         if (cacheSize <= 0) {
             throw new IllegalArgumentException("Cache size must be greater than zero");
         }
         this.labelsToIds = Caffeine.newBuilder().initialCapacity(cacheSize / 4).maximumSize(cacheSize).build();
-        this.idsToLabels = Caffeine.newBuilder().initialCapacity(cacheSize).maximumSize(cacheSize).build();
+        this.idsToLabels = Caffeine.newBuilder().initialCapacity(cacheSize / 4).maximumSize(cacheSize).build();
+        this.keysToLabels = Caffeine.newBuilder().initialCapacity(cacheSize / 4).maximumSize(cacheSize).build();
     }
 
     @Override
@@ -42,6 +46,10 @@ public class CachingLabelsStore extends AbstractStorage implements DictionaryLab
 
     @Override
     public Map<byte[], Long> idsForLabels(List<byte[]> labels) {
+        if (CollectionUtils.isEmpty(labels)) {
+            return Collections.emptyMap();
+        }
+
         // Can everything be satisfied from the cache?
         boolean allCached = true;
         Map<byte[], Long> ids = new LinkedHashMap<>();
@@ -77,6 +85,10 @@ public class CachingLabelsStore extends AbstractStorage implements DictionaryLab
 
     @Override
     public Map<Long, byte[]> labelsForIds(List<Long> ids) {
+        if (CollectionUtils.isEmpty(ids)) {
+            return Collections.emptyMap();
+        }
+
         // Can everything be satisfied from the cache?
         boolean allCached = true;
         Map<Long, byte[]> labels = new LinkedHashMap<>();
@@ -109,6 +121,11 @@ public class CachingLabelsStore extends AbstractStorage implements DictionaryLab
     }
 
     @Override
+    public long labelSize() {
+        return this.store.labelSize();
+    }
+
+    @Override
     protected void closeInternal() {
         try {
             this.store.close();
@@ -116,5 +133,41 @@ public class CachingLabelsStore extends AbstractStorage implements DictionaryLab
             this.labelsToIds.invalidateAll();
             this.idsToLabels.invalidateAll();
         }
+    }
+
+    @Override
+    public void setLabel(byte[] key, long labelId) {
+        this.store.setLabel(key, labelId);
+
+        // If set succeeds then update cache
+        String encoded = this.encoder.encodeToString(key);
+        this.keysToLabels.put(encoded, labelId);
+    }
+
+    @Override
+    public void setLabels(Map<byte[], Long> keysToLabels) {
+        if (MapUtils.isEmpty(keysToLabels)) {
+            return;
+        }
+        this.store.setLabels(keysToLabels);
+
+        // If set succeeds then update cache
+        for (Map.Entry<byte[], Long> entry : keysToLabels.entrySet()) {
+            if (entry.getKey() == null || entry.getValue() == null) {
+                continue;
+            }
+            this.keysToLabels.put(this.encoder.encodeToString(entry.getKey()), entry.getValue());
+        }
+    }
+
+    @Override
+    public Long getLabel(byte[] key) {
+        String encoded = this.encoder.encodeToString(key);
+        return this.keysToLabels.get(encoded, k -> this.store.getLabel(key));
+    }
+
+    @Override
+    public long keySize() {
+        return this.store.keySize();
     }
 }

@@ -7,13 +7,15 @@ import io.telicent.smart.cache.storage.hibernate.AbstractHibernateStorage;
 import io.telicent.smart.cache.storage.hibernate.TransactionContext;
 import io.telicent.smart.cache.storage.hibernate.configuration.HibernateConfiguration;
 import io.telicent.smart.cache.storage.hibernate.configuration.JpaConfiguration;
-import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
+import io.telicent.smart.cache.storage.labels.LabelsStore;
 import jakarta.persistence.RollbackException;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.hibernate.exception.ConstraintViolationException;
 
 import java.util.*;
 
-public class HibernateLabelsStore extends AbstractHibernateStorage implements DictionaryLabelsStore {
+public class HibernateLabelsStore extends AbstractHibernateStorage implements LabelsStore {
 
     protected static final String PERSISTENCE_UNIT = "hibernate-labels-store";
 
@@ -32,6 +34,7 @@ public class HibernateLabelsStore extends AbstractHibernateStorage implements Di
 
     @Override
     public long idForLabel(byte[] label) {
+        Objects.requireNonNull(label, "label cannot be null");
         try (TransactionContext context = this.begin()) {
             long id = getOrCreateLabel(label, context);
             context.commit();
@@ -65,6 +68,10 @@ public class HibernateLabelsStore extends AbstractHibernateStorage implements Di
 
     @Override
     public Map<byte[], Long> idsForLabels(List<byte[]> labels) {
+        if (CollectionUtils.isEmpty(labels)) {
+            return Collections.emptyMap();
+        }
+
         try (TransactionContext context = this.begin()) {
             Map<byte[], Long> ids = new LinkedHashMap<>();
             for (byte[] label : labels) {
@@ -101,6 +108,10 @@ public class HibernateLabelsStore extends AbstractHibernateStorage implements Di
 
     @Override
     public Map<Long, byte[]> labelsForIds(List<Long> ids) {
+        if (CollectionUtils.isEmpty(ids)) {
+            return Collections.emptyMap();
+        }
+
         try (TransactionContext context = this.begin()) {
             Map<Long, byte[]> map = new LinkedHashMap<>();
 
@@ -129,6 +140,99 @@ public class HibernateLabelsStore extends AbstractHibernateStorage implements Di
                 map.put(id, encoded != null ? encoded.getDecodedLabel() : null);
             }
             return map;
+        }
+    }
+
+    @Override
+    public long labelSize() {
+        try (TransactionContext context = this.begin()) {
+            return context.getSession().createQuery("SELECT COUNT(*) FROM EncodedLabel", Long.class).uniqueResult();
+        }
+    }
+
+    @Override
+    public void setLabel(byte[] key, long labelId) {
+        ensureNotClosed();
+        if (LabelsStore.isInvalidKey(key)) {
+            throw new NullPointerException("key cannot be null/empty");
+        }
+
+        try (TransactionContext context = this.begin()) {
+            String encoded = Base64.getEncoder().encodeToString(key);
+            AssignedLabel assignment = this.getOrCreateByNaturalId(context, encoded, AssignedLabel.class,
+                                        () -> AssignedLabel.of(encoded, labelId));
+            assignment.setLabelId(labelId);
+            context.getEntityManager().merge(assignment);
+            context.commit();
+        }
+    }
+
+    @Override
+    public void setLabels(Map<byte[], Long> keysToLabels) {
+        ensureNotClosed();
+        if (MapUtils.isEmpty(keysToLabels)) {
+            return;
+        }
+
+        try (TransactionContext context = this.begin()) {
+            int valid = 0;
+            for (Map.Entry<byte[], Long> entry : keysToLabels.entrySet()) {
+                if (LabelsStore.isInvalidKey(entry.getKey()) || entry.getValue() == null) {
+                    continue;
+                }
+                valid++;
+
+                String encoded = Base64.getEncoder().encodeToString(entry.getKey());
+                AssignedLabel assignment = this.getOrCreateByNaturalId(context, encoded, AssignedLabel.class,
+                                            () -> AssignedLabel.of(encoded, entry.getValue()));
+                assignment.setLabelId(entry.getValue());
+                context.getEntityManager().merge(assignment);
+            }
+
+            // Only commit if we've set at least one label assignment
+            if (valid > 0) {
+                context.commit();
+            }
+        }
+    }
+
+    @Override
+    public Long getLabel(byte[] key) {
+        this.ensureNotClosed();
+
+        try (TransactionContext context = this.begin()) {
+            String encoded = Base64.getEncoder().encodeToString(key);
+            AssignedLabel assignment =
+                    context.getSession().bySimpleNaturalId(AssignedLabel.class).load(encoded);
+
+            return assignment != null ? assignment.getLabelId() : null;
+        }
+    }
+
+    @Override
+    public byte[] getLabelAsBytes(byte[] key) {
+        this.ensureNotClosed();
+
+        try (TransactionContext context = this.begin()) {
+            // TODO Could maybe simplify via a Named Query using a JOIN?
+            String encoded = Base64.getEncoder().encodeToString(key);
+            AssignedLabel assignment =
+                    context.getSession().bySimpleNaturalId(AssignedLabel.class).load(encoded);
+
+            if (assignment == null) {
+                return null;
+            }
+            EncodedLabel label = context.getEntityManager().find(EncodedLabel.class, assignment.getLabelId());
+            return label != null ? label.getDecodedLabel() : null;
+        }
+    }
+
+    @Override
+    public long keySize() {
+        this.ensureNotClosed();
+
+        try (TransactionContext context = this.begin()) {
+            return context.getSession().createQuery("SELECT COUNT(*) FROM AssignedLabel", Long.class).uniqueResult();
         }
     }
 }

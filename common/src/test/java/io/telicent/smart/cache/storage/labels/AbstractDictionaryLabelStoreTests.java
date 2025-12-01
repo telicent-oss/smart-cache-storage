@@ -8,35 +8,34 @@ import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.security.KeyStore;
 import java.util.*;
 import java.util.concurrent.*;
 
 /**
- * Abstract test suite for label stores
+ * Abstract test suite for label dictionary stores
  */
 public abstract class AbstractDictionaryLabelStoreTests {
 
     /**
-     * Creates a new fresh empty instance of a store for testing
+     * Creates a new fresh empty instance of a label dictionary store for testing
      *
-     * @return New fresh labels store
+     * @return New fresh label dictionary store
      */
-    protected abstract DictionaryLabelsStore newStore();
+    protected abstract DictionaryLabelsStore newDictionaryStore();
 
-    @Test(expectedExceptions = {IllegalArgumentException.class, NullPointerException.class})
-    public void givenLabelsStore_whenInsertingNullLabels_thenNPE() {
+    @Test(expectedExceptions = { IllegalArgumentException.class, NullPointerException.class })
+    public void givenDictionaryLabelsStore_whenInsertingNullLabels_thenNPE() {
         // Given
-        try (DictionaryLabelsStore store = newStore()) {
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
             // When and Then
             store.idForLabel(null);
         }
     }
 
     @Test(expectedExceptions = IllegalStateException.class)
-    public void givenLabelsStore_whenClosing_thenIdForLabelThrowsIllegalState() {
+    public void givenDictionaryLabelsStore_whenClosing_thenIdForLabelThrowsIllegalState() {
         // Given
-        try (DictionaryLabelsStore store = newStore()) {
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
             // When
             store.close();
 
@@ -46,14 +45,59 @@ public abstract class AbstractDictionaryLabelStoreTests {
     }
 
     @Test(expectedExceptions = IllegalStateException.class)
-    public void givenLabelsStore_whenClosing_thenLabelForIdThrowsIllegalState() {
+    public void givenDictionaryLabelsStore_whenClosing_thenLabelForIdThrowsIllegalState() {
         // Given
-        try (DictionaryLabelsStore store = newStore()) {
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
             // When
             store.close();
 
             // Then
             store.labelForId(0);
+        }
+    }
+
+    @Test(expectedExceptions = IllegalStateException.class)
+    public void givenDictionaryLabelsStore_whenClosing_thenIdsForLabelsThrowsIllegalState() {
+        // Given
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
+            // When
+            store.close();
+
+            // Then
+            store.idsForLabels(List.of(new byte[4]));
+        }
+    }
+
+    @Test(expectedExceptions = IllegalStateException.class)
+    public void givenDictionaryLabelsStore_whenClosing_thenLabelsForIdsThrowsIllegalState() {
+        // Given
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
+            // When
+            store.close();
+
+            // Then
+            store.labelsForIds(List.of(0L));
+        }
+    }
+
+    @Test(expectedExceptions = IllegalStateException.class)
+    public void givenDictionaryLabelsStore_whenClosing_thenLabelSizeThrowsIllegalState() {
+        // Given
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
+            // When
+            store.close();
+
+            // Then
+            store.labelSize();
+        }
+    }
+
+    @Test(expectedExceptions = NullPointerException.class)
+    public void givenDictionaryLabelStore_whenInsertingNullLabel_thenIllegalArgument() {
+        // Given
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
+            // When and Then
+            store.idForLabel(null);
         }
     }
 
@@ -65,9 +109,9 @@ public abstract class AbstractDictionaryLabelStoreTests {
     }
 
     @Test(dataProvider = "nonExistentIds", dataProviderClass = AbstractDictionaryLabelStoreTests.class)
-    public void givenLabelsStore_whenQueryingLabelsForNonExistentIds_thenNullReturned(long badId) {
+    public void givenDictionaryLabelsStore_whenQueryingLabelsForNonExistentIds_thenNullReturned(long badId) {
         // Given
-        try (DictionaryLabelsStore store = newStore()) {
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
             // When
             byte[] label = store.labelForId(badId);
 
@@ -123,10 +167,10 @@ public abstract class AbstractDictionaryLabelStoreTests {
     }
 
     @Test(dataProvider = "uniqueSizes", dataProviderClass = AbstractDictionaryLabelStoreTests.class)
-    public void givenLabelStore_whenInsertingManyUniqueLabels_thenAllUniqueIdsReturned_andAllIdsResolveToOriginalLabel(
+    public void givenDictionaryLabelStore_whenInsertingManyUniqueLabels_thenAllUniqueIdsReturned_andAllIdsResolveToOriginalLabel(
             int uniqueLabels) {
         // Given
-        try (DictionaryLabelsStore store = newStore()) {
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
             Collection<byte[]> labels = generateUniqueLabels(uniqueLabels);
             List<Long> ids = new ArrayList<>();
 
@@ -136,6 +180,7 @@ public abstract class AbstractDictionaryLabelStoreTests {
             // Then
             Assert.assertEquals(ids.size(), labels.size());
             Assert.assertEquals(ids.stream().distinct().count(), labels.size());
+            Assert.assertEquals(ids.stream().distinct().count(), uniqueLabels);
 
             // And
             int i = 0;
@@ -144,21 +189,22 @@ public abstract class AbstractDictionaryLabelStoreTests {
                 Assert.assertEquals(store.idForLabel(label), expectedId);
                 Assert.assertEquals(store.labelForId(expectedId), label);
             }
+            Assert.assertEquals(store.labelSize(), uniqueLabels);
         }
     }
 
-    private static void insertLabelsAndTrackAssignedIds(Collection<byte[]> labels, Collection<Long> ids,
-                                                        DictionaryLabelsStore store) {
+    protected static void insertLabelsAndTrackAssignedIds(Collection<byte[]> labels, Collection<Long> ids,
+                                                          DictionaryLabelsStore store) {
         for (byte[] label : labels) {
             ids.add(store.idForLabel(label));
         }
     }
 
     @Test(dataProvider = "uniqueSizes", dataProviderClass = AbstractDictionaryLabelStoreTests.class)
-    public void givenLabelStore_whenBulkInsertingManyUniqueLabels_thenAllUniqueIdsReturned_andBulkIdsResolveToOriginalLabel(
+    public void givenDictionaryLabelStore_whenBulkInsertingManyUniqueLabels_thenAllUniqueIdsReturned_andBulkIdsResolveToOriginalLabel(
             int uniqueLabels) {
         // Given
-        try (DictionaryLabelsStore store = newStore()) {
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
             List<byte[]> labels = new ArrayList<>(generateUniqueLabels(uniqueLabels));
 
             // When
@@ -167,6 +213,7 @@ public abstract class AbstractDictionaryLabelStoreTests {
             // Then
             Assert.assertEquals(ids.size(), labels.size());
             Assert.assertEquals(ids.values().stream().distinct().count(), labels.size());
+            Assert.assertEquals(ids.values().stream().distinct().count(), uniqueLabels);
 
             // And
             Map<Long, byte[]> retrieved = store.labelsForIds(ids.values().stream().toList());
@@ -174,6 +221,7 @@ public abstract class AbstractDictionaryLabelStoreTests {
                 Assert.assertNotNull(retrieved.get(entry.getValue()));
                 Assert.assertEquals(retrieved.get(entry.getValue()), entry.getKey());
             }
+            Assert.assertEquals(store.labelSize(), uniqueLabels);
         }
     }
 
@@ -185,10 +233,10 @@ public abstract class AbstractDictionaryLabelStoreTests {
     }
 
     @Test(dataProvider = "repeatedSizes", dataProviderClass = AbstractDictionaryLabelStoreTests.class)
-    public void givenLabelStore_whenInsertingManyNonUniqueLabels_thenIdsReusedAppropriately(int total,
-                                                                                            int uniqueLabels) {
+    public void givenDictionaryLabelStore_whenInsertingManyNonUniqueLabels_thenIdsReusedAppropriately(int total,
+                                                                                                      int uniqueLabels) {
         // Given
-        try (DictionaryLabelsStore store = newStore()) {
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
             List<byte[]> labels = generateRepeatingLabels(total, uniqueLabels);
             Set<Long> ids = new HashSet<>();
 
@@ -197,16 +245,15 @@ public abstract class AbstractDictionaryLabelStoreTests {
 
             // Then
             // NB - Randomness means not all unique labels might have been in generated labels
-            Assert.assertTrue(ids.size() <= uniqueLabels,
-                              "Expected at most " + uniqueLabels + " IDs but found " + ids.size());
+            verifyUniqueLabelCounts(ids.size(), uniqueLabels, store);
         }
     }
 
     @Test(dataProvider = "repeatedSizes", dataProviderClass = AbstractDictionaryLabelStoreTests.class)
-    public void givenLabelStore_whenBulkInsertingManyNonUniqueLabels_thenIdsReusedAppropriately(int total,
-                                                                                            int uniqueLabels) {
+    public void givenDictionaryLabelStore_whenBulkInsertingManyNonUniqueLabels_thenIdsReusedAppropriately(int total,
+                                                                                                          int uniqueLabels) {
         // Given
-        try (DictionaryLabelsStore store = newStore()) {
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
             List<byte[]> labels = generateRepeatingLabels(total, uniqueLabels);
 
             // When
@@ -214,16 +261,42 @@ public abstract class AbstractDictionaryLabelStoreTests {
 
             // Then
             // NB - Randomness means not all unique labels might have been in generated labels
-            Assert.assertTrue(ids.size() <= uniqueLabels,
-                              "Expected at most " + uniqueLabels + " IDs but found " + ids.size());
+            verifyUniqueLabelCounts(ids.size(), uniqueLabels, store);
         }
     }
 
-    @Test(dataProvider = "repeatedSizes", dataProviderClass =  AbstractDictionaryLabelStoreTests.class)
-    public void givenLabelStore_whenInsertingManyNonUniqueLabelsAcrossMultipleThreads_thenIdsReusedAppropriately(
+    @Test(dataProvider = "repeatedSizes", dataProviderClass = AbstractDictionaryLabelStoreTests.class)
+    public void givenDictionaryLabelStore_whenBulkInsertingManyNonUniqueLabelsTwice_thenIdsReusedAppropriately(
+            int total,
+            int uniqueLabels) {
+        // Given
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
+            List<byte[]> labels = generateRepeatingLabels(total, uniqueLabels);
+
+            // When
+            Map<byte[], Long> ids = store.idsForLabels(labels);
+            Map<byte[], Long> ids2 = store.idsForLabels(labels);
+
+            // Then
+            // NB - Randomness means not all unique labels might have been in generated labels
+            verifyUniqueLabelCounts(ids.size(), uniqueLabels, store);
+            Assert.assertEquals(ids2, ids);
+        }
+    }
+
+    private static void verifyUniqueLabelCounts(int uniqueAssignedIds, int uniqueLabels, DictionaryLabelsStore store) {
+        Assert.assertTrue(uniqueAssignedIds <= uniqueLabels,
+                          "Expected at most " + uniqueLabels + " IDs but found " + uniqueAssignedIds);
+        long storeLabelsCount = store.labelSize();
+        Assert.assertTrue(storeLabelsCount <= uniqueLabels,
+                          "Store reported label size " + storeLabelsCount + " greater than expected unique labels " + uniqueLabels);
+    }
+
+    @Test(dataProvider = "repeatedSizes", dataProviderClass = AbstractDictionaryLabelStoreTests.class)
+    public void givenDictionaryLabelStore_whenInsertingManyNonUniqueLabelsAcrossMultipleThreads_thenIdsReusedAppropriately(
             int total, int uniqueLabels) throws InterruptedException {
         // Given
-        try (DictionaryLabelsStore store = newStore()) {
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
             List<byte[]> labels = generateRepeatingLabels(total, uniqueLabels);
             Set<Long> ids = ConcurrentHashMap.newKeySet();
             ExecutorService executor = Executors.newFixedThreadPool(4);
@@ -252,15 +325,14 @@ public abstract class AbstractDictionaryLabelStoreTests {
 
             // Then
             // NB - Randomness means not all unique labels might have been in generated labels
-            Assert.assertTrue(ids.size() <= uniqueLabels,
-                              "Expected at most " + uniqueLabels + " IDs but found " + ids.size());
+            verifyUniqueLabelCounts(ids.size(), uniqueLabels, store);
         }
     }
 
     @Test
-    public void givenLabelStore_whenBulkInsertingLabelsWithSomeNulls_thenNullLabelsIgnored() {
+    public void givenDictionaryLabelStore_whenBulkInsertingLabelsWithSomeNulls_thenNullLabelsIgnored() {
         // Given
-        try (DictionaryLabelsStore store = newStore()) {
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
             List<byte[]> labels = new ArrayList<>(generateUniqueLabels(100));
             insertNulls(labels, 5);
 
@@ -269,6 +341,7 @@ public abstract class AbstractDictionaryLabelStoreTests {
 
             // Then
             Assert.assertEquals(ids.size(), 100);
+            Assert.assertEquals(store.labelSize(), 100);
         }
     }
 
@@ -279,9 +352,9 @@ public abstract class AbstractDictionaryLabelStoreTests {
     }
 
     @Test
-    public void givenLabelStore_whenBulkLookupIdsWithSomeNulls_thenNullIdsIgnored() {
+    public void givenDictionaryLabelStore_whenBulkLookupIdsWithSomeNulls_thenNullIdsIgnored() {
         // Given
-        try (DictionaryLabelsStore store = newStore()) {
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
             List<byte[]> labels = new ArrayList<>(generateUniqueLabels(100));
             Map<byte[], Long> ids = store.idsForLabels(labels);
 
@@ -299,9 +372,9 @@ public abstract class AbstractDictionaryLabelStoreTests {
     }
 
     @Test
-    public void givenLabelStore_whenBulkInsertingAllNulls_thenNothingInserted() {
+    public void givenDictionaryLabelStore_whenBulkInsertingAllNulls_thenNothingInserted() {
         // Given
-        try (DictionaryLabelsStore store = newStore()) {
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
             List<byte[]> labels = new ArrayList<>();
             insertNulls(labels, 50);
 
@@ -310,13 +383,40 @@ public abstract class AbstractDictionaryLabelStoreTests {
 
             // Then
             Assert.assertTrue(ids.isEmpty());
+            Assert.assertEquals(store.labelSize(), 0L);
         }
     }
 
     @Test
-    public void givenLabelStore_whenBulkLookupAllNulls_thenNothingReturned() {
+    public void givenDictionaryLabelStore_whenBulkInsertingNullList_thenNothingInserted() {
         // Given
-        try (DictionaryLabelsStore store = newStore()) {
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
+            // When
+            Map<byte[], Long> ids = store.idsForLabels(null);
+
+            // Then
+            Assert.assertTrue(ids.isEmpty());
+            Assert.assertEquals(store.labelSize(), 0L);
+        }
+    }
+
+    @Test
+    public void givenDictionaryLabelStore_whenBulkInsertingEmptyList_thenNothingInserted() {
+        // Given
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
+            // When
+            Map<byte[], Long> ids = store.idsForLabels(Collections.emptyList());
+
+            // Then
+            Assert.assertTrue(ids.isEmpty());
+            Assert.assertEquals(store.labelSize(), 0L);
+        }
+    }
+
+    @Test
+    public void givenDictionaryLabelStore_whenBulkLookupAllNulls_thenNothingReturned() {
+        // Given
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
             List<Long> ids = new ArrayList<>();
             insertNulls(ids, 50);
 
@@ -329,16 +429,40 @@ public abstract class AbstractDictionaryLabelStoreTests {
     }
 
     @Test
-    public void givenLabelStore_whenBulkLookupMixOfValidAndInvalidIds_thenOnlyValidIdsReturnNonNull() {
+    public void givenDictionaryLabelStore_whenBulkLookupNullList_thenNothingReturned() {
         // Given
-        try (DictionaryLabelsStore store = newStore()) {
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
+            // When
+            Map<Long, byte[]> labels = store.labelsForIds(null);
+
+            // Then
+            Assert.assertTrue(labels.isEmpty());
+        }
+    }
+
+    @Test
+    public void givenDictionaryLabelStore_whenBulkLookupEmptyList_thenNothingReturned() {
+        // Given
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
+            // When
+            Map<Long, byte[]> labels = store.labelsForIds(Collections.emptyList());
+
+            // Then
+            Assert.assertTrue(labels.isEmpty());
+        }
+    }
+
+    @Test
+    public void givenDictionaryLabelStore_whenBulkLookupMixOfValidAndInvalidIds_thenOnlyValidIdsReturnNonNull() {
+        // Given
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
             List<byte[]> labels = new ArrayList<>(generateUniqueLabels(5));
             Map<byte[], Long> ids = store.idsForLabels(labels);
 
             // When
             List<Long> lookups = new ArrayList<>(ids.values());
             insertNulls(lookups, 1);
-            lookups.add(Long.MAX_VALUE);
+            lookups.add(Long.MIN_VALUE);
             lookups.add(Long.MAX_VALUE);
             Map<Long, byte[]> retrieved = store.labelsForIds(lookups);
 

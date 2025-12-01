@@ -10,24 +10,14 @@
     </parent>
     <artifactId>label-store-alternates</artifactId>
     <name>Telicent Smart Caches - Storage - Label Stores - Alternates</name>
-    <description>Other implementatiosns of Label Stores
+    <description>Other implementations of Label Stores for comparison purposes
     </description>
 
     <properties>
-        <maven.compiler.source>23</maven.compiler.source>
-        <maven.compiler.target>23</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <license.header.path>${project.parent.parent.basedir}</license.header.path>
     </properties>
 
-
     <dependencies>
-<!--        <dependency>-->
-<!--            <groupId>io.telicent.smart-cache-storage</groupId>-->
-<!--            <artifactId>common</artifactId>-->
-<!--            <version>${project.version}</version>-->
-<!--        </dependency>-->
-
         <dependency>
             <groupId>org.lmdbjava</groupId>
             <artifactId>lmdbjava</artifactId>
@@ -44,6 +34,13 @@
             <groupId>net.openhft</groupId>
             <artifactId>chronicle-map</artifactId>
             <version>3.27ea1</version>
+        </dependency>
+
+        <!-- Test Dependencies -->
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>

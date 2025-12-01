@@ -3,7 +3,7 @@
  */
 package io.telicent.smart.cache.storage.labels.benchmarks.stores;
 
-import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
+import io.telicent.smart.cache.storage.labels.LabelsStore;
 import io.telicent.smart.cache.storage.labels.lmdb.LMDBLabelsStore;
 
 import java.io.File;
@@ -14,9 +14,9 @@ public class LMDB implements StoreImplementation {
     File lmdbDir;
 
     @Override
-    public DictionaryLabelsStore newStore() {
+    public LabelsStore newStore() {
         try {
-            return new LMDBLabelsStore(lmdbDir.getAbsolutePath());
+            return new PlaceholderLabelsStore(new LMDBLabelsStore(lmdbDir.getAbsolutePath()));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

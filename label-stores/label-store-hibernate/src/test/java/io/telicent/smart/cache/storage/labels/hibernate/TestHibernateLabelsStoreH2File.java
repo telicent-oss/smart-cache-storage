@@ -5,8 +5,8 @@ package io.telicent.smart.cache.storage.labels.hibernate;
 
 import io.telicent.smart.cache.storage.hibernate.configuration.DatabaseConfiguration;
 import io.telicent.smart.cache.storage.hibernate.configuration.h2.H2Configuration;
-import io.telicent.smart.cache.storage.labels.AbstractDictionaryLabelStoreTests;
-import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
+import io.telicent.smart.cache.storage.labels.AbstractLabelStoreTests;
+import io.telicent.smart.cache.storage.labels.LabelsStore;
 import org.apache.commons.io.FileUtils;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -17,9 +17,7 @@ import java.nio.file.Files;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static io.telicent.smart.cache.storage.hibernate.configuration.JpaConfiguration.JAKARTA_PERSISTENCE_SCHEMA_GENERATION_ACTION;
-
-public class TestHibernateLabelsStoreH2File extends AbstractDictionaryLabelStoreTests {
+public class TestHibernateLabelsStoreH2File extends AbstractLabelStoreTests {
     private static final AtomicInteger counter = new AtomicInteger();
 
     private File tempDir;
@@ -35,7 +33,7 @@ public class TestHibernateLabelsStoreH2File extends AbstractDictionaryLabelStore
     }
 
     @Override
-    protected DictionaryLabelsStore newStore() {
+    protected LabelsStore newStore() {
         String dbName = "test-" + counter.incrementAndGet();
         Properties props = H2Configuration.prepareFileConnectionProperties(
                 DatabaseConfiguration.builder().hostname("localhost").database(dbName).build(), this.tempDir);

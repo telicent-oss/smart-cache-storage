@@ -3,9 +3,9 @@
  */
 package io.telicent.smart.cache.storage.labels;
 
-public class TestMemoryLabelsStore extends AbstractDictionaryLabelStoreTests{
+public class TestMemoryLabelsStore extends AbstractLabelStoreTests{
     @Override
-    protected DictionaryLabelsStore newStore() {
+    protected LabelsStore newStore() {
         return new MemoryLabelsStore();
     }
 }

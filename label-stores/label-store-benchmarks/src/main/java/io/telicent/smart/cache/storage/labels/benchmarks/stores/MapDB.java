@@ -3,7 +3,7 @@
  */
 package io.telicent.smart.cache.storage.labels.benchmarks.stores;
 
-import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
+import io.telicent.smart.cache.storage.labels.LabelsStore;
 import io.telicent.smart.cache.storage.labels.mapdb.MapDbLabelsStore;
 
 import java.nio.file.Files;
@@ -14,9 +14,9 @@ public class MapDB implements StoreImplementation {
     Path dbFile;
 
     @Override
-    public DictionaryLabelsStore newStore() {
+    public LabelsStore newStore() {
         try {
-            return new MapDbLabelsStore(dbFile.toString());
+            return new PlaceholderLabelsStore(new MapDbLabelsStore(dbFile.toString()));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

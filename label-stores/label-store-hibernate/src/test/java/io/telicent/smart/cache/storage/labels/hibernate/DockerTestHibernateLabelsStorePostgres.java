@@ -5,15 +5,15 @@ package io.telicent.smart.cache.storage.labels.hibernate;
 
 import io.telicent.smart.cache.storage.hibernate.configuration.DatabaseConfiguration;
 import io.telicent.smart.cache.storage.hibernate.configuration.postgres.PostgresConfiguration;
-import io.telicent.smart.cache.storage.labels.AbstractDictionaryLabelStoreTests;
-import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
+import io.telicent.smart.cache.storage.labels.AbstractLabelStoreTests;
+import io.telicent.smart.cache.storage.labels.LabelsStore;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 
 import java.util.Properties;
 
-public class DockerTestHibernateLabelsStorePostgres extends AbstractDictionaryLabelStoreTests {
+public class DockerTestHibernateLabelsStorePostgres extends AbstractLabelStoreTests {
     private PostgreSQLContainer<?> postgres;
 
     @BeforeMethod
@@ -32,7 +32,7 @@ public class DockerTestHibernateLabelsStorePostgres extends AbstractDictionaryLa
     }
 
     @Override
-    protected DictionaryLabelsStore newStore() {
+    protected LabelsStore newStore() {
         Properties props = PostgresConfiguration.prepareConnectionProperties(DatabaseConfiguration.builder()
                                                                                                   .hostname(
                                                                                                           this.postgres.getHost())

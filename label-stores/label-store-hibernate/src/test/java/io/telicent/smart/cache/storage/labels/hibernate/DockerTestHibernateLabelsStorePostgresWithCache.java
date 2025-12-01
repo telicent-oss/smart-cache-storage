@@ -4,11 +4,11 @@
 package io.telicent.smart.cache.storage.labels.hibernate;
 
 import io.telicent.smart.cache.storage.labels.CachingLabelsStore;
-import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
+import io.telicent.smart.cache.storage.labels.LabelsStore;
 
 public class DockerTestHibernateLabelsStorePostgresWithCache extends DockerTestHibernateLabelsStorePostgres{
     @Override
-    protected DictionaryLabelsStore newStore() {
+    protected LabelsStore newStore() {
         return new CachingLabelsStore(super.newStore(), 1_000);
     }
 }

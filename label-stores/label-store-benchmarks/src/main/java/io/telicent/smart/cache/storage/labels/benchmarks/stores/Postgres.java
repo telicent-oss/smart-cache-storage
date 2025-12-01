@@ -5,7 +5,7 @@ package io.telicent.smart.cache.storage.labels.benchmarks.stores;
 
 import io.telicent.smart.cache.storage.hibernate.configuration.DatabaseConfiguration;
 import io.telicent.smart.cache.storage.hibernate.configuration.postgres.PostgresConfiguration;
-import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
+import io.telicent.smart.cache.storage.labels.LabelsStore;
 import io.telicent.smart.cache.storage.labels.hibernate.HibernateLabelsStore;
 import org.testcontainers.containers.PostgreSQLContainer;
 
@@ -19,7 +19,7 @@ public class Postgres implements StoreImplementation {
     private PostgreSQLContainer<?> postgres;
 
     @Override
-    public DictionaryLabelsStore newStore() {
+    public LabelsStore newStore() {
         Properties props = PostgresConfiguration.prepareConnectionProperties(DatabaseConfiguration.builder()
                                                                                                   .hostname(
                                                                                                           this.postgres.getHost())

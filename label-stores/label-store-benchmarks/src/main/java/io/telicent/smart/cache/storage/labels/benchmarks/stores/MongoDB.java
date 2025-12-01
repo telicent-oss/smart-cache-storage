@@ -4,7 +4,7 @@
 package io.telicent.smart.cache.storage.labels.benchmarks.stores;
 
 import com.mongodb.client.MongoClient;
-import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
+import io.telicent.smart.cache.storage.labels.LabelsStore;
 import io.telicent.smart.cache.storage.labels.mongodb.MongoDBLabelsStore;
 import io.telicent.smart.cache.storage.mongodb.cluster.BasicMongoTestCluster;
 import io.telicent.smart.cache.storage.mongodb.cluster.MongoTestCluster;
@@ -17,7 +17,7 @@ public class MongoDB implements StoreImplementation {
     private MongoTestCluster mongo;
 
     @Override
-    public DictionaryLabelsStore newStore() {
+    public LabelsStore newStore() {
         return new MongoDBLabelsStore(this.mongo.createMongoClient(), MongoTestCluster.DEFAULT_TEST_DB);
     }
 

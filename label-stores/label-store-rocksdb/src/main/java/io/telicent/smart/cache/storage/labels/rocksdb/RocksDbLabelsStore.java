@@ -3,190 +3,119 @@
  */
 package io.telicent.smart.cache.storage.labels.rocksdb;
 
-import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
+import io.telicent.smart.cache.storage.labels.LabelsStore;
+import io.telicent.smart.cache.storage.rocksdb.AbstractRocksDBStorage;
+import io.telicent.smart.cache.storage.rocksdb.RocksDBCounter;
+import io.telicent.smart.cache.storage.rocksdb.TransactionContext;
+import org.apache.commons.collections4.MapUtils;
 import org.rocksdb.*;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.*;
 
 import static org.rocksdb.RocksDB.DEFAULT_COLUMN_FAMILY;
 
 /**
- * Basic RocksDB implementation of a thread-safe DictionaryLabelsStore.
- * Doesn't have a canonicising method or anything clever to figure out Ids, just bumps up a number
+ * Basic RocksDB implementation of a thread-safe DictionaryLabelsStore. Doesn't have a canonicising method or anything
+ * clever to figure out Ids, just bumps up a number
  */
-public class RocksDbLabelsStore implements DictionaryLabelsStore, Closeable {
+public class RocksDbLabelsStore extends AbstractRocksDBStorage implements LabelsStore {
 
     // Map labels to IDs
     private static final byte[] LABELS_TO_IDS_CF = "labels_to_ids".getBytes(StandardCharsets.UTF_8);
     // Map IDs to labels
     private static final byte[] IDS_TO_LABELS_CF = "ids_to_labels".getBytes(StandardCharsets.UTF_8);
+    // Counters
+    private static final byte[] COUNTERS_CF = "counters".getBytes(StandardCharsets.UTF_8);
+    // Map Keys to Label IDs
+    private static final byte[] KEYS_TO_LABELS_CF = "keys_to_labels".getBytes(StandardCharsets.UTF_8);
+    // Next Label ID counter key
+    private static final byte[] ID_COUNTER_KEY = "next_label_id".getBytes(StandardCharsets.UTF_8);
 
-    private static final byte[] ID_COUNTER_CF = "id_counter".getBytes(StandardCharsets.UTF_8);
-    private static final byte[] ID_COUNTER_KEY = "next_id".getBytes(StandardCharsets.UTF_8);
-
-    private final RocksDB db;
-    private final Options options;
-    private final Map<String, ColumnFamilyHandle> columnFamilyHandles;
-    private final AtomicLong nextId;
-    private final Object lock = new Object();
-
-    private final AtomicBoolean closed = new AtomicBoolean(false);
-
-    private void ensureOpen() {
-        if (closed.get()) {
-            throw new IllegalStateException("RocksDbLabelsStore has been closed");
-        }
+    public RocksDbLabelsStore(File dbPath) throws IOException, RocksDBException {
+        super(dbPath);
     }
 
-    private static byte[] longToBytes(long x) {
-        return ByteBuffer.allocate(Long.BYTES).putLong(x).array();
-    }
-
-    private static long bytesToLong(byte[] bytes) {
-        if (bytes == null || bytes.length != Long.BYTES) {
-            throw new IllegalArgumentException("Byte array must be " + Long.BYTES + " bytes long to represent a long.");
-        }
-        return ByteBuffer.wrap(bytes).getLong();
-    }
-
-
-    public RocksDbLabelsStore(String dbPath) throws IOException, RocksDBException {
-        // Load the native library
-        RocksDB.loadLibrary();
-
-        // We start with a list that includes the default column family and our three custom CFs.
-        ColumnFamilyOptions cfOptions = new ColumnFamilyOptions();
+    @Override
+    protected List<ColumnFamilyDescriptor> prepareColumnFamilyDescriptors(ColumnFamilyOptions cfOptions) {
         ColumnFamilyDescriptor defaultCFD = new ColumnFamilyDescriptor(DEFAULT_COLUMN_FAMILY, cfOptions);
         ColumnFamilyDescriptor labelsToIdsCFD = new ColumnFamilyDescriptor(LABELS_TO_IDS_CF, cfOptions);
         ColumnFamilyDescriptor idsToLabelsCFD = new ColumnFamilyDescriptor(IDS_TO_LABELS_CF, cfOptions);
-        ColumnFamilyDescriptor idCounterCFD = new ColumnFamilyDescriptor(ID_COUNTER_CF, cfOptions);
+        ColumnFamilyDescriptor keysToLabelsCFD = new ColumnFamilyDescriptor(KEYS_TO_LABELS_CF, cfOptions);
+        ColumnFamilyDescriptor idCounterCFD = new ColumnFamilyDescriptor(COUNTERS_CF, cfOptions);
 
-        List<ColumnFamilyDescriptor> cfDescriptors = List.of(defaultCFD, labelsToIdsCFD, idsToLabelsCFD, idCounterCFD);
-        List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
-
-        // 2. Open RocksDB with Options
-        options = new Options().setCreateIfMissing(true).setCreateMissingColumnFamilies(true);
-        File dbDir = new File(dbPath);
-        Files.createDirectories(dbDir.toPath());
-
-        DBOptions dbOptions = new DBOptions(options);
-
-        try {
-            db = RocksDB.open(dbOptions, dbDir.getAbsolutePath(), cfDescriptors, cfHandles);
-        } catch (RocksDBException e) {
-            cfDescriptors.forEach(cf -> cf.getOptions().close());
-            throw e;
-        }
-
-        columnFamilyHandles = new HashMap<>();
-        for (int i = 0; i < cfDescriptors.size(); i++) {
-            String name = new String(cfDescriptors.get(i).getName(), StandardCharsets.UTF_8);
-            columnFamilyHandles.put(name, cfHandles.get(i));
-        }
-        this.nextId = initializeNextId();
+        return List.of(defaultCFD, labelsToIdsCFD, idsToLabelsCFD, keysToLabelsCFD, idCounterCFD);
     }
 
-    private ColumnFamilyHandle getHandle(byte[] cfNameBytes) {
-        String cfName = new String(cfNameBytes, StandardCharsets.UTF_8);
-        return columnFamilyHandles.get(cfName);
-    }
-
-
-    private AtomicLong initializeNextId() throws RocksDBException {
-        ColumnFamilyHandle counterHandle = getHandle(ID_COUNTER_CF);
-        byte[] storedIdBytes = db.get(counterHandle, ID_COUNTER_KEY);
-        long initialId = 1L;
-        if (storedIdBytes != null) {
-            initialId = bytesToLong(storedIdBytes);
-        } else {
-            db.put(counterHandle, ID_COUNTER_KEY, longToBytes(initialId));
-        }
-        return new AtomicLong(initialId);
+    @Override
+    protected Map<String, RocksDBCounter> prepareCounters() throws RocksDBException {
+        String idCounterKey = new String(ID_COUNTER_KEY, StandardCharsets.UTF_8);
+        return Map.of(idCounterKey, createCounter(COUNTERS_CF, idCounterKey));
     }
 
     @Override
     public long idForLabel(byte[] labelBytes) {
-        if (labelBytes == null) throw new IllegalArgumentException("Label cannot be null.");
+        this.ensureNotClosed();
+        Objects.requireNonNull(labelBytes, "Label cannot be null");
 
-        ColumnFamilyHandle labelToIdHandle = getHandle(LABELS_TO_IDS_CF);
+        try (TransactionContext transaction = this.begin()) {
+            ColumnFamilyHandle labelToIdHandle = getHandle(LABELS_TO_IDS_CF);
+            RocksDBCounter counter = getCounter(ID_COUNTER_KEY);
 
-        synchronized (lock) {
-            ensureOpen();
-            try {
-                byte[] idBytes = db.get(labelToIdHandle, labelBytes);
-                if (idBytes != null) {
-                    return bytesToLong(idBytes);
-                }
-
-                long newId = nextId.getAndIncrement();
-                byte[] newIdBytes = longToBytes(newId);
-
-                ColumnFamilyHandle idToLabelHandle = getHandle(IDS_TO_LABELS_CF);
-                ColumnFamilyHandle counterHandle = getHandle(ID_COUNTER_CF);
-
-                try (WriteBatch batch = new WriteBatch();
-                     WriteOptions writeOptions = new WriteOptions()) {
-
-                    batch.put(labelToIdHandle, labelBytes, newIdBytes);
-                    batch.put(idToLabelHandle, newIdBytes, labelBytes);
-                    batch.put(counterHandle, ID_COUNTER_KEY, longToBytes(nextId.get()));
-
-                    db.write(writeOptions, batch);
-                }
-                return newId;
-
-            } catch (RocksDBException e) {
-                throw new RuntimeException("Error accessing RocksDB", e);
+            byte[] idBytes = transaction.get(labelToIdHandle, labelBytes);
+            if (idBytes != null) {
+                return bytesToLong(idBytes);
             }
+
+            long newId = counter.next();
+            byte[] newIdBytes = longToBytes(newId);
+
+            ColumnFamilyHandle idToLabelHandle = getHandle(IDS_TO_LABELS_CF);
+
+            transaction.put(labelToIdHandle, labelBytes, newIdBytes);
+            transaction.put(idToLabelHandle, newIdBytes, labelBytes);
+            counter.update(transaction);
+
+            transaction.commit();
+
+            return newId;
+        } catch (RocksDBException e) {
+            throw new RuntimeException("Error accessing RocksDB", e);
         }
+
     }
 
     @Override
     public Map<byte[], Long> idsForLabels(List<byte[]> labels) {
+        this.ensureNotClosed();
         if (labels == null || labels.isEmpty()) {
             return Map.of();
         }
 
-        synchronized (lock) {
-            ensureOpen();
+        ColumnFamilyHandle labelToIdHandle = getHandle(LABELS_TO_IDS_CF);
+        ColumnFamilyHandle idToLabelHandle = getHandle(IDS_TO_LABELS_CF);
+        RocksDBCounter counter = getCounter(ID_COUNTER_KEY);
 
-            ColumnFamilyHandle labelToIdHandle = getHandle(LABELS_TO_IDS_CF);
-            ColumnFamilyHandle idToLabelHandle = getHandle(IDS_TO_LABELS_CF);
-            ColumnFamilyHandle counterHandle = getHandle(ID_COUNTER_CF);
+        List<byte[]> queryLabels = new ArrayList<>();
+        List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
 
-            List<byte[]> queryLabels = new ArrayList<>();
-            List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
-
-            for (byte[] label : labels) {
-                if (label != null) {
-                    queryLabels.add(label);
-                    cfHandles.add(labelToIdHandle);
-                }
+        for (byte[] label : labels) {
+            if (label != null) {
+                queryLabels.add(label);
+                cfHandles.add(labelToIdHandle);
             }
+        }
 
-            if (queryLabels.isEmpty()) {
-                return Map.of();
-            }
+        if (queryLabels.isEmpty()) {
+            return Map.of();
+        }
 
+        try (TransactionContext transaction = this.begin()) {
             // 1) Bulk lookup existing IDs
             List<byte[]> existing;
-            try (ReadOptions readOptions = new ReadOptions()) {
-                existing = db.multiGetAsList(readOptions, cfHandles, queryLabels);
-            } catch (RocksDBException e) {
-                throw new RuntimeException("Error executing MultiGet on RocksDB for labels", e);
-            }
-
+            existing = transaction.multiGetAsList(cfHandles, queryLabels);
             Map<byte[], Long> result = new HashMap<>();
             List<byte[]> newLabels = new ArrayList<>();
 
@@ -203,44 +132,37 @@ public class RocksDbLabelsStore implements DictionaryLabelsStore, Closeable {
                 }
             }
 
+            // 2) Allocate IDs for any labels we haven't previously seen
             if (!newLabels.isEmpty()) {
-                try (WriteBatch batch = new WriteBatch();
-                     WriteOptions writeOptions = new WriteOptions()) {
+                for (byte[] label : newLabels) {
+                    long newId = counter.next();
+                    byte[] newIdBytes = longToBytes(newId);
 
-                    for (byte[] label : newLabels) {
-                        long newId = nextId.getAndIncrement();
-                        byte[] newIdBytes = longToBytes(newId);
-
-                        result.put(label, newId);
-
-                        batch.put(labelToIdHandle, label, newIdBytes);
-                        batch.put(idToLabelHandle, newIdBytes, label);
-                    }
-
-                    // persist updated counter
-                    batch.put(counterHandle, ID_COUNTER_KEY, longToBytes(nextId.get()));
-
-                    db.write(writeOptions, batch);
-                } catch (RocksDBException e) {
-                    throw new RuntimeException("Error writing to RocksDB in bulk idsForLabels", e);
+                    result.put(label, newId);
+                    transaction.put(labelToIdHandle, label, newIdBytes);
+                    transaction.put(idToLabelHandle, newIdBytes, label);
                 }
-            }
 
+                // persist updated counter
+                counter.update(transaction);
+                transaction.commit();
+            }
             return result;
+        } catch (RocksDBException e) {
+            throw new RuntimeException("Error writing to RocksDB in bulk idsForLabels", e);
         }
     }
 
     @Override
     public byte[] labelForId(long id) {
-        ensureOpen();
+        this.ensureNotClosed();
 
         if (id <= 0) return null;
 
         byte[] idBytes = longToBytes(id);
         ColumnFamilyHandle idToLabelHandle = getHandle(IDS_TO_LABELS_CF);
-        try {
-            byte[] result = db.get(idToLabelHandle, idBytes);
-            return result;
+        try (TransactionContext transaction = this.begin()) {
+            return transaction.get(idToLabelHandle, idBytes);
         } catch (RocksDBException e) {
             throw new RuntimeException("Error accessing RocksDB", e);
         }
@@ -248,11 +170,10 @@ public class RocksDbLabelsStore implements DictionaryLabelsStore, Closeable {
 
     @Override
     public Map<Long, byte[]> labelsForIds(List<Long> ids) {
+        this.ensureNotClosed();
         if (ids == null || ids.isEmpty()) {
             return Map.of();
         }
-
-        ensureOpen();
 
         List<Long> validIds = new ArrayList<>();
         List<byte[]> keys = new ArrayList<>();
@@ -272,36 +193,91 @@ public class RocksDbLabelsStore implements DictionaryLabelsStore, Closeable {
             return Map.of();
         }
 
-        List<byte[]> results;
-        try (ReadOptions readOptions = new ReadOptions()) {
-            results = db.multiGetAsList(readOptions, cfHandles, keys);
-        } catch (RocksDBException e) {
-            throw new RuntimeException("Error executing MultiGet on RocksDB", e);
-        }
+        try (TransactionContext transaction = this.begin()) {
+            // 1) Bulk lookup any known labels
+            List<byte[]> results = transaction.multiGetAsList(cfHandles, keys);
 
-        Map<Long, byte[]> labels = new HashMap<>();
-        for (int i = 0; i < validIds.size(); i++) {
-            byte[] labelBytes = results.get(i);
-            if (labelBytes != null) {
-                labels.put(validIds.get(i), labelBytes);
+            // 2) Build the results map
+            Map<Long, byte[]> labels = new HashMap<>();
+            for (int i = 0; i < validIds.size(); i++) {
+                byte[] labelBytes = results.get(i);
+                if (labelBytes != null) {
+                    labels.put(validIds.get(i), labelBytes);
+                }
             }
+            return labels;
+        } catch (RocksDBException e) {
+            throw new RuntimeException("Error accessing RocksDB", e);
         }
-        return labels;
     }
 
     @Override
-    public void close() {
-        try {
-            if (!closed.compareAndSet(false, true)) {
-                return; // already closed
+    public long labelSize() {
+        this.ensureNotClosed();
+        try (TransactionContext transaction = this.begin()) {
+            return transaction.count(this.getHandle(LABELS_TO_IDS_CF));
+        }
+    }
+
+    @Override
+    public void setLabel(byte[] key, long labelId) {
+        this.ensureNotClosed();
+        if (LabelsStore.isInvalidKey(key)) {
+            throw new NullPointerException("key cannot be null/empty");
+        }
+
+        try (TransactionContext transaction = this.begin()) {
+            transaction.put(this.getHandle(KEYS_TO_LABELS_CF), key, longToBytes(labelId));
+            transaction.commit();
+        } catch (RocksDBException e) {
+            throw new RuntimeException("Error writing to RocksDB", e);
+        }
+    }
+
+    @Override
+    public void setLabels(Map<byte[], Long> keysToLabels) {
+        this.ensureNotClosed();
+        if (MapUtils.isEmpty(keysToLabels)) {
+            return;
+        }
+
+        try (TransactionContext transaction = this.begin()) {
+            for (Map.Entry<byte[], Long> entry : keysToLabels.entrySet()) {
+                if (LabelsStore.isInvalidKey(entry.getKey()) || entry.getValue() == null) {
+                    continue;
+                }
+
+                transaction.put(this.getHandle(KEYS_TO_LABELS_CF), entry.getKey(), longToBytes(entry.getValue()));
             }
-            for (final ColumnFamilyHandle cfHandle : columnFamilyHandles.values()) {
-                cfHandle.close();
-            }
-            db.close();
-            options.close();
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to close RocksDB resources", e);
+
+            transaction.commit();
+        } catch (RocksDBException e) {
+            throw new RuntimeException("Error writing to RocksDB", e);
+        }
+    }
+
+    @Override
+    public Long getLabel(byte[] key) {
+        this.ensureNotClosed();
+
+        try (TransactionContext transaction = this.begin()) {
+            byte[] labelId = transaction.get(this.getHandle(KEYS_TO_LABELS_CF), key);
+            return labelId != null ? bytesToLong(labelId) : null;
+        } catch (RocksDBException e) {
+            throw new RuntimeException("Error accessing RocksDB", e);
+        }
+    }
+
+    @Override
+    public byte[] getLabelAsBytes(byte[] key) {
+        return LabelsStore.super.getLabelAsBytes(key);
+    }
+
+    @Override
+    public long keySize() {
+        this.ensureNotClosed();
+        try (TransactionContext transaction = this.begin()) {
+            return transaction.count(this.getHandle(KEYS_TO_LABELS_CF));
         }
     }
 }

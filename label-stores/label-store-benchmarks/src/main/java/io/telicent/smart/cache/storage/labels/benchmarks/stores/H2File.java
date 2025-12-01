@@ -5,7 +5,7 @@ package io.telicent.smart.cache.storage.labels.benchmarks.stores;
 
 import io.telicent.smart.cache.storage.hibernate.configuration.DatabaseConfiguration;
 import io.telicent.smart.cache.storage.hibernate.configuration.h2.H2Configuration;
-import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
+import io.telicent.smart.cache.storage.labels.LabelsStore;
 import io.telicent.smart.cache.storage.labels.hibernate.HibernateLabelsStore;
 
 import java.io.File;
@@ -23,7 +23,7 @@ public class H2File implements StoreImplementation{
     private File tempDir;
 
     @Override
-    public DictionaryLabelsStore newStore() {
+    public LabelsStore newStore() {
         String dbName = "benchmark-" + counter.incrementAndGet();
         Properties props = H2Configuration.prepareFileConnectionProperties(
                 DatabaseConfiguration.builder().hostname("localhost").database(dbName).build(), this.tempDir);

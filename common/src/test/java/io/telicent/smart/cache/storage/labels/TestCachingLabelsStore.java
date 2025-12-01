@@ -5,9 +5,9 @@ package io.telicent.smart.cache.storage.labels;
 
 import org.testng.annotations.Test;
 
-public class TestCachingLabelsStore extends AbstractDictionaryLabelStoreTests{
+public class TestCachingLabelsStore extends AbstractLabelStoreTests{
     @Override
-    protected DictionaryLabelsStore newStore() {
+    protected LabelsStore newStore() {
         return new CachingLabelsStore(new MemoryLabelsStore(), 1_000);
     }
 

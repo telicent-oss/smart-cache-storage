@@ -15,21 +15,22 @@
 
     <properties>
         <license.header.path>${project.parent.parent.basedir}</license.header.path>
-
+        <coverage.minimum>0.6</coverage.minimum>
     </properties>
 
 
     <dependencies>
-<!--        <dependency>-->
-<!--            <groupId>io.telicent.smart-cache-storage</groupId>-->
-<!--            <artifactId>common</artifactId>-->
-<!--            <version>${project.version}</version>-->
-<!--        </dependency>-->
-
         <dependency>
-            <groupId>org.rocksdb</groupId>
-            <artifactId>rocksdbjni</artifactId>
-            <version>${dependency.rocksdb}</version>
+            <groupId>io.telicent.smart-caches.storage</groupId>
+            <artifactId>rocksdb</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Test Dependencies -->
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>

@@ -4,6 +4,8 @@
 package io.telicent.smart.cache.storage.labels;
 
 import io.telicent.smart.cache.storage.AbstractStorage;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,11 +19,12 @@ import java.util.concurrent.atomic.AtomicLong;
  * performance and <strong>MUST NOT</strong> ever be used in a production setting because it isn't persistent!
  * </p>
  */
-public class MemoryLabelsStore extends AbstractStorage implements DictionaryLabelsStore {
+public class MemoryLabelsStore extends AbstractStorage implements LabelsStore {
 
     private final AtomicLong ids = new AtomicLong(0);
     private final Map<String, Long> labelsToIds = new ConcurrentHashMap<>();
     private final Map<Long, String> idsToLabels = new ConcurrentHashMap<>();
+    private final Map<String, Long> keysToLabelIds = new ConcurrentHashMap<>();
     private final Object lock = new Object();
     private final Base64.Encoder encoder = Base64.getEncoder();
     private final Base64.Decoder decoder = Base64.getDecoder();
@@ -46,6 +49,11 @@ public class MemoryLabelsStore extends AbstractStorage implements DictionaryLabe
 
     @Override
     public Map<byte[], Long> idsForLabels(List<byte[]> labels) {
+        ensureNotClosed();
+        if (CollectionUtils.isEmpty(labels)) {
+            return Collections.emptyMap();
+        }
+
         Map<byte[], Long> ids = new LinkedHashMap<>();
         for (byte[] label : labels) {
             // Per contract ignore null labels
@@ -69,6 +77,11 @@ public class MemoryLabelsStore extends AbstractStorage implements DictionaryLabe
 
     @Override
     public Map<Long, byte[]> labelsForIds(List<Long> ids) {
+        ensureNotClosed();
+        if (CollectionUtils.isEmpty(ids)) {
+            return Collections.emptyMap();
+        }
+
         Map<Long, byte[]> labels = new LinkedHashMap<>();
         for (Long id : ids) {
             // Ignore null IDs
@@ -89,6 +102,54 @@ public class MemoryLabelsStore extends AbstractStorage implements DictionaryLabe
         synchronized (this.lock) {
             this.labelsToIds.clear();
             this.idsToLabels.clear();
+            this.keysToLabelIds.clear();
         }
+    }
+
+    @Override
+    public void setLabel(byte[] key, long labelId) {
+        ensureNotClosed();
+        if (LabelsStore.isInvalidKey(key)) {
+            throw new NullPointerException("key cannot be null/empty");
+        }
+
+        this.keysToLabelIds.put(this.encoder.encodeToString(key), labelId);
+    }
+
+    @Override
+    public void setLabels(Map<byte[], Long> keysToLabels) {
+        ensureNotClosed();
+        if (MapUtils.isEmpty(keysToLabels)) {
+            return;
+        }
+
+        for (Map.Entry<byte[], Long> entry : keysToLabels.entrySet()) {
+            if (entry.getKey() == null || entry.getKey().length == 0 || entry.getValue() == null) {
+                continue;
+            }
+
+            this.keysToLabelIds.put(this.encoder.encodeToString(entry.getKey()), entry.getValue());
+        }
+    }
+
+    @Override
+    public Long getLabel(byte[] key) {
+        ensureNotClosed();
+        if (LabelsStore.isInvalidKey(key)) {
+            return null;
+        }
+        return this.keysToLabelIds.get(this.encoder.encodeToString(key));
+    }
+
+    @Override
+    public long labelSize() {
+        ensureNotClosed();
+        return this.labelsToIds.size();
+    }
+
+    @Override
+    public long keySize() {
+        ensureNotClosed();
+        return this.keysToLabelIds.size();
     }
 }

@@ -2,10 +2,10 @@
  * Copyright (C) 2024-2025 Telicent Limited
  */
 package io.telicent.smart.cache.storage.labels.lmdb;
+import io.telicent.smart.cache.storage.AbstractStorage;
 import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
 import org.lmdbjava.*;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -13,7 +13,7 @@ import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.lmdbjava.ByteArrayProxy.PROXY_BA;
@@ -28,7 +28,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  *  - ids_to_labels  : long id -> label bytes
  *  - meta           : metadata (currently just next_id)
  */
-public class LMDBLabelsStore implements DictionaryLabelsStore, Closeable {
+public class LMDBLabelsStore extends AbstractStorage implements DictionaryLabelsStore {
 
     private static final byte[] ID_COUNTER_KEY = "next_id".getBytes(UTF_8);
 
@@ -38,7 +38,6 @@ public class LMDBLabelsStore implements DictionaryLabelsStore, Closeable {
     private final Dbi<byte[]> metaDb;
 
     private final AtomicLong nextId = new AtomicLong();
-    private final AtomicBoolean closed = new AtomicBoolean(false);
     private final Object lock = new Object();
 
     public LMDBLabelsStore(String path) throws IOException {
@@ -59,7 +58,6 @@ public class LMDBLabelsStore implements DictionaryLabelsStore, Closeable {
 
     private void initCounter() {
         synchronized (lock) {
-            ensureOpen();
             try (Txn<byte[]> txn = env.txnWrite()) {
                 byte[] stored = metaDb.get(txn, ID_COUNTER_KEY);
                 long initial = 1L;
@@ -70,12 +68,6 @@ public class LMDBLabelsStore implements DictionaryLabelsStore, Closeable {
                 metaDb.put(txn, ID_COUNTER_KEY, longToBytes(initial));
                 txn.commit();
             }
-        }
-    }
-
-    private void ensureOpen() {
-        if (closed.get()) {
-            throw new IllegalStateException("LMDBLabelsStore has been closed");
         }
     }
 
@@ -91,12 +83,10 @@ public class LMDBLabelsStore implements DictionaryLabelsStore, Closeable {
 
     @Override
     public long idForLabel(byte[] labelBytes) {
-        if (labelBytes == null) {
-            throw new IllegalArgumentException("Label cannot be null.");
-        }
+        ensureNotClosed();
+        Objects.requireNonNull(labelBytes, "label cannot be null");
 
         synchronized (lock) {
-            ensureOpen();
             try (Txn<byte[]> txn = env.txnWrite()) {
                 byte[] existing = labelsToIdsDb.get(txn, labelBytes);
                 if (existing != null) {
@@ -118,6 +108,7 @@ public class LMDBLabelsStore implements DictionaryLabelsStore, Closeable {
 
     @Override
     public Map<byte[], Long> idsForLabels(List<byte[]> labels) {
+        ensureNotClosed();
         if (labels == null || labels.isEmpty()) {
             return Map.of();
         }
@@ -133,7 +124,7 @@ public class LMDBLabelsStore implements DictionaryLabelsStore, Closeable {
 
     @Override
     public byte[] labelForId(long id) {
-        ensureOpen();
+        ensureNotClosed();
         if (id <= 0) return null;
         try (Txn<byte[]> txn = env.txnRead()) {
             byte[] idBytes = longToBytes(id);
@@ -143,6 +134,7 @@ public class LMDBLabelsStore implements DictionaryLabelsStore, Closeable {
 
     @Override
     public Map<Long, byte[]> labelsForIds(List<Long> ids) {
+        ensureNotClosed();
         if (ids == null || ids.isEmpty()) {
             return Map.of();
         }
@@ -159,10 +151,15 @@ public class LMDBLabelsStore implements DictionaryLabelsStore, Closeable {
     }
 
     @Override
-    public void close() {
-        if (!closed.compareAndSet(false, true)) {
-            return;
+    public long labelSize() {
+        ensureNotClosed();
+        try (Txn<byte[]> txn = env.txnRead()) {
+            return this.labelsToIdsDb.stat(txn).entries;
         }
+    }
+
+    @Override
+    protected void closeInternal() {
         try {
             labelsToIdsDb.close();
             idsToLabelsDb.close();

@@ -3,27 +3,27 @@
  */
 package io.telicent.smart.cache.storage.labels.mapdb;
 
+import io.telicent.smart.cache.storage.AbstractStorage;
 import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
 import org.mapdb.Serializer;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * MapDB-based implementation of DictionaryLabelsStore.
  * Uses two HTreeMaps and a persistent AtomicLong for the ID counter.
  */
-public class MapDbLabelsStore implements DictionaryLabelsStore, Closeable {
+public class MapDbLabelsStore extends AbstractStorage implements DictionaryLabelsStore {
 
     private final DB db;
     private final HTreeMap<byte[], Long> labelsToIds;
@@ -32,7 +32,6 @@ public class MapDbLabelsStore implements DictionaryLabelsStore, Closeable {
     private final org.mapdb.Atomic.Long persistentCounter;
 
     private final Object lock = new Object();
-    private final AtomicBoolean closed = new AtomicBoolean(false);
 
     public MapDbLabelsStore(String filePath) throws IOException {
         File file = new File(filePath);
@@ -65,20 +64,12 @@ public class MapDbLabelsStore implements DictionaryLabelsStore, Closeable {
         this.nextId = new AtomicLong(initial);
     }
 
-    private void ensureOpen() {
-        if (closed.get()) {
-            throw new IllegalStateException("MapDbLabelsStore has been closed");
-        }
-    }
-
     @Override
     public long idForLabel(byte[] labelBytes) {
-        if (labelBytes == null) {
-            throw new IllegalArgumentException("Label cannot be null.");
-        }
+        ensureNotClosed();
+        Objects.requireNonNull(labelBytes, "Label cannot be null");
 
         synchronized (lock) {
-            ensureOpen();
 
             Long existing = labelsToIds.get(labelBytes);
             if (existing != null) {
@@ -99,7 +90,7 @@ public class MapDbLabelsStore implements DictionaryLabelsStore, Closeable {
 
     @Override
     public Map<byte[], Long> idsForLabels(List<byte[]> labels) {
-        ensureOpen();
+        ensureNotClosed();
         if (labels == null || labels.isEmpty()) {
             return Map.of();
         }
@@ -116,14 +107,14 @@ public class MapDbLabelsStore implements DictionaryLabelsStore, Closeable {
 
     @Override
     public byte[] labelForId(long id) {
-        ensureOpen();
+        ensureNotClosed();
         if (id <= 0) return null;
         return idsToLabels.get(id);
     }
 
     @Override
     public Map<Long, byte[]> labelsForIds(List<Long> ids) {
-        ensureOpen();
+        ensureNotClosed();
         if (ids == null || ids.isEmpty()) {
             return Map.of();
         }
@@ -141,10 +132,13 @@ public class MapDbLabelsStore implements DictionaryLabelsStore, Closeable {
     }
 
     @Override
-    public void close() {
-        if (!closed.compareAndSet(false, true)) {
-            return;
-        }
+    public long labelSize() {
+        ensureNotClosed();
+        return this.labelsToIds.size();
+    }
+
+    @Override
+    protected void closeInternal() {
         try {
             db.close();
         } catch (Exception e) {

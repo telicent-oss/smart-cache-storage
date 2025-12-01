@@ -5,6 +5,7 @@ package io.telicent.smart.cache.storage.labels.benchmarks.states;
 
 import io.telicent.smart.cache.storage.labels.CachingLabelsStore;
 import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
+import io.telicent.smart.cache.storage.labels.LabelsStore;
 import io.telicent.smart.cache.storage.labels.benchmarks.stores.StoreImplementation;
 import io.telicent.smart.cache.storage.mongodb.cluster.ClusterUtils;
 import lombok.Getter;
@@ -18,7 +19,7 @@ import java.lang.reflect.InvocationTargetException;
 public class AbstractStoresState {
     private StoreImplementation storeImpl;
     @Getter
-    private DictionaryLabelsStore store;
+    private LabelsStore store;
 
     static {
         ClusterUtils.SYSOUT_LOGGING_ENABLED = false;

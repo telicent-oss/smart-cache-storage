@@ -3,7 +3,7 @@
  */
 package io.telicent.smart.cache.storage.labels.benchmarks.stores;
 
-import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
+import io.telicent.smart.cache.storage.labels.LabelsStore;
 import io.telicent.smart.cache.storage.labels.MemoryLabelsStore;
 
 /**
@@ -11,7 +11,7 @@ import io.telicent.smart.cache.storage.labels.MemoryLabelsStore;
  */
 public class Memory implements StoreImplementation{
     @Override
-    public DictionaryLabelsStore newStore() {
+    public LabelsStore newStore() {
         return new MemoryLabelsStore();
     }
 

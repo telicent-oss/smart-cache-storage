@@ -12,6 +12,7 @@
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
 
         <!-- Our Entity Classes -->
+        <class>io.telicent.smart.cache.storage.labels.hibernate.AssignedLabel</class>
         <class>io.telicent.smart.cache.storage.labels.hibernate.EncodedLabel</class>
 
         <properties>
