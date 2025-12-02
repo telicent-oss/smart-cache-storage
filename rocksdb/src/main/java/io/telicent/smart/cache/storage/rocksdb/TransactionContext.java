@@ -33,8 +33,8 @@ public interface TransactionContext extends AutoCloseable {
     void put(ColumnFamilyHandle cfHandle, byte[] key, byte[] value) throws RocksDBException;
 
     /**
-     * Performs a multi-get operation allowing for multiple keys to be looked up in a single operation (from the callers
-     * perspective)
+     * Performs a multi-get operation allowing for multiple keys to be looked up in a single operation (from the
+     * callers' perspective)
      * <p>
      * Using this is generally preferred over {@link #get(ColumnFamilyHandle, byte[])} unless only a single key is
      * required as multi-get operations allow RocksDB to amortize some of the costs of a key lookup across multiple

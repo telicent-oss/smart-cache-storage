@@ -5,6 +5,7 @@ package io.telicent.smart.cache.storage.labels.mongodb;
 
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.model.Filters;
+import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
 import io.telicent.smart.cache.storage.labels.LabelsStore;
 import io.telicent.smart.cache.storage.mongodb.AbstractMongoStorage;
 import org.apache.commons.collections4.CollectionUtils;
@@ -14,6 +15,15 @@ import org.mongojack.JacksonMongoCollection;
 
 import java.util.*;
 
+/**
+ * A labels store backed by a MongoDB database
+ * <p>
+ * Two collections are used, one to store the mapping of label byte sequences to IDs, and another to store mapping of
+ * keys to label IDs.  Label IDs are assigned based on timestamps since MongoDB lacks anything resembling an
+ * auto-increment/counter type.  Given that assigning a new ID involves first querying whether a given label already
+ * exists in the store the communication overhead ensures that a fresh ID is always assigned.
+ * </p>
+ */
 public class MongoDBLabelsStore extends AbstractMongoStorage implements LabelsStore {
 
     /**
@@ -59,7 +69,9 @@ public class MongoDBLabelsStore extends AbstractMongoStorage implements LabelsSt
     @Override
     public long idForLabel(byte[] label) {
         ensureNotClosed();
-        Objects.requireNonNull(label, "label cannot be null");
+        if (DictionaryLabelsStore.isInvalidByteSequence(label)) {
+            throw new NullPointerException("label cannot be null/empty");
+        }
 
         JacksonMongoCollection<EncodedLabel> labels = getLabelsCollection();
         String encoded = this.encoder.encodeToString(label);
@@ -86,7 +98,7 @@ public class MongoDBLabelsStore extends AbstractMongoStorage implements LabelsSt
         JacksonMongoCollection<EncodedLabel> collection = getLabelsCollection();
         Map<byte[], Long> ids = new LinkedHashMap<>();
         for (byte[] label : labels) {
-            if (label == null) {
+            if (DictionaryLabelsStore.isInvalidByteSequence(label)) {
                 continue;
             }
             if (ids.containsKey(label)) {
@@ -132,7 +144,7 @@ public class MongoDBLabelsStore extends AbstractMongoStorage implements LabelsSt
     }
 
     @Override
-    public long labelSize() {
+    public long labelCount() {
         ensureNotClosed();
         JacksonMongoCollection<EncodedLabel> labels = getLabelsCollection();
         return labels.countDocuments();
@@ -141,7 +153,7 @@ public class MongoDBLabelsStore extends AbstractMongoStorage implements LabelsSt
     @Override
     public void setLabel(byte[] key, long labelId) {
         ensureNotClosed();
-        if (LabelsStore.isInvalidKey(key)) {
+        if (DictionaryLabelsStore.isInvalidByteSequence(key)) {
             throw new NullPointerException("key cannot be null/empty");
         }
 
@@ -158,7 +170,7 @@ public class MongoDBLabelsStore extends AbstractMongoStorage implements LabelsSt
         }
 
         for (Map.Entry<byte[], Long> entry : keysToLabels.entrySet()) {
-            if (LabelsStore.isInvalidKey(entry.getKey()) || entry.getValue() == null) {
+            if (DictionaryLabelsStore.isInvalidByteSequence(entry.getKey()) || entry.getValue() == null) {
                 continue;
             }
 
@@ -169,7 +181,9 @@ public class MongoDBLabelsStore extends AbstractMongoStorage implements LabelsSt
     @Override
     public Long getLabel(byte[] key) {
         ensureNotClosed();
-        Objects.requireNonNull(key, "key cannot be null");
+        if (DictionaryLabelsStore.isInvalidByteSequence(key)) {
+            throw new NullPointerException("key cannot be null/empty");
+        }
 
         JacksonMongoCollection<AssignedLabel> assignedLabels = getAssignedLabelsCollection();
         String encoded = this.encoder.encodeToString(key);
@@ -178,7 +192,7 @@ public class MongoDBLabelsStore extends AbstractMongoStorage implements LabelsSt
     }
 
     @Override
-    public long keySize() {
+    public long keyCount() {
         ensureNotClosed();
         JacksonMongoCollection<AssignedLabel> assignedLabels = getAssignedLabelsCollection();
         return assignedLabels.countDocuments();

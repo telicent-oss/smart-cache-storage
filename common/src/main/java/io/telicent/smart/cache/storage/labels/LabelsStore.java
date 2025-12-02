@@ -50,16 +50,6 @@ public interface LabelsStore extends DictionaryLabelsStore {
     void setLabels(Map<byte[], Long> keysToLabels);
 
     /**
-     * Checks whether the given key is invalid
-     *
-     * @param key Key
-     * @return True if the key is invalid i.e. it is {@code null} or has zero length, false if a valid key
-     */
-    static boolean isInvalidKey(byte[] key) {
-        return key == null || key.length == 0;
-    }
-
-    /**
      * Gets the label ID associated with the given key
      *
      * @param key Key byte sequence
@@ -88,8 +78,8 @@ public interface LabelsStore extends DictionaryLabelsStore {
     /**
      * Returns the label store size in terms of number of unique keys mapped to label IDs
      *
-     * @return Number of unique keys in the store
+     * @return Count of unique keys in the store
      */
-    long keySize();
+    long keyCount();
 
 }

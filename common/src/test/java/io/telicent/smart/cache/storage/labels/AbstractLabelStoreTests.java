@@ -64,6 +64,24 @@ public abstract class AbstractLabelStoreTests extends AbstractDictionaryLabelSto
         }
     }
 
+    @Test(expectedExceptions = NullPointerException.class)
+    public void givenLabelStore_whenRetrievingLabelBytesForNullKey_thenNull() {
+        // Given
+        try (LabelsStore store = newStore()) {
+            // When and Then
+            store.getLabel(null);
+        }
+    }
+
+    @Test(expectedExceptions = NullPointerException.class)
+    public void givenLabelStore_whenRetrievingLabelBytesForEmptyKey_thenNPE() {
+        // Given
+        try (LabelsStore store = newStore()) {
+            // When and Then
+            store.getLabel(new byte[0]);
+        }
+    }
+
     @Test
     public void givenLabelStore_whenAssigningKeyToLabel_thenAssigned() {
         // Given
@@ -140,7 +158,7 @@ public abstract class AbstractLabelStoreTests extends AbstractDictionaryLabelSto
             store.setLabels(null);
 
             // Then
-            Assert.assertEquals(store.keySize(), 0L);
+            Assert.assertEquals(store.keyCount(), 0L);
         }
     }
 
@@ -152,7 +170,7 @@ public abstract class AbstractLabelStoreTests extends AbstractDictionaryLabelSto
             store.setLabels(Collections.emptyMap());
 
             // Then
-            Assert.assertEquals(store.keySize(), 0L);
+            Assert.assertEquals(store.keyCount(), 0L);
         }
     }
 
@@ -168,7 +186,7 @@ public abstract class AbstractLabelStoreTests extends AbstractDictionaryLabelSto
             store.setLabels(assignments);
 
             // Then
-            Assert.assertEquals(store.keySize(), 0L);
+            Assert.assertEquals(store.keyCount(), 0L);
         }
     }
 

@@ -20,8 +20,22 @@ import java.util.Map;
  *     <li>It is consistent, i.e. given the same label it <strong>MUST</strong> always return the same ID</li>
  *     <li>It is <strong>thread-safe</strong>, i.e. multiple threads <strong>MUST</strong> be able to safely obtain IDs for labels</li>
  * </ul>
+ * <p>
+ * Anyone implementing this interface should ensure that they use the abstract tests provided in the {@code tests}
+ * classifier module that accompanies this API to validate their implementation conforms to the API contract fully.
+ * </p>
  */
 public interface DictionaryLabelsStore extends Closeable {
+
+    /**
+     * Checks whether the given byte sequence is considered invalid
+     *
+     * @param key Key
+     * @return True if the byte sequence is invalid i.e. it is {@code null} or has zero length, false if a valid key
+     */
+    static boolean isInvalidByteSequence(byte[] key) {
+        return key == null || key.length == 0;
+    }
 
     /**
      * Given a label byte sequence provide the unique ID for that label
@@ -32,7 +46,7 @@ public interface DictionaryLabelsStore extends Closeable {
      *
      * @param label Label byte sequence
      * @return Label ID
-     * @throws NullPointerException Thrown if the label is {@code null}
+     * @throws NullPointerException Thrown if the label is {@code null} or empty
      */
     long idForLabel(byte[] label);
 
@@ -75,9 +89,9 @@ public interface DictionaryLabelsStore extends Closeable {
     /**
      * Returns the label store size in terms of number of unique label IDs assigned
      *
-     * @return Number of unique label IDs in the store
+     * @return Count of unique label IDs in the store
      */
-    long labelSize();
+    long labelCount();
 
     /**
      * Closes the labels store releasing any resources it might be holding

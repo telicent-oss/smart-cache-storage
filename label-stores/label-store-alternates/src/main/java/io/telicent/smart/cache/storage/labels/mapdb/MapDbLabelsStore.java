@@ -5,6 +5,7 @@ package io.telicent.smart.cache.storage.labels.mapdb;
 
 import io.telicent.smart.cache.storage.AbstractStorage;
 import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
+import org.apache.commons.collections4.CollectionUtils;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
@@ -13,15 +14,12 @@ import org.mapdb.Serializer;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * MapDB-based implementation of DictionaryLabelsStore.
- * Uses two HTreeMaps and a persistent AtomicLong for the ID counter.
+ * MapDB-based implementation of DictionaryLabelsStore. Uses two HTreeMaps and a persistent AtomicLong for the ID
+ * counter.
  */
 public class MapDbLabelsStore extends AbstractStorage implements DictionaryLabelsStore {
 
@@ -67,7 +65,9 @@ public class MapDbLabelsStore extends AbstractStorage implements DictionaryLabel
     @Override
     public long idForLabel(byte[] labelBytes) {
         ensureNotClosed();
-        Objects.requireNonNull(labelBytes, "Label cannot be null");
+        if (DictionaryLabelsStore.isInvalidByteSequence(labelBytes)) {
+            throw new NullPointerException("label cannot be null/empty");
+        }
 
         synchronized (lock) {
 
@@ -97,10 +97,11 @@ public class MapDbLabelsStore extends AbstractStorage implements DictionaryLabel
 
         Map<byte[], Long> result = new HashMap<>();
         for (byte[] label : labels) {
-            if (label != null) {
-                long id = idForLabel(label);
-                result.put(label, id);
+            if (DictionaryLabelsStore.isInvalidByteSequence(label)) {
+                continue;
             }
+            long id = idForLabel(label);
+            result.put(label, id);
         }
         return result;
     }
@@ -115,8 +116,8 @@ public class MapDbLabelsStore extends AbstractStorage implements DictionaryLabel
     @Override
     public Map<Long, byte[]> labelsForIds(List<Long> ids) {
         ensureNotClosed();
-        if (ids == null || ids.isEmpty()) {
-            return Map.of();
+        if (CollectionUtils.isEmpty(ids)) {
+            return Collections.emptyMap();
         }
 
         Map<Long, byte[]> result = new HashMap<>();
@@ -132,7 +133,7 @@ public class MapDbLabelsStore extends AbstractStorage implements DictionaryLabel
     }
 
     @Override
-    public long labelSize() {
+    public long labelCount() {
         ensureNotClosed();
         return this.labelsToIds.size();
     }

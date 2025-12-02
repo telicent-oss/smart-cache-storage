@@ -32,7 +32,9 @@ public class MemoryLabelsStore extends AbstractStorage implements LabelsStore {
     @Override
     public long idForLabel(byte[] label) {
         ensureNotClosed();
-        Objects.requireNonNull(label, "Label cannot be null");
+        if (DictionaryLabelsStore.isInvalidByteSequence(label)) {
+            throw new NullPointerException("label cannot be null/empty");
+        }
 
         synchronized (this.lock) {
             Long existingId = this.labelsToIds.get(this.encoder.encodeToString(label));
@@ -56,8 +58,8 @@ public class MemoryLabelsStore extends AbstractStorage implements LabelsStore {
 
         Map<byte[], Long> ids = new LinkedHashMap<>();
         for (byte[] label : labels) {
-            // Per contract ignore null labels
-            if (label == null) {
+            // Per contract ignore null/empty labels
+            if (DictionaryLabelsStore.isInvalidByteSequence(label)) {
                 continue;
             }
             ids.put(label, this.idForLabel(label));
@@ -109,7 +111,7 @@ public class MemoryLabelsStore extends AbstractStorage implements LabelsStore {
     @Override
     public void setLabel(byte[] key, long labelId) {
         ensureNotClosed();
-        if (LabelsStore.isInvalidKey(key)) {
+        if (DictionaryLabelsStore.isInvalidByteSequence(key)) {
             throw new NullPointerException("key cannot be null/empty");
         }
 
@@ -124,7 +126,7 @@ public class MemoryLabelsStore extends AbstractStorage implements LabelsStore {
         }
 
         for (Map.Entry<byte[], Long> entry : keysToLabels.entrySet()) {
-            if (entry.getKey() == null || entry.getKey().length == 0 || entry.getValue() == null) {
+            if (DictionaryLabelsStore.isInvalidByteSequence(entry.getKey()) || entry.getValue() == null) {
                 continue;
             }
 
@@ -135,20 +137,20 @@ public class MemoryLabelsStore extends AbstractStorage implements LabelsStore {
     @Override
     public Long getLabel(byte[] key) {
         ensureNotClosed();
-        if (LabelsStore.isInvalidKey(key)) {
-            return null;
+        if (DictionaryLabelsStore.isInvalidByteSequence(key)) {
+            throw new NullPointerException("key cannot be null/empty");
         }
         return this.keysToLabelIds.get(this.encoder.encodeToString(key));
     }
 
     @Override
-    public long labelSize() {
+    public long labelCount() {
         ensureNotClosed();
         return this.labelsToIds.size();
     }
 
     @Override
-    public long keySize() {
+    public long keyCount() {
         ensureNotClosed();
         return this.keysToLabelIds.size();
     }

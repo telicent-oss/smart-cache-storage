@@ -3,8 +3,6 @@
  */
 package io.telicent.smart.cache.storage.labels;
 
-import org.apache.commons.collections4.MapUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
@@ -25,12 +23,21 @@ public abstract class AbstractDictionaryLabelStoreTests {
      */
     protected abstract DictionaryLabelsStore newDictionaryStore();
 
-    @Test(expectedExceptions = { IllegalArgumentException.class, NullPointerException.class })
-    public void givenDictionaryLabelsStore_whenInsertingNullLabels_thenNPE() {
+    @Test(expectedExceptions = NullPointerException.class)
+    public void givenDictionaryLabelsStore_whenInsertingNullLabel_thenNPE() {
         // Given
         try (DictionaryLabelsStore store = newDictionaryStore()) {
             // When and Then
             store.idForLabel(null);
+        }
+    }
+
+    @Test(expectedExceptions = NullPointerException.class)
+    public void givenDictionaryLabelsStore_whenInsertingEmptyLabel_thenNPE() {
+        // Given
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
+            // When and Then
+            store.idForLabel(new byte[0]);
         }
     }
 
@@ -90,7 +97,7 @@ public abstract class AbstractDictionaryLabelStoreTests {
             store.close();
 
             // Then
-            store.labelSize();
+            store.labelCount();
         }
     }
 
@@ -191,7 +198,7 @@ public abstract class AbstractDictionaryLabelStoreTests {
                 Assert.assertEquals(store.idForLabel(label), expectedId);
                 Assert.assertEquals(store.labelForId(expectedId), label);
             }
-            Assert.assertEquals(store.labelSize(), uniqueLabels);
+            Assert.assertEquals(store.labelCount(), uniqueLabels);
         }
     }
 
@@ -219,7 +226,7 @@ public abstract class AbstractDictionaryLabelStoreTests {
                 Assert.assertEquals(store.idForLabel(label), expectedId);
                 Assert.assertEquals(store.labelForId(expectedId), label);
             }
-            Assert.assertEquals(store.labelSize(), uniqueLabels);
+            Assert.assertEquals(store.labelCount(), uniqueLabels);
         }
     }
 
@@ -251,7 +258,7 @@ public abstract class AbstractDictionaryLabelStoreTests {
                 Assert.assertNotNull(retrieved.get(entry.getValue()));
                 Assert.assertEquals(retrieved.get(entry.getValue()), entry.getKey());
             }
-            Assert.assertEquals(store.labelSize(), uniqueLabels);
+            Assert.assertEquals(store.labelCount(), uniqueLabels);
         }
     }
 
@@ -317,7 +324,7 @@ public abstract class AbstractDictionaryLabelStoreTests {
     private static void verifyUniqueLabelCounts(int uniqueAssignedIds, int uniqueLabels, DictionaryLabelsStore store) {
         Assert.assertTrue(uniqueAssignedIds <= uniqueLabels,
                           "Expected at most " + uniqueLabels + " IDs but found " + uniqueAssignedIds);
-        long storeLabelsCount = store.labelSize();
+        long storeLabelsCount = store.labelCount();
         Assert.assertTrue(storeLabelsCount <= uniqueLabels,
                           "Store reported label size " + storeLabelsCount + " greater than expected unique labels " + uniqueLabels);
     }
@@ -360,18 +367,19 @@ public abstract class AbstractDictionaryLabelStoreTests {
     }
 
     @Test
-    public void givenDictionaryLabelStore_whenBulkInsertingLabelsWithSomeNulls_thenNullLabelsIgnored() {
+    public void givenDictionaryLabelStore_whenBulkInsertingLabelsWithSomeInvalids_thenNullLabelsIgnored() {
         // Given
         try (DictionaryLabelsStore store = newDictionaryStore()) {
             List<byte[]> labels = new ArrayList<>(generateUniqueLabels(100));
             insertNulls(labels, 5);
+            insertEmpties(labels, 5);
 
             // When
             Map<byte[], Long> ids = store.idsForLabels(labels);
 
             // Then
             Assert.assertEquals(ids.size(), 100);
-            Assert.assertEquals(store.labelSize(), 100);
+            Assert.assertEquals(store.labelCount(), 100);
         }
     }
 
@@ -388,7 +396,7 @@ public abstract class AbstractDictionaryLabelStoreTests {
 
             // Then
             Assert.assertEquals(ids1.size(), 100);
-            Assert.assertEquals(store.labelSize(), 100);
+            Assert.assertEquals(store.labelCount(), 100);
             for (byte[] label : labels) {
                 if (label != null) {
                     Assert.assertNotNull(ids1.get(label));
@@ -402,9 +410,15 @@ public abstract class AbstractDictionaryLabelStoreTests {
         }
     }
 
-    private static void insertNulls(List<?> labels, int total) {
+    private static void insertNulls(List<?> list, int total) {
         for (int i = 1; i <= total; i++) {
-            labels.add(RandomUtils.insecure().randomInt(0, labels.size()), null);
+            list.add(RandomUtils.insecure().randomInt(0, list.size()), null);
+        }
+    }
+
+    private static void insertEmpties(List<byte[]> list, int total) {
+        for (int i = 1; i <= total; i++) {
+            list.add(RandomUtils.insecure().randomInt(0, list.size()), new byte[0]);
         }
     }
 
@@ -423,7 +437,7 @@ public abstract class AbstractDictionaryLabelStoreTests {
             // Then
             Assert.assertEquals(ids1.size(), 100);
             Assert.assertEquals(ids2.size(), 200);
-            Assert.assertEquals(store.labelSize(), 200);
+            Assert.assertEquals(store.labelCount(), 200);
             for (byte[] label : ids1.keySet()) {
                 Assert.assertNotNull(ids2.get(label));
                 Assert.assertEquals(ids1.get(label), ids2.get(label));
@@ -463,7 +477,7 @@ public abstract class AbstractDictionaryLabelStoreTests {
 
             // Then
             Assert.assertTrue(ids.isEmpty());
-            Assert.assertEquals(store.labelSize(), 0L);
+            Assert.assertEquals(store.labelCount(), 0L);
         }
     }
 
@@ -476,7 +490,7 @@ public abstract class AbstractDictionaryLabelStoreTests {
 
             // Then
             Assert.assertTrue(ids.isEmpty());
-            Assert.assertEquals(store.labelSize(), 0L);
+            Assert.assertEquals(store.labelCount(), 0L);
         }
     }
 
@@ -489,7 +503,7 @@ public abstract class AbstractDictionaryLabelStoreTests {
 
             // Then
             Assert.assertTrue(ids.isEmpty());
-            Assert.assertEquals(store.labelSize(), 0L);
+            Assert.assertEquals(store.labelCount(), 0L);
         }
     }
 

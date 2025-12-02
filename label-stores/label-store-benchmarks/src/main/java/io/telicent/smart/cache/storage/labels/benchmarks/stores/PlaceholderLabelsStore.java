@@ -32,7 +32,7 @@ public class PlaceholderLabelsStore implements LabelsStore {
     }
 
     @Override
-    public long keySize() {
+    public long keyCount() {
         throw new UnsupportedOperationException();
     }
 }

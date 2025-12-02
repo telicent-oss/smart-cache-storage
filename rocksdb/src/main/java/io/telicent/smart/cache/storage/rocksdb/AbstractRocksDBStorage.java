@@ -20,8 +20,13 @@ import java.util.*;
  * The primary usage pattern for this in derived implementations is as follows:
  * </p>
  * <code>
+ * // Start a fresh transaction
  * try (TransactionContext context = this.begin()) {
- *     context.
+ *     // Perform some operations
+ *     context.put(key, value);
+ *
+ *     // Commit the transaction
+ *     context.commit();
  * }
  * </code>
  */
@@ -47,6 +52,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
      * <ul>
      *     <li>{@link #defaultColumnFamilyOptions()} to provide alternative default {@link ColumnFamilyOptions} used in obtaining {@link ColumnFamilyHandle}'s.</li>
      *     <li>{@link #createDefaultOptions()} to customise the default options used in creating/opening the RocksDB database.</li>
+     *     <li>{@link #createDefaultTransactionOptions()} to customise the transaction options used in accessing the RocksDB database transactionally.</li>
      *     <li>{@link #prepareCounters()} if they want to use one/more {@link RocksDBCounter}'s as part of their storage implementation.</li>
      * </ul>
      *

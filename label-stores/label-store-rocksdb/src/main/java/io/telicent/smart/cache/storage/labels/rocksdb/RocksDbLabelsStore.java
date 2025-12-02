@@ -3,10 +3,12 @@
  */
 package io.telicent.smart.cache.storage.labels.rocksdb;
 
+import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
 import io.telicent.smart.cache.storage.labels.LabelsStore;
 import io.telicent.smart.cache.storage.rocksdb.AbstractRocksDBStorage;
 import io.telicent.smart.cache.storage.rocksdb.RocksDBCounter;
 import io.telicent.smart.cache.storage.rocksdb.TransactionContext;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.rocksdb.*;
 
@@ -18,8 +20,12 @@ import java.util.*;
 import static org.rocksdb.RocksDB.DEFAULT_COLUMN_FAMILY;
 
 /**
- * Basic RocksDB implementation of a thread-safe DictionaryLabelsStore. Doesn't have a canonicising method or anything
- * clever to figure out Ids, just bumps up a number
+ * RocksDB implementation of a labels store
+ * <p>
+ * Uses different column families to store the mapping from labels to IDs, IDs to labels, and keys to IDs.  IDs are
+ * assigned based upon a persistent counter that is stored in another column family.  All operations are done
+ * transactionally to ensure thread safety.
+ * </p>
  */
 public class RocksDbLabelsStore extends AbstractRocksDBStorage implements LabelsStore {
 
@@ -34,6 +40,13 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
     // Next Label ID counter key
     private static final byte[] ID_COUNTER_KEY = "next_label_id".getBytes(StandardCharsets.UTF_8);
 
+    /**
+     * Creates a new RocksDB labels store
+     *
+     * @param dbPath Path on disk where the labels store will live
+     * @throws IOException      Thrown if the path cannot be prepared
+     * @throws RocksDBException Thrown if the database cannot be opened
+     */
     public RocksDbLabelsStore(File dbPath) throws IOException, RocksDBException {
         super(dbPath);
     }
@@ -58,7 +71,9 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
     @Override
     public long idForLabel(byte[] labelBytes) {
         this.ensureNotClosed();
-        Objects.requireNonNull(labelBytes, "Label cannot be null");
+        if (DictionaryLabelsStore.isInvalidByteSequence(labelBytes)) {
+            throw new NullPointerException("label cannot be null/empty");
+        }
 
         try (TransactionContext transaction = this.begin()) {
             ColumnFamilyHandle labelToIdHandle = getHandle(LABELS_TO_IDS_CF);
@@ -90,8 +105,8 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
     @Override
     public Map<byte[], Long> idsForLabels(List<byte[]> labels) {
         this.ensureNotClosed();
-        if (labels == null || labels.isEmpty()) {
-            return Map.of();
+        if (CollectionUtils.isEmpty(labels)) {
+            return Collections.emptyMap();
         }
 
         ColumnFamilyHandle labelToIdHandle = getHandle(LABELS_TO_IDS_CF);
@@ -102,14 +117,15 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
         List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
 
         for (byte[] label : labels) {
-            if (label != null) {
-                queryLabels.add(label);
-                cfHandles.add(labelToIdHandle);
+            if (DictionaryLabelsStore.isInvalidByteSequence(label)) {
+                continue;
             }
+            queryLabels.add(label);
+            cfHandles.add(labelToIdHandle);
         }
 
         if (queryLabels.isEmpty()) {
-            return Map.of();
+            return Collections.emptyMap();
         }
 
         try (TransactionContext transaction = this.begin()) {
@@ -212,7 +228,7 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
     }
 
     @Override
-    public long labelSize() {
+    public long labelCount() {
         this.ensureNotClosed();
         try (TransactionContext transaction = this.begin()) {
             return transaction.count(this.getHandle(LABELS_TO_IDS_CF));
@@ -222,7 +238,7 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
     @Override
     public void setLabel(byte[] key, long labelId) {
         this.ensureNotClosed();
-        if (LabelsStore.isInvalidKey(key)) {
+        if (DictionaryLabelsStore.isInvalidByteSequence(key)) {
             throw new NullPointerException("key cannot be null/empty");
         }
 
@@ -243,7 +259,7 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
 
         try (TransactionContext transaction = this.begin()) {
             for (Map.Entry<byte[], Long> entry : keysToLabels.entrySet()) {
-                if (LabelsStore.isInvalidKey(entry.getKey()) || entry.getValue() == null) {
+                if (DictionaryLabelsStore.isInvalidByteSequence(entry.getKey()) || entry.getValue() == null) {
                     continue;
                 }
 
@@ -259,6 +275,9 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
     @Override
     public Long getLabel(byte[] key) {
         this.ensureNotClosed();
+        if (DictionaryLabelsStore.isInvalidByteSequence(key)) {
+            throw new NullPointerException("key cannot be null/empty");
+        }
 
         try (TransactionContext transaction = this.begin()) {
             byte[] labelId = transaction.get(this.getHandle(KEYS_TO_LABELS_CF), key);
@@ -274,7 +293,7 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
     }
 
     @Override
-    public long keySize() {
+    public long keyCount() {
         this.ensureNotClosed();
         try (TransactionContext transaction = this.begin()) {
             return transaction.count(this.getHandle(KEYS_TO_LABELS_CF));

@@ -5,7 +5,6 @@ package io.telicent.smart.cache.storage.labels;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import io.telicent.smart.cache.storage.AbstractStorage;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 
@@ -14,141 +13,58 @@ import java.util.*;
 /**
  * A caching decorator over another labels store
  */
-public class CachingLabelsStore extends AbstractStorage implements LabelsStore {
+public class CachingLabelsStore extends CachingDictionaryLabelsStore implements LabelsStore {
 
-    private final LabelsStore store;
-    private final Cache<String, Long> labelsToIds;
-    private final Cache<Long, byte[]> idsToLabels;
+    private final LabelsStore labelStore;
     private final Cache<String, Long> keysToLabels;
-    private final Base64.Encoder encoder = Base64.getEncoder();
 
     /**
-     * Creates a new caching store
+     * Creates a new caching store with the same cache size used for each of the individual caches
+     * <p>
+     * For some use cases it may be better to use the {@link #CachingLabelsStore(LabelsStore, int, int, int)}
+     * constructor that lets you customise each cache size individually
+     * </p>
      *
-     * @param store Underlying labels store
+     * @param labelStore Underlying labels store
+     * @param cacheSize  Size of the caches
      */
-    public CachingLabelsStore(LabelsStore store, int cacheSize) {
-        this.store = Objects.requireNonNull(store, "Underlying store cannot be null");
-        if (cacheSize <= 0) {
-            throw new IllegalArgumentException("Cache size must be greater than zero");
-        }
-        this.labelsToIds = Caffeine.newBuilder().initialCapacity(cacheSize / 4).maximumSize(cacheSize).build();
-        this.idsToLabels = Caffeine.newBuilder().initialCapacity(cacheSize / 4).maximumSize(cacheSize).build();
-        this.keysToLabels = Caffeine.newBuilder().initialCapacity(cacheSize / 4).maximumSize(cacheSize).build();
+    public CachingLabelsStore(LabelsStore labelStore, int cacheSize) {
+        this(labelStore, cacheSize, cacheSize, cacheSize);
     }
 
-    @Override
-    public long idForLabel(byte[] label) {
-        Objects.requireNonNull(label, "Label cannot be null");
-        String encoded = this.encoder.encodeToString(label);
-        return this.labelsToIds.get(encoded, k -> this.store.idForLabel(label));
-    }
-
-    @Override
-    public Map<byte[], Long> idsForLabels(List<byte[]> labels) {
-        if (CollectionUtils.isEmpty(labels)) {
-            return Collections.emptyMap();
-        }
-
-        // Can everything be satisfied from the cache?
-        boolean allCached = true;
-        Map<byte[], Long> ids = new LinkedHashMap<>();
-        for (byte[] label : labels) {
-            if (label == null) {
-                continue;
-            }
-            String encoded = this.encoder.encodeToString(label);
-            Long id = this.labelsToIds.getIfPresent(encoded);
-            ids.put(label, id);
-            if (id == null) {
-                allCached = false;
-            }
-        }
-
-        if (allCached) {
-            return ids;
-        }
-
-        // If not then get the rest from the underlying store and combine the results
-        // We also update the cache as we do this to improve subsequent insert performance
-        List<byte[]> uncachedLabels =
-                ids.entrySet().stream().filter(e -> e.getValue() == null).map(Map.Entry::getKey).toList();
-        Map<byte[], Long> uncachedIds = this.store.idsForLabels(uncachedLabels);
-        for (Map.Entry<byte[], Long> entry : uncachedIds.entrySet()) {
-            this.labelsToIds.put(encoder.encodeToString(entry.getKey()), entry.getValue());
-        }
-        ids.putAll(uncachedIds);
-
-        return ids;
-    }
-
-    @Override
-    public byte[] labelForId(long id) {
-        return this.idsToLabels.get(id, this.store::labelForId);
-    }
-
-    @Override
-    public Map<Long, byte[]> labelsForIds(List<Long> ids) {
-        if (CollectionUtils.isEmpty(ids)) {
-            return Collections.emptyMap();
-        }
-
-        // Can everything be satisfied from the cache?
-        boolean allCached = true;
-        Map<Long, byte[]> labels = new LinkedHashMap<>();
-        for (Long id : ids) {
-            // Ignore null IDs
-            if (id == null) {
-                continue;
-            }
-            // NB - The list might contain duplicate IDs
-            if (labels.containsKey(id)) {
-                continue;
-            }
-            labels.put(id, this.idsToLabels.getIfPresent(id));
-            if (labels.get(id) == null) {
-                allCached = false;
-            }
-        }
-        if (allCached) {
-            return labels;
-        }
-
-        // For any uncached IDs lookup in the underlying store then combine the results
-        // We also update the cache to improve subsequent lookup performance
-        List<Long> uncachedIds =
-                labels.entrySet().stream().filter(e -> e.getValue() == null).map(Map.Entry::getKey).toList();
-        Map<Long, byte[]> uncachedLabels = this.store.labelsForIds(uncachedIds);
-        for (Map.Entry<Long, byte[]> entry : uncachedLabels.entrySet()) {
-            if (entry.getValue() == null) {
-                continue;
-            }
-            this.idsToLabels.put(entry.getKey(), entry.getValue());
-        }
-        labels.putAll(uncachedLabels);
-
-        return labels;
-
-    }
-
-    @Override
-    public long labelSize() {
-        return this.store.labelSize();
+    /**
+     * Creates a new caching store with different cache sizes used for each of the individual caches
+     *
+     * @param labelStore            Underlying labels store
+     * @param labelsToIdsCacheSize  Cache size for the labels to ID cache (used for {@link #idForLabel(byte[])} and
+     *                              {@link #idsForLabels(List)} calls)
+     * @param idsToLabelsCacheSize  Cache size for the IDS to labels cache (used for {@link #labelForId(long)} and
+     *                              {@link #labelsForIds(List)} calls)
+     * @param keysToLabelsCacheSize Cache size for the keys to labels cache (used for {@link #getLabel(byte[])} calls)
+     */
+    public CachingLabelsStore(LabelsStore labelStore, int labelsToIdsCacheSize, int idsToLabelsCacheSize,
+                              int keysToLabelsCacheSize) {
+        super(labelStore, labelsToIdsCacheSize, idsToLabelsCacheSize);
+        this.labelStore = Objects.requireNonNull(labelStore, "Underlying store cannot be null");
+        validateCacheSize(keysToLabelsCacheSize);
+        this.keysToLabels = Caffeine.newBuilder()
+                                    .initialCapacity(keysToLabelsCacheSize / 4)
+                                    .maximumSize(keysToLabelsCacheSize)
+                                    .build();
     }
 
     @Override
     protected void closeInternal() {
         try {
-            this.store.close();
+            super.closeInternal();
         } finally {
-            this.labelsToIds.invalidateAll();
-            this.idsToLabels.invalidateAll();
+            this.keysToLabels.invalidateAll();
         }
     }
 
     @Override
-    public void setLabel(byte[] key, long labelId) {
-        this.store.setLabel(key, labelId);
+    public final void setLabel(byte[] key, long labelId) {
+        this.labelStore.setLabel(key, labelId);
 
         // If set succeeds then update cache
         String encoded = this.encoder.encodeToString(key);
@@ -156,15 +72,15 @@ public class CachingLabelsStore extends AbstractStorage implements LabelsStore {
     }
 
     @Override
-    public void setLabels(Map<byte[], Long> keysToLabels) {
+    public final void setLabels(Map<byte[], Long> keysToLabels) {
         if (MapUtils.isEmpty(keysToLabels)) {
             return;
         }
-        this.store.setLabels(keysToLabels);
+        this.labelStore.setLabels(keysToLabels);
 
         // If set succeeds then update cache
         for (Map.Entry<byte[], Long> entry : keysToLabels.entrySet()) {
-            if (entry.getKey() == null || entry.getValue() == null) {
+            if (DictionaryLabelsStore.isInvalidByteSequence(entry.getKey()) || entry.getValue() == null) {
                 continue;
             }
             this.keysToLabels.put(this.encoder.encodeToString(entry.getKey()), entry.getValue());
@@ -172,13 +88,16 @@ public class CachingLabelsStore extends AbstractStorage implements LabelsStore {
     }
 
     @Override
-    public Long getLabel(byte[] key) {
+    public final Long getLabel(byte[] key) {
+        if (DictionaryLabelsStore.isInvalidByteSequence(key)) {
+            throw new NullPointerException("key cannot be null/empty");
+        }
         String encoded = this.encoder.encodeToString(key);
-        return this.keysToLabels.get(encoded, k -> this.store.getLabel(key));
+        return this.keysToLabels.get(encoded, k -> this.labelStore.getLabel(key));
     }
 
     @Override
-    public long keySize() {
-        return this.store.keySize();
+    public final long keyCount() {
+        return this.labelStore.keyCount();
     }
 }
