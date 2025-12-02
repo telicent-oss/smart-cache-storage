@@ -30,11 +30,12 @@ public interface DictionaryLabelsStore extends Closeable {
     /**
      * Checks whether the given byte sequence is considered invalid
      *
-     * @param key Key
-     * @return True if the byte sequence is invalid i.e. it is {@code null} or has zero length, false if a valid key
+     * @param sequence Byte sequence
+     * @return True if the byte sequence is invalid i.e. it is {@code null} or is empty (has zero length), false if a
+     * valid sequence
      */
-    static boolean isInvalidByteSequence(byte[] key) {
-        return key == null || key.length == 0;
+    static boolean isInvalidByteSequence(byte[] sequence) {
+        return sequence == null || sequence.length == 0;
     }
 
     /**
@@ -43,10 +44,14 @@ public interface DictionaryLabelsStore extends Closeable {
      * If this is a previously seen label byte sequence then an implementation <strong>MUST</strong> always return the
      * pre-existing unique ID assigned to that label.
      * </p>
+     * <p>
+     * If the given label is {@code null} or empty (has zero length) then a {@link NullPointerException}
+     * <strong>MUST</strong> be raised.
+     * </p>
      *
      * @param label Label byte sequence
      * @return Label ID
-     * @throws NullPointerException Thrown if the label is {@code null} or empty
+     * @throws NullPointerException Thrown if the label is {@code null} or empty (has zero length)
      */
     long idForLabel(byte[] label);
 
@@ -57,8 +62,8 @@ public interface DictionaryLabelsStore extends Closeable {
      * implementations can amortize any overheads of a single lookup across the many lookups.
      * </p>
      * <p>
-     * Note that any {@code null} labels <strong>MUST</strong> be ignored by the bulk implementation and have no
-     * corresponding ID in the returned IDs list.
+     * Note that any {@code null} or empty (zero length) labels <strong>MUST</strong> be ignored by the bulk
+     * implementation and have no corresponding ID in the returned IDs list.
      * </p>
      *
      * @param labels Labels

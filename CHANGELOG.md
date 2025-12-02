@@ -1,5 +1,23 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.6.0
+
+- New `DictionaryLabelsStore` and `LabelStores` APIs in the `common` module along with caching decorator implementations
+- New `rocksdb` module provides `AbstractRocksDBStorage` and associated helper classes to abstract some of the low level
+  details of RocksDB storage implementations
+- New `label-stores` module with various sub-modules:
+    - `label-store-hibernate` for Hibernate backed implementation
+    - `label-store-mongodb` for MongoDB backed implementation
+    - `label-store-rocksdb` for RocksDB backed implementation
+    - `label-store-alternates` for other experimental implementations
+    - Plus `label-store-benchmarks` for JMH benchmarking of implementations
+- Build improvements:
+    - Upgraded Hibernate to 7.1.10.Final
+    - Upgraded Smart Caches Core to 0.32.1
+    - Added new RocksDB 10.2.1 dependency
+    - Added new JMH 1.37 dependency
+    - Various build and test dependencies upgraded to latest available
+
 # 0.5.2
 
 - Build improvements

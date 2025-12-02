@@ -22,6 +22,9 @@ import java.util.*;
  * <code>
  * // Start a fresh transaction
  * try (TransactionContext context = this.begin()) {
+ *     // Get a column family handle
+ *     ColumnFamilyHandle cfHandle = this.getHandle(NAME_OF_COLUMN_FAMILY);
+ * 
  *     // Perform some operations
  *     context.put(key, value);
  *
@@ -241,7 +244,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
      *
      * @return New transaction
      */
-    protected TransactionContext begin() {
+    protected final TransactionContext begin() {
         return this.begin(defaultReadOptions(), defaultWriteOptions());
     }
 
@@ -252,7 +255,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
      * @param writeOptions Write options
      * @return New transaction
      */
-    protected TransactionContext begin(ReadOptions readOptions, WriteOptions writeOptions) {
+    protected final TransactionContext begin(ReadOptions readOptions, WriteOptions writeOptions) {
         return new ShortLivedTransactionContext(this.db, readOptions, writeOptions);
     }
 
@@ -265,7 +268,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
      * @return Counter
      * @throws RocksDBException Thrown if the counter cannot be synchronised with the underlying database
      */
-    protected RocksDBCounter createCounter(byte[] countersColumnFamilyName, String counterKey) throws RocksDBException {
+    protected final RocksDBCounter createCounter(byte[] countersColumnFamilyName, String counterKey) throws RocksDBException {
         return new RocksDBCounter(this.db, this.getHandle(countersColumnFamilyName), counterKey);
     }
 }
