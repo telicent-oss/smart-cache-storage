@@ -14,14 +14,15 @@ import org.bson.UuidRepresentation;
 import org.mongojack.JacksonMongoCollection;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
+
+import static com.mongodb.client.model.Sorts.descending;
 
 /**
  * A labels store backed by a MongoDB database
  * <p>
  * Two collections are used, one to store the mapping of label byte sequences to IDs, and another to store mapping of
- * keys to label IDs.  Label IDs are assigned based on timestamps since MongoDB lacks anything resembling an
- * auto-increment/counter type.  Given that assigning a new ID involves first querying whether a given label already
- * exists in the store the communication overhead ensures that a fresh ID is always assigned.
+ * keys to label IDs.
  * </p>
  */
 public class MongoDBLabelsStore extends AbstractMongoStorage implements LabelsStore {
@@ -36,7 +37,7 @@ public class MongoDBLabelsStore extends AbstractMongoStorage implements LabelsSt
     public static final String ASSIGNED_LABELS_COLLECTION = "assigned-labels";
 
     private final Base64.Encoder encoder = Base64.getEncoder();
-    private final Object lock = new Object();
+    private final AtomicLong nextId = new AtomicLong(1);
 
     /**
      * Creates new Mongo labels store
@@ -46,6 +47,20 @@ public class MongoDBLabelsStore extends AbstractMongoStorage implements LabelsSt
      */
     public MongoDBLabelsStore(MongoClient client, String database) {
         super(client, database);
+
+        // Determine the next available ID to issue
+        syncNextId();
+    }
+
+    protected void syncNextId() {
+        JacksonMongoCollection<EncodedLabel> collection = getLabelsCollection();
+        EncodedLabel maxExisting = collection.find()
+                                             .sort(descending(MONGO_ID_FIELD))
+                                             .limit(1).first();
+
+        if (maxExisting != null) {
+            this.nextId.set(maxExisting.getId() + 1);
+        }
     }
 
     /**
@@ -81,9 +96,7 @@ public class MongoDBLabelsStore extends AbstractMongoStorage implements LabelsSt
     private Long getOrCreateLabel(JacksonMongoCollection<EncodedLabel> labels, String encoded) {
         return this.getOrCreate(labels, () -> {
             EncodedLabel created = EncodedLabel.of(encoded);
-            synchronized (lock) {
-                created.setId(System.currentTimeMillis());
-            }
+            created.setId(this.nextId.getAndIncrement());
             return created;
         }, Filters.eq("label", encoded)).getId();
     }

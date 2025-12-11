@@ -99,6 +99,15 @@ public interface DictionaryLabelsStore extends Closeable {
     long labelCount();
 
     /**
+     * Gets the maximum permitted size of labels in the store
+     *
+     * @return Maximum label size, or {@link Integer#MAX_VALUE} if no limit
+     */
+    default int maxLabelSize() {
+        return Integer.MAX_VALUE;
+    }
+
+    /**
      * Closes the labels store releasing any resources it might be holding
      */
     void close();

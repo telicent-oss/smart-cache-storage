@@ -158,6 +158,11 @@ public class LMDBLabelsStore extends AbstractStorage implements DictionaryLabels
     }
 
     @Override
+    public int maxLabelSize() {
+        return this.env.getMaxKeySize();
+    }
+
+    @Override
     protected void closeInternal() {
         try {
             labelsToIdsDb.close();

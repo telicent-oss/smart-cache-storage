@@ -7,6 +7,8 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.hibernate.annotations.NaturalId;
 
 import java.util.Base64;
@@ -37,24 +39,38 @@ import java.util.Base64;
 @AllArgsConstructor
 public class EncodedLabel {
 
+    /**
+     * Maximum encoded label size, labels above this size are stored as Blobs instead of Base64 encoded strings
+     */
+    public static final int MAX_ENCODED_LABEL_SIZE = 1000;
+    public static final String HASH_PREFIX = "sha512:";
+
     @Id
     @GeneratedValue
     @Column(name = "id")
     private Long id;
 
     @NaturalId
-    @Column(name = "encodeLabel", length = 1000)
+    @Column(name = "encodeLabel", length = MAX_ENCODED_LABEL_SIZE, nullable = false)
     private String label;
+
+    @Column(name = "fullLabel")
+    @Lob
+    private byte[] fullLabel;
 
     /**
      * Creates a new encoded label
      *
-     * @param label Label byte sequence in Base64 encoding
+     * @param label Label byte sequence in Base64 encoding (if fits within the max label size OR {@code sha512:<hash>}
+     *              for labels that exceed this)
      * @return Encoded label
      */
-    public static EncodedLabel of(String label) {
+    public static EncodedLabel of(String label, byte[] rawLabel) {
         EncodedLabel storedLabel = new EncodedLabel();
         storedLabel.setLabel(label);
+        if (Strings.CS.startsWith(label, HASH_PREFIX)) {
+            storedLabel.setFullLabel(rawLabel);
+        }
         return storedLabel;
     }
 
@@ -64,6 +80,10 @@ public class EncodedLabel {
      * @return Label byte sequence
      */
     public byte[] getDecodedLabel() {
-        return Base64.getDecoder().decode(label);
+        if (this.fullLabel != null) {
+            return this.fullLabel;
+        } else {
+            return Base64.getDecoder().decode(label);
+        }
     }
 }

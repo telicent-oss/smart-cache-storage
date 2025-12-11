@@ -5,6 +5,7 @@ package io.telicent.smart.cache.storage.labels;
 
 import org.apache.commons.lang3.RandomUtils;
 import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -15,6 +16,9 @@ import java.util.concurrent.*;
  * Abstract test suite for label dictionary stores
  */
 public abstract class AbstractDictionaryLabelStoreTests {
+
+    public static final int TEN_KILOBYTES = 10 * 1024;
+    public static final int TEN_MEGABYTES = 10 * 1024 * 1024;
 
     /**
      * Creates a new fresh empty instance of a label dictionary store for testing
@@ -139,9 +143,20 @@ public abstract class AbstractDictionaryLabelStoreTests {
      * @return Collection of unique labels
      */
     protected final Collection<byte[]> generateUniqueLabels(int total) {
+        return generateUniqueLabels(total, 50);
+    }
+
+    /**
+     * Generates a collection of unique labels
+     *
+     * @param total     Number of labels to generate
+     * @param labelSize How large (in bytes) should each generated label be
+     * @return Collection of unique labels
+     */
+    protected final Collection<byte[]> generateUniqueLabels(int total, int labelSize) {
         Set<byte[]> labels = new LinkedHashSet<>();
         while (labels.size() < total) {
-            labels.add(RandomUtils.insecure().randomBytes(50));
+            labels.add(RandomUtils.insecure().randomBytes(labelSize));
         }
         return labels;
     }
@@ -192,14 +207,19 @@ public abstract class AbstractDictionaryLabelStoreTests {
             Assert.assertEquals(ids.stream().distinct().count(), uniqueLabels);
 
             // And
-            int i = 0;
-            for (byte[] label : labels) {
-                long expectedId = ids.get(i++);
-                Assert.assertEquals(store.idForLabel(label), expectedId);
-                Assert.assertEquals(store.labelForId(expectedId), label);
-            }
-            Assert.assertEquals(store.labelCount(), uniqueLabels);
+            verifyResolvableIds(uniqueLabels, labels, ids, store);
         }
+    }
+
+    private static void verifyResolvableIds(int uniqueLabels, Collection<byte[]> labels, List<Long> ids,
+                                  DictionaryLabelsStore store) {
+        int i = 0;
+        for (byte[] label : labels) {
+            long expectedId = ids.get(i++);
+            Assert.assertEquals(store.idForLabel(label), expectedId);
+            Assert.assertEquals(store.labelForId(expectedId), label);
+        }
+        Assert.assertEquals(store.labelCount(), uniqueLabels);
     }
 
     @Test(dataProvider = "uniqueSizes", dataProviderClass = AbstractDictionaryLabelStoreTests.class)
@@ -220,13 +240,7 @@ public abstract class AbstractDictionaryLabelStoreTests {
             Assert.assertEquals(ids.stream().distinct().count(), uniqueLabels);
 
             // And
-            int i = 0;
-            for (byte[] label : labels) {
-                long expectedId = ids.get(i++);
-                Assert.assertEquals(store.idForLabel(label), expectedId);
-                Assert.assertEquals(store.labelForId(expectedId), label);
-            }
-            Assert.assertEquals(store.labelCount(), uniqueLabels);
+            verifyResolvableIds(uniqueLabels, labels, ids, store);
         }
     }
 
@@ -629,6 +643,47 @@ public abstract class AbstractDictionaryLabelStoreTests {
                 Assert.assertNotNull(retrieved.get(knownId));
             }
             Assert.assertNull(retrieved.get(Long.MAX_VALUE));
+        }
+    }
+
+    @Test
+    public void givenDictionaryLabelStore_whenInsertingVeryLargeLabel_thenUniqueIdReturned_andReusedAppropriately() {
+        // Given
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
+            ensureLabelSizeSupported(store, TEN_MEGABYTES);
+            byte[] label = generateUniqueLabels(1, TEN_MEGABYTES).stream().findFirst().orElse(null);
+
+            // When
+            long id = store.idForLabel(label);
+
+            // Then
+            Assert.assertEquals(store.labelForId(id), label);
+
+            // And
+            long id2 = store.idForLabel(label);
+            Assert.assertEquals(id2, id);
+        }
+    }
+
+    @Test
+    public void givenDictionaryLabelStore_whenInsertingManyLargeLabels_thenUniqueIdsResolvable() {
+        // Given
+        try (DictionaryLabelsStore store = newDictionaryStore()) {
+            ensureLabelSizeSupported(store, TEN_KILOBYTES);
+            Collection<byte[]> labels = generateUniqueLabels(1_000, TEN_KILOBYTES);
+            List<Long> ids = new ArrayList<>();
+
+            // When
+            insertLabelsAndTrackAssignedIds(labels, ids, store);
+
+            // Then
+            verifyResolvableIds(1_000, labels, ids, store);
+        }
+    }
+
+    private static void ensureLabelSizeSupported(DictionaryLabelsStore store, int labelSize) {
+        if (labelSize > store.maxLabelSize()) {
+            throw new SkipException("Store does not support large labels");
         }
     }
 }
