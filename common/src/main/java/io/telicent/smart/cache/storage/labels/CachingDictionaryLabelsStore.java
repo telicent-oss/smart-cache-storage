@@ -6,8 +6,12 @@ package io.telicent.smart.cache.storage.labels;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.telicent.smart.cache.storage.AbstractStorage;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.functors.NOPClosure;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 /**
@@ -15,10 +19,12 @@ import java.util.*;
  */
 public class CachingDictionaryLabelsStore extends AbstractStorage implements DictionaryLabelsStore {
 
+    public static final String HASH_PREFIX = "sha512:";
     private final DictionaryLabelsStore dictionaryStore;
     private final Cache<String, Long> labelsToIds;
     private final Cache<Long, byte[]> idsToLabels;
     protected final Base64.Encoder encoder = Base64.getEncoder();
+    protected final MessageDigest sha512;
 
     /**
      * Creates a new caching store with the same cache size used for each of the individual caches
@@ -28,8 +34,8 @@ public class CachingDictionaryLabelsStore extends AbstractStorage implements Dic
      * cache size individually
      * </p>
      *
-     * @param dictionaryStore     Underlying labels store
-     * @param cacheSize Size of the caches
+     * @param dictionaryStore Underlying labels store
+     * @param cacheSize       Size of the caches
      */
     public CachingDictionaryLabelsStore(DictionaryLabelsStore dictionaryStore, int cacheSize) {
         this(dictionaryStore, cacheSize, cacheSize);
@@ -38,7 +44,7 @@ public class CachingDictionaryLabelsStore extends AbstractStorage implements Dic
     /**
      * Creates a new caching store with different cache sizes used for each of the individual caches
      *
-     * @param dictionaryStore                Underlying labels store
+     * @param dictionaryStore      Underlying labels store
      * @param labelsToIdsCacheSize Cache size for the labels to ID cache (used for {@link #idForLabel(byte[])} and
      *                             {@link #idsForLabels(List)} calls)
      * @param idsToLabelsCacheSize Cache size for the IDS to labels cache (used for {@link #labelForId(long)} and
@@ -57,6 +63,12 @@ public class CachingDictionaryLabelsStore extends AbstractStorage implements Dic
                                    .initialCapacity(idsToLabelsCacheSize / 4)
                                    .maximumSize(idsToLabelsCacheSize)
                                    .build();
+
+        try {
+            this.sha512 = MessageDigest.getInstance("SHA512");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Failed to obtain SHA512 hash");
+        }
     }
 
     /**
@@ -77,8 +89,24 @@ public class CachingDictionaryLabelsStore extends AbstractStorage implements Dic
         if (DictionaryLabelsStore.isInvalidByteSequence(label)) {
             throw new NullPointerException("label cannot be null/empty");
         }
-        String encoded = this.encoder.encodeToString(label);
+        String encoded = toCacheKey(label);
         return this.labelsToIds.get(encoded, k -> this.dictionaryStore.idForLabel(label));
+    }
+
+    /**
+     * Given a label converts it for use as a cache key
+     *
+     * @param label Label byte sequence
+     * @return Cache key
+     */
+    private String toCacheKey(byte[] label) {
+        if (label.length <= 1024) {
+            // For short labels just Base64 encode
+            return this.encoder.encodeToString(label);
+        } else {
+            // For anything larger take a SHA512 hash instead
+            return HASH_PREFIX + Hex.encodeHexString(this.sha512.digest(label));
+        }
     }
 
     @Override
@@ -94,7 +122,7 @@ public class CachingDictionaryLabelsStore extends AbstractStorage implements Dic
             if (DictionaryLabelsStore.isInvalidByteSequence(label)) {
                 continue;
             }
-            String encoded = this.encoder.encodeToString(label);
+            String encoded = toCacheKey(label);
             Long id = this.labelsToIds.getIfPresent(encoded);
             ids.put(label, id);
             if (id == null) {
@@ -112,7 +140,7 @@ public class CachingDictionaryLabelsStore extends AbstractStorage implements Dic
                 ids.entrySet().stream().filter(e -> e.getValue() == null).map(Map.Entry::getKey).toList();
         Map<byte[], Long> uncachedIds = this.dictionaryStore.idsForLabels(uncachedLabels);
         for (Map.Entry<byte[], Long> entry : uncachedIds.entrySet()) {
-            this.labelsToIds.put(encoder.encodeToString(entry.getKey()), entry.getValue());
+            this.labelsToIds.put(toCacheKey(entry.getKey()), entry.getValue());
         }
         ids.putAll(uncachedIds);
 
