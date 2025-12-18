@@ -49,6 +49,16 @@
         </dependency>
 
         <dependency>
+            <groupId>com.redgate.flyway</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.redgate.flyway</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <version>${dependency.h2}</version>

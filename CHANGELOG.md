@@ -2,10 +2,13 @@
 
 # 0.6.0
 
+- Hibernate improvements:
+    - Added optional Flyway schema migration support by overriding the `prepareFlywayConfiguration()`
+      method in storage implementations derived from `AbstractHibernateStorage`
 - New `DictionaryLabelsStore` and `LabelStores` APIs in the `common` module along with caching decorator implementations
 - New `rocksdb` module provides `AbstractRocksDBStorage` and associated helper classes to abstract some of the low level
   details of RocksDB storage implementations
-- New `label-stores` module with various sub-modules:
+- New `label-stores` module with various submodules:
     - `label-store-hibernate` for Hibernate backed implementation
     - `label-store-mongodb` for MongoDB backed implementation
     - `label-store-rocksdb` for RocksDB backed implementation
@@ -14,9 +17,10 @@
 - Build improvements:
     - Upgraded Hibernate to 7.1.10.Final
     - Upgraded Smart Caches Core to 0.32.1
+    - Added new Flyway 11.19.0 dependency
     - Added new RocksDB 10.2.1 dependency
     - Added new JMH 1.37 dependency
-    - Various build and test dependencies upgraded to latest available
+    - Various build and test dependencies upgraded to latest available 
 
 # 0.5.2
 

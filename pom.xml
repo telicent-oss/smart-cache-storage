@@ -63,6 +63,7 @@
 
         <!-- Dependency Versions -->
         <dependency.commons-codec>1.16.1</dependency.commons-codec>
+        <dependency.flyway>11.19.0</dependency.flyway>
         <dependency.h2>2.4.240</dependency.h2>
         <dependency.hibernate>7.2.0.Final</dependency.hibernate>
         <dependency.hypersistence>3.14.1</dependency.hypersistence>
@@ -107,6 +108,18 @@
                 <groupId>io.hypersistence</groupId>
                 <artifactId>hypersistence-utils-hibernate-70</artifactId>
                 <version>${dependency.hypersistence}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.redgate.flyway</groupId>
+                <artifactId>flyway-core</artifactId>
+                <version>${dependency.flyway}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.redgate.flyway</groupId>
+                <artifactId>flyway-database-postgresql</artifactId>
+                <version>${dependency.flyway}</version>
             </dependency>
 
             <!-- MongoDB related dependencies -->
@@ -281,6 +294,10 @@
             <snapshots>
                 <enabled>true</enabled>
             </snapshots>
+        </repository>
+        <repository>
+            <id>redgate</id>
+            <url>https://download.red-gate.com/maven/release</url>
         </repository>
     </repositories>
 

@@ -49,7 +49,6 @@ public class DockerTestOrderManagerPostgres extends AbstractOrderManagerTests {
                                                                                                   .password(
                                                                                                           this.postgres.getPassword())
                                                                                                   .build());
-        props.put(JpaConfiguration.JAKARTA_PERSISTENCE_SCHEMA_GENERATION_ACTION, "create");
         return new OrderManager(props);
     }
 }

@@ -5,6 +5,8 @@ package io.telicent.smart.cache.storage.hibernate.model;
 
 import io.telicent.smart.cache.storage.hibernate.AbstractHibernateStorage;
 import io.telicent.smart.cache.storage.hibernate.TransactionContext;
+import io.telicent.smart.cache.storage.hibernate.configuration.JpaConfiguration;
+import org.flywaydb.core.Flyway;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -20,6 +22,17 @@ public class OrderManager extends AbstractHibernateStorage {
      */
     public OrderManager(Properties dbProperties) {
         super(dbProperties, "hibernate-storage-example");
+    }
+
+    @Override
+    protected Flyway configureFlyway(Properties dbProperties) {
+        return Flyway.configure()
+                     .dataSource(dbProperties.getProperty(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_URL),
+                                 dbProperties.getProperty(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_USER),
+                                 dbProperties.getProperty(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_PASSWORD))
+                     .baselineVersion("0")
+                     .baselineOnMigrate(true)
+                     .load();
     }
 
     public List<Address> getAddresses() {
