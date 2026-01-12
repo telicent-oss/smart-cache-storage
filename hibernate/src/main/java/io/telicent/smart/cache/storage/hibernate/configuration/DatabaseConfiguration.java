@@ -4,12 +4,13 @@
 package io.telicent.smart.cache.storage.hibernate.configuration;
 
 import io.telicent.smart.cache.configuration.Configurator;
+import io.telicent.smart.cache.storage.hibernate.configuration.postgres.PostgresConfiguration;
 import lombok.*;
 
 /**
  * A representation of basic database configuration, methods like
- * {@link
- * io.telicent.smart.cache.storage.hibernate.configuration.postgres.PostgresConfiguration#prepareConnectionProperties(DatabaseConfiguration)}
+ * {@link PostgresConfiguration#prepareConnectionProperties(DatabaseConfiguration)} use this to construct concrete JPA
+ * properties that can be used to establish a connection to the database
  */
 @Getter
 @Builder
