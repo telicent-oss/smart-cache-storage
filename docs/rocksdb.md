@@ -39,10 +39,12 @@ should be stored.  Implementations can override various `protected` methods if t
 configuration for their RocksDB storage, the following methods are called once, and only once, by the constructor while
 initialising the storage:
 
-- **REQUIRED** `prepareColumnFamilyDescriptors()` - Prepares a list of `ColumnFamilyDescriptors` describing the column families the storage wishes to access.
+- **REQUIRED** `prepareColumnFamilyDescriptors()` - Prepares a list of `ColumnFamilyDescriptors` describing the column
+  families the storage wishes to access.
 - `createDefaultOptions()` to create the `Options` used to open the RocksDB database.
 - `createDefaultTransactionOptions()` to create the `TransactionDBOptions` for interacting with RocksDB transactionally.
-- `defaultColumnFamilyOptions()` to create the `ColumnFamilyOptions` passed to the `prepareColumnFamilyDescriptors()` method.
+- `defaultColumnFamilyOptions()` to create the `ColumnFamilyOptions` passed to the `prepareColumnFamilyDescriptors()`
+  method.
 - `prepareCounters()` to prepare any [counters](#rocksdb-counters) needed.
 
 The following methods are called anytime a new [transaction](#transaction-context) is begun:
@@ -72,7 +74,8 @@ The `TransactionContext` provides access to a intentionally limited subset of `R
 
 - `get(ColumnFamilyHandle, byte[])` for getting the value associated with a single key.
 - `put(ColumnFamilyHandle, byte[], byte[])` for setting the value associated with a single key.
-- `multiGetAsList(List<ColumnFamilyHandle>, List<byte[]>)` for getting the values associated with multiple keys in a single operation.
+- `multiGetAsList(List<ColumnFamilyHandle>, List<byte[]>)` for getting the values associated with multiple keys in a
+  single operation.
 - `count(ColumnFamilyHandler)` for counting the keys in a column family.
 - `commit()` for committing the transaction.
 
@@ -83,9 +86,11 @@ be lost.
 ## RocksDB Counters
 
 The `RocksDBCounter` class is a helper that provides an auto-incrementing counter backed by a specific key within a
-specific column family.  Implementations can initialise these by overriding the `prepareCounters()` method and using the `createCounter()` method to create each named counter they wish to have available.
+specific column family.  Implementations can initialise these by overriding the `prepareCounters()` method and using the
+`createCounter()` method to create each named counter they wish to have available.
 
-Once registered counters may be retrieved via the `getCounter()` method, and the counter instances provide the following methods:
+Once registered counters may be retrieved via the `getCounter()` method, and the counter instances provide the following
+methods:
 
 - `next()` for obtaining the next available value, optionally persisting the counter.
 - `update()` for persisting the counter.

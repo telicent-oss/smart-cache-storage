@@ -10,7 +10,8 @@ The API consists of two core classes:
 - `TransactionContext` - A transaction context.
 
 Developers using this API should have their storage classes extend `AbstractHibernateStorage`, and then use the various
-protected methods to implement their actual storage. See the test [`OrderManager`][OrderManager] or [`HibernateLabelsStore`][HibLabelsStore] implementations for exemplars of this pattern.
+protected methods to implement their actual storage. See the test [`OrderManager`][OrderManager] or 
+[`HibernateLabelsStore`][HibLabelsStore] implementations for exemplars of this pattern.
 
 ## Transaction Contexts
 
@@ -72,7 +73,43 @@ configuration set for those database backends.
 You can find examples of these APIs being used in the various test classes under
 [`hibernate/src/test/java/io/telicent/smart/cache/storage/hibernate/`][HibExamples].
 
-[OrderManager]: hibernate/src/test/java/io/telicent/smart/cache/storage/hibernate/model/OrderManager.java
+## Flyway Schema Migration
+
+From `0.6.0` onwards the `AbstractHibernateStorage` base class includes optional support for [Flyway][Flyway] schema
+migration.  To opt-in to this support implementations derived from the abstract base class should override the
+`configureFlyway()` method appropriately.  For example here's a minimal implementation that takes the JDBC information
+from the provided `dbProperties` object:
+
+```java
+@Override
+protected Flyway configureFlyway(Properties dbProperties) {
+    return Flyway.configure()
+                 .dataSource(dbProperties.getProperty(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_URL),
+                             dbProperties.getProperty(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_USER),
+                             dbProperties.getProperty(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_PASSWORD))
+                 .baselineVersion("0")
+                 .baselineOnMigrate(true)
+                 .load();
+}
+```
+
+If this method returns a `Flyway` instance then the `AbstractHibernateStorage` constructor will automatically call the
+`migrate()` method prior to initialising the JPA/Hibernate.  This ensures that your database schema is appropriately
+created and/or updated as needed.  When opting in the implementation will need to provide appropriate Flyway migration
+scripts per Flyway's documentation, at a minimum you will likely need a
+`src/main/resources/db/migration/V1__InitialSchema.sql` (or similarly named script) with the necessary SQL statements to
+create the current schema. As your schema evolves over time additional scripts can be added to implement necessary
+incremental schema migrations.
+
+Also if you were previously setting the `jakarta.persistence.schema-generation.database.action` property to a value
+that caused JPA/Hibernate to do its own schema generation then that should be removed in favour of use of Flyway.
+
+**NB** If an application may use more than one Hibernate storage instance, where each instance has independent schemas,
+then those implementations should ensure that they configure Flyway to use different sets of migration scripts e.g. by
+setting `sqlMigrationPrefix()` differently on each Flyway configuration.
+
+[OrderManager]: ../hibernate/src/test/java/io/telicent/smart/cache/storage/hibernate/model/OrderManager.java
 [HibExamples]: ../hibernate/src/test/java/io/telicent/smart/cache/storage/hibernate/
 [HibLabelsStore]: ../label-stores/label-store-hibernate/src/main/java/io/telicent/smart/cache/storage/labels/hibernate/HibernateLabelsStore.java
 [Configurator]: https://github.com/telicent-oss/smart-caches-core/blob/main/docs/configurator/index.md
+[Flyway]: https://documentation.red-gate.com/fd/flyway-documentation-138346877.html
