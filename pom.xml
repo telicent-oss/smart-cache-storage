@@ -63,7 +63,7 @@
 
         <!-- Dependency Versions -->
         <dependency.commons-codec>1.16.1</dependency.commons-codec>
-        <dependency.flyway>11.19.0</dependency.flyway>
+        <dependency.flyway>11.20.1</dependency.flyway>
         <dependency.h2>2.4.240</dependency.h2>
         <dependency.hibernate>7.2.0.Final</dependency.hibernate>
         <dependency.hypersistence>3.14.1</dependency.hypersistence>
