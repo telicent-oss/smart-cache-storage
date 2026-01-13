@@ -1,5 +1,15 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.6.1
+
+- Hibernate improvements:
+    - Fixed a version misalignment between Hibernate and Hypersistence Utils dependencies that caused
+      `@Type(JsonType.class)` typed entity fields to trigger Hibernate errors after upgrading to `0.6.0`
+    - Added additional unit test coverage for JSON typed fields to ensure that this misalignment cannot get silently
+      reintroduced in future
+- Build improvements:
+    - Realigned Hypersistence Utils to Hibernate 7.1 target
+
 # 0.6.0
 
 - Hibernate improvements:

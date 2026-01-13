@@ -108,8 +108,47 @@ that caused JPA/Hibernate to do its own schema generation then that should be re
 then those implementations should ensure that they configure Flyway to use different sets of migration scripts e.g. by
 setting `sqlMigrationPrefix()` differently on each Flyway configuration.
 
+## JSON Fields
+
+The `hibernate` module includes a dependency on [Hypersistence Utils][HypUtils] which adds support for JSON
+serialization and deserialization to Hibernate.  This allows you to have complex fields on your `@Entity` classes that
+are stored as JSON fields within the underlying database.  To use this support you simply need to add the relevant
+annotations to your `@Entity` classes fields e.g.
+
+```java
+@Type(JsonType.class)
+@Column(nullable = false, name = "data", columnDefinition = "jsonb")
+private Map<String, Object> json;
+```
+
+In this example we have a `Map` typed field that will be stored in the database as a `jsonb` typed column within the
+underlying database.
+
+**NB:** Not all databases support the `jsonb` type, depending on the target database backend you may need to use
+`columnDefinition = "json"` instead as that column type is more widely supported.
+
+Instead of a `Map` you could type your field as an arbitrary Java POJO e.g.
+
+```java
+@Type(JsonType.class)
+@Column(nullable = false, name = "data", columnDefinition = "jsonb")
+private MyComplexType complex;
+```
+
+Provided that `MyComplexType` can be serialized and deserialized using Jackson then this will work seamlessly.  When you
+persist your entities then those fields are automatically serialized as JSON, and when you load your entities those
+fields are automatically deserialized from the underlying JSON.
+
+**NB:** If you are using your own POJO then it **MUST** implement `equals()` and `hashCode()` appropriately otherwise
+some unnecessary `UPDATE` statements may be issued to the underlying database in some scenarios.
+
+Please refer to [JsonStore][JsonStore] and [JsonHolder][JsonHolder] for exemplars of JSON typed fields.
+
 [OrderManager]: ../hibernate/src/test/java/io/telicent/smart/cache/storage/hibernate/model/OrderManager.java
 [HibExamples]: ../hibernate/src/test/java/io/telicent/smart/cache/storage/hibernate/
 [HibLabelsStore]: ../label-stores/label-store-hibernate/src/main/java/io/telicent/smart/cache/storage/labels/hibernate/HibernateLabelsStore.java
 [Configurator]: https://github.com/telicent-oss/smart-caches-core/blob/main/docs/configurator/index.md
 [Flyway]: https://documentation.red-gate.com/fd/flyway-documentation-138346877.html
+[HypUtils]: https://github.com/vladmihalcea/hypersistence-utils/tree/master
+[JsonStore]: ../hibernate/src/test/java/io/telicent/smart/cache/storage/hibernate/model/JsonStore.java
+[JsonHolder]: ../hibernate/src/test/java/io/telicent/smart/cache/storage/hibernate/model/JsonHolder.java

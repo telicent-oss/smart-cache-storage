@@ -106,7 +106,7 @@
 
             <dependency>
                 <groupId>io.hypersistence</groupId>
-                <artifactId>hypersistence-utils-hibernate-70</artifactId>
+                <artifactId>hypersistence-utils-hibernate-71</artifactId>
                 <version>${dependency.hypersistence}</version>
             </dependency>
 
