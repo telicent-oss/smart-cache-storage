@@ -29,3 +29,15 @@ can add a dependency like so:
 
 Where `MODULE` is the desired storage module and `X.Y.Z` is the desired version, refer to the
 [`CHANGELOG.md`](../CHANGELOG.md) for available versions and latest changes.
+
+### Additional Maven Repositories
+
+For those using the [`hibernate`](hibernate/) module an additional Maven repository may need to be defined in order to
+successfully resolve the Redgate published Flyway libraries:
+
+```xml
+<repository>
+    <id>redgate</id>
+    <url>https://download.red-gate.com/maven/release</url>
+</repository>
+```

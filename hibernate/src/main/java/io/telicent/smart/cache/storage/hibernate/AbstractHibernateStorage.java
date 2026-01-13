@@ -15,6 +15,9 @@ import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Root;
 import lombok.ToString;
 import org.apache.commons.collections4.MapUtils;
+import org.flywaydb.core.Flyway;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.Function;
@@ -43,6 +46,8 @@ import java.util.function.Supplier;
 @SuppressWarnings({ "unused", "UnusedReturnValue" })
 public abstract class AbstractHibernateStorage extends AbstractStorage {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractHibernateStorage.class);
+
     @ToString.Exclude
     private final EntityManagerFactory entityManagerFactory;
 
@@ -65,8 +70,27 @@ public abstract class AbstractHibernateStorage extends AbstractStorage {
      *                        {@code dbProperties} parameter instead.
      */
     public AbstractHibernateStorage(Properties dbProperties, String persistenceUnit) {
+        Flyway flyway = configureFlyway(dbProperties);
+        if (flyway != null) {
+            LOGGER.info("Beginning Flyway schema migration...");
+            flyway.migrate();
+            LOGGER.info("Flyway schema migration completed!");
+        } else {
+            LOGGER.info("Optional Flyway schema migration support not in-use, if database schema may evolve over time consider adopting this feature");
+        }
+
         this.entityManagerFactory = Persistence.createEntityManagerFactory(persistenceUnit, dbProperties);
         this.jdbcUrl = dbProperties.getProperty(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_URL);
+    }
+
+    /**
+     * Returns a configured {@link Flyway} instance to use for automated database schema management and migration, by
+     * default {@code null} is returned which means that Flyway is not used
+     *
+     * @return Flyway configuration, or {@code null} if Flyway is not used
+     */
+    protected Flyway configureFlyway(Properties dbProperties) {
+        return null;
     }
 
     /**

@@ -24,6 +24,7 @@
             -->
 
             <!-- Don't automatically create the schema -->
+            <!-- For this PU our implementation class is using Flyway to manage database migrations -->
             <property name="jakarta.persistence.schema-generation.database.action" value="none"/>
 
             <!-- Echo all executed SQL to console -->

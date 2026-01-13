@@ -10,7 +10,6 @@ import io.telicent.smart.cache.storage.hibernate.model.OrderManager;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static io.telicent.smart.cache.storage.hibernate.configuration.JpaConfiguration.JAKARTA_PERSISTENCE_SCHEMA_GENERATION_ACTION;
 
 /**
  * Tests against H2 In-memory database
@@ -23,7 +22,6 @@ public class TestOrderManagerH2Memory extends AbstractOrderManagerTests {
         String dbName = "test-" + counter.incrementAndGet();
         Properties props = H2Configuration.prepareInMemoryConnectionProperties(
                 DatabaseConfiguration.builder().hostname("localhost").database(dbName).build());
-        props.put(JAKARTA_PERSISTENCE_SCHEMA_GENERATION_ACTION, "create");
         return new OrderManager(props);
     }
 }

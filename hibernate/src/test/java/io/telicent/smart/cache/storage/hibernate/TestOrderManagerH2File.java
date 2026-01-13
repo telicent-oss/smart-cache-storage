@@ -16,8 +16,6 @@ import java.nio.file.Files;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static io.telicent.smart.cache.storage.hibernate.configuration.JpaConfiguration.JAKARTA_PERSISTENCE_SCHEMA_GENERATION_ACTION;
-
 /**
  * Tests against H2 file database
  */
@@ -41,7 +39,6 @@ public class TestOrderManagerH2File extends AbstractOrderManagerTests {
         String dbName = "test-" + counter.incrementAndGet();
         Properties props = H2Configuration.prepareFileConnectionProperties(
                 DatabaseConfiguration.builder().hostname("localhost").database(dbName).build(), this.tempDir);
-        props.put(JAKARTA_PERSISTENCE_SCHEMA_GENERATION_ACTION, "create");
         return new OrderManager(props);
     }
 }

@@ -25,8 +25,11 @@ public class JpaConfiguration {
      */
     public static final String JAKARTA_PERSISTENCE_JDBC_PASSWORD = "jakarta.persistence.jdbc.password";
     /**
-     * JPA configuration key used to set the Schema Generation action
+     * JPA configuration key used to set the Schema Generation action, note that if a storage backend derived from
+     * {@link io.telicent.smart.cache.storage.hibernate.AbstractHibernateStorage} is using the optional Flyway
+     * integration then there should be no need to set this property.
      */
+    @SuppressWarnings("unused")
     public static final String JAKARTA_PERSISTENCE_SCHEMA_GENERATION_ACTION =
             "jakarta.persistence.schema-generation.database.action";
 }
