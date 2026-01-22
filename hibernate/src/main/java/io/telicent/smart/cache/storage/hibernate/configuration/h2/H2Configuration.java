@@ -6,6 +6,7 @@ package io.telicent.smart.cache.storage.hibernate.configuration.h2;
 import io.telicent.smart.cache.storage.hibernate.configuration.DatabaseConfiguration;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.util.Properties;
@@ -23,6 +24,8 @@ public class H2Configuration {
      * @return Connection properties
      */
     public static Properties prepareInMemoryConnectionProperties(DatabaseConfiguration configuration) {
+        validateConfiguration(configuration);
+
         Properties properties = new Properties();
         properties.put(JAKARTA_PERSISTENCE_JDBC_URL,
                        "jdbc:h2:mem:" + configuration.getDatabase() + ";DB_CLOSE_DELAY=-1");
@@ -30,6 +33,16 @@ public class H2Configuration {
         properties.put(JAKARTA_PERSISTENCE_JDBC_PASSWORD, "");
         properties.put(HIBERNATE_DIALECT, "org.hibernate.dialect.H2Dialect");
         return properties;
+    }
+
+    private static void validateConfiguration(DatabaseConfiguration configuration) {
+        if (configuration == null) {
+            throw new IllegalArgumentException("Insufficient configuration provided for H2 database connections");
+        }
+        if (StringUtils.isNotBlank(configuration.getJdbcUrl())) {
+            throw new IllegalArgumentException(
+                    "Explicit JDBC URL configuration not permitted for H2 database connections");
+        }
     }
 
     /**
@@ -42,13 +55,15 @@ public class H2Configuration {
      * @return Connection properties
      */
     public static Properties prepareFileConnectionProperties(DatabaseConfiguration configuration, File dbBaseDir) {
+        validateConfiguration(configuration);
+
         Properties properties = new Properties();
         properties.put(JAKARTA_PERSISTENCE_JDBC_URL,
                        "jdbc:h2:file:" + resolveDatabaseDirectory(configuration, dbBaseDir).getAbsolutePath());
         properties.put(JAKARTA_PERSISTENCE_JDBC_USER, "sa");
         properties.put(JAKARTA_PERSISTENCE_JDBC_PASSWORD, "");
         properties.put(HIBERNATE_DIALECT, "org.hibernate.dialect.H2Dialect");
-                return properties;
+        return properties;
     }
 
     /**

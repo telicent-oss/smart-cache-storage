@@ -64,7 +64,21 @@ Then at runtime you populate and supply a `Properties` object with the necessary
 
 To help API consumers with this a `DatabaseConfiguration` object is provided, that can be automatically populated from
 configuration obtained using the Smart Caches [Configurator][Configurator] API by using the static
-`DatabaseConfiguration. fromConfigurator()` method.
+`DatabaseConfiguration. fromConfigurator()` method.  This supports the following configuration variables:
+
+| Variable                            | Purpose                                       |
+|-------------------------------------|-----------------------------------------------|
+| `DATABASE_JDBC_URL`                 | Full JDBC URL for connecting to the database. | 
+| `DATABASE_HOST`                     | Hostname to connect to the database on.       |
+| `DATABASE_PORT`                     | Port to connect to the database on.           |
+| `DATABASE_NAME`                     | Name of the database to connect to.           |
+| `DATABASE_USER`/`DATABASE_USERNAME` | Username for authenticating to the database.  |
+| `DATABASE_PASSWORD`                 | Password for authenticating to the database.  |
+
+Note that in order to be considered valid configuration you must either specify `DATABASE_JDBC_URL`, or both
+`DATABASE_HOST` and `DATABASE_NAME`.  Also note that when a full JDBC URL is specified any values of the
+`DATABASE_HOST`, `DATABASE_PORT` and `DATABASE_NAME` are ignored in favour of the JDBC URL specified.  If a JDBC URL is
+used then it **MUST** be correct, and compatible with both the actual database being used and the application code.
 
 There are also a `PostgresConfiguration` and `H2Configuration` classes that provide static methods that take in a
 `DatabaseConfiguration` object and produce an appropriately populated `Properties` object with the necessary JPA

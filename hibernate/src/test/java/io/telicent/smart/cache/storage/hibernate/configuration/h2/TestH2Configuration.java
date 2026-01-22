@@ -11,7 +11,15 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
+import static io.telicent.smart.cache.storage.hibernate.configuration.TestDatabaseConfiguration.FAKE_JDBC_URL;
+
 public class TestH2Configuration {
+
+    @Test(expectedExceptions = IllegalArgumentException.class)
+    public void givenNullConfiguration_whenPreparing_thenIllegalArgument() {
+        // Given, When and Then
+        H2Configuration.prepareInMemoryConnectionProperties(null);
+    }
 
     @Test
     public void givenNoBaseDir_whenResolvingDbDir_thenUsedAsIs() {
@@ -39,5 +47,23 @@ public class TestH2Configuration {
         // Then
         File expectedDbDir = new File(baseDir,"mydb").getAbsoluteFile();
         Assert.assertEquals(dbDir.getAbsolutePath(), expectedDbDir.getAbsolutePath());
+    }
+
+    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Explicit JDBC URL.*")
+    public void givenJdbcUrl_whenPreparingInMemoryConnectionProperties_thenIllegalArgument() {
+        // Given
+        DatabaseConfiguration configuration = DatabaseConfiguration.builder().jdbcUrl(FAKE_JDBC_URL).build();
+
+        // When and Then
+        H2Configuration.prepareInMemoryConnectionProperties(configuration);
+    }
+
+    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Explicit JDBC URL.*")
+    public void givenJdbcUrl_whenPreparingFileConnectionProperties_thenIllegalArgument() {
+        // Given
+        DatabaseConfiguration configuration = DatabaseConfiguration.builder().jdbcUrl(FAKE_JDBC_URL).build();
+
+        // When and Then
+        H2Configuration.prepareFileConnectionProperties(configuration, new File("."));
     }
 }

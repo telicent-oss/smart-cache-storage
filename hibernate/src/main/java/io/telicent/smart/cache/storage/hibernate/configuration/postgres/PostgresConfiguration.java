@@ -42,11 +42,17 @@ public class PostgresConfiguration {
      *
      * @param configuration Database configuration
      * @return Connection properties
+     * @throws IllegalArgumentException Thrown if the provided configuration is invalid
      */
     public static Properties prepareConnectionProperties(DatabaseConfiguration configuration) {
+        if (configuration == null || !configuration.isValid()) {
+            throw new IllegalArgumentException("Insufficient configuration to establish a Postgres connection");
+        }
+
         Properties properties = new Properties();
         properties.put(HibernateConfiguration.HIBERNATE_DIALECT, HIBERNATE_DIALECT_POSTGRES);
         properties.put(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_URL,
+                       StringUtils.isNotBlank(configuration.getJdbcUrl()) ? configuration.getJdbcUrl() :
                        getJdbcUrl(configuration));
         if (StringUtils.isNotBlank(configuration.getUsername())) {
             properties.put(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_USER, configuration.getUsername());

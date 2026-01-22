@@ -17,18 +17,23 @@ import java.util.Properties;
 
 public class TestDatabaseConfiguration {
 
+    public static final String FAKE_JDBC_URL = "jdbc:postgres://hostname:1234/db";
+
     @AfterMethod
     public void cleanup() {
         Configurator.reset();
     }
 
-    @Test(expectedExceptions = NullPointerException.class)
-    public void givenNoConfiguration_whenConfiguringDatabase_thenFails() {
+    @Test
+    public void givenNoConfiguration_whenConfiguringDatabase_thenInvalid() {
         // Given
         Configurator.setSingleSource(NullSource.INSTANCE);
 
-        // When and Then
-        DatabaseConfiguration.fromConfigurator();
+        // When
+        DatabaseConfiguration config = DatabaseConfiguration.fromConfigurator();
+
+        // Then
+        Assert.assertFalse(config.isValid());
     }
 
     @DataProvider(name = "incompleteConfigs")
@@ -44,16 +49,18 @@ public class TestDatabaseConfiguration {
         };
     }
 
-    @Test(dataProvider = "incompleteConfigs", expectedExceptions = NullPointerException.class)
-    public void givenIncompleteConfiguration_whenConfiguringDatabase_thenFails(Map<String, Object> map) {
+    @Test(dataProvider = "incompleteConfigs")
+    public void givenIncompleteConfiguration_whenConfiguringDatabase_thenInvalid(Map<String, Object> map) {
         // Given
         Properties properties = new Properties();
         properties.putAll(map);
         Configurator.setSingleSource(new PropertiesSource(properties));
 
-        // When and Then
-        DatabaseConfiguration.fromConfigurator();
+        // When
+        DatabaseConfiguration config = DatabaseConfiguration.fromConfigurator();
 
+        // Then
+        Assert.assertFalse(config.isValid());
     }
 
     @Test
@@ -68,9 +75,31 @@ public class TestDatabaseConfiguration {
         DatabaseConfiguration config = DatabaseConfiguration.fromConfigurator();
 
         // Then
+        Assert.assertTrue(config.isValid());
+        Assert.assertNull(config.getJdbcUrl());
         Assert.assertEquals(config.getHostname(), "localhost");
         Assert.assertNull(config.getPort());
         Assert.assertEquals(config.getDatabase(), "test");
+        Assert.assertNull(config.getUsername());
+        Assert.assertNull(config.getPassword());
+    }
+
+    @Test
+    public void givenMinimalAlternativeConfig_whenConfiguringDatabase_thenSuccess() {
+        // Given
+        Properties properties = new Properties();
+        properties.put(DatabaseConfiguration.JDBC_URL, FAKE_JDBC_URL);
+        Configurator.setSingleSource(new PropertiesSource(properties));
+
+        // When
+        DatabaseConfiguration config = DatabaseConfiguration.fromConfigurator();
+
+        // Then
+        Assert.assertTrue(config.isValid());
+        Assert.assertEquals(config.getJdbcUrl(), FAKE_JDBC_URL);
+        Assert.assertNull(config.getHostname());
+        Assert.assertNull(config.getPort());
+        Assert.assertNull(config.getDatabase());
         Assert.assertNull(config.getUsername());
         Assert.assertNull(config.getPassword());
     }
@@ -88,6 +117,7 @@ public class TestDatabaseConfiguration {
         DatabaseConfiguration config = DatabaseConfiguration.fromConfigurator();
 
         // Then
+        Assert.assertTrue(config.isValid());
         Assert.assertEquals(config.getHostname(), "localhost");
         Assert.assertNull(config.getPort());
         Assert.assertEquals(config.getDatabase(), "test");
@@ -106,6 +136,7 @@ public class TestDatabaseConfiguration {
         DatabaseConfiguration config = DatabaseConfiguration.fromConfigurator();
 
         // Then
+        Assert.assertTrue(config.isValid());
         Assert.assertEquals(config.getHostname(), "localhost");
         Assert.assertEquals(config.getPort(), PostgresConfiguration.DEFAULT_PORT);
         Assert.assertEquals(config.getDatabase(), "test");
@@ -122,6 +153,7 @@ public class TestDatabaseConfiguration {
                                                        null, null);
 
         // Then
+        Assert.assertTrue(config.isValid());
         Assert.assertEquals(config.getHostname(), "localhost");
         Assert.assertEquals(config.getPort(), PostgresConfiguration.DEFAULT_PORT);
         Assert.assertEquals(config.getDatabase(), "some-default");
