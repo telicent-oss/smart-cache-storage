@@ -21,6 +21,33 @@ public class TestH2Configuration {
         H2Configuration.prepareInMemoryConnectionProperties(null);
     }
 
+    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Explicit JDBC URL.*")
+    public void givenJdbcUrl_whenPreparingInMemoryConnectionProperties_thenIllegalArgument() {
+        // Given
+        DatabaseConfiguration configuration = DatabaseConfiguration.builder().jdbcUrl(FAKE_JDBC_URL).build();
+
+        // When and Then
+        H2Configuration.prepareInMemoryConnectionProperties(configuration);
+    }
+
+    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Explicit JDBC URL.*")
+    public void givenJdbcUrl_whenPreparingFileConnectionProperties_thenIllegalArgument() {
+        // Given
+        DatabaseConfiguration configuration = DatabaseConfiguration.builder().jdbcUrl(FAKE_JDBC_URL).build();
+
+        // When and Then
+        H2Configuration.prepareFileConnectionProperties(configuration, new File("."));
+    }
+
+    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Must supply a database name.*")
+    public void givenNoDatabaseName_whenPreparingConnectionProperties_thenIllegalArgument() {
+        // Given
+        DatabaseConfiguration configuration = DatabaseConfiguration.builder().build();
+
+        // When and Then
+        H2Configuration.prepareInMemoryConnectionProperties(configuration);
+    }
+
     @Test
     public void givenNoBaseDir_whenResolvingDbDir_thenUsedAsIs() {
         // Given
@@ -47,23 +74,5 @@ public class TestH2Configuration {
         // Then
         File expectedDbDir = new File(baseDir,"mydb").getAbsoluteFile();
         Assert.assertEquals(dbDir.getAbsolutePath(), expectedDbDir.getAbsolutePath());
-    }
-
-    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Explicit JDBC URL.*")
-    public void givenJdbcUrl_whenPreparingInMemoryConnectionProperties_thenIllegalArgument() {
-        // Given
-        DatabaseConfiguration configuration = DatabaseConfiguration.builder().jdbcUrl(FAKE_JDBC_URL).build();
-
-        // When and Then
-        H2Configuration.prepareInMemoryConnectionProperties(configuration);
-    }
-
-    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Explicit JDBC URL.*")
-    public void givenJdbcUrl_whenPreparingFileConnectionProperties_thenIllegalArgument() {
-        // Given
-        DatabaseConfiguration configuration = DatabaseConfiguration.builder().jdbcUrl(FAKE_JDBC_URL).build();
-
-        // When and Then
-        H2Configuration.prepareFileConnectionProperties(configuration, new File("."));
     }
 }

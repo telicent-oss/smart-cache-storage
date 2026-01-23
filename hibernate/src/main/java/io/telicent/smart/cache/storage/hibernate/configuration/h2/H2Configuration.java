@@ -35,6 +35,12 @@ public class H2Configuration {
         return properties;
     }
 
+    /**
+     * Validates that the provided database configuration is valid for forming H2 database connections
+     *
+     * @param configuration Database configuration
+     * @throws IllegalArgumentException If the configuration is invalid in any way
+     */
     private static void validateConfiguration(DatabaseConfiguration configuration) {
         if (configuration == null) {
             throw new IllegalArgumentException("Insufficient configuration provided for H2 database connections");
@@ -42,6 +48,9 @@ public class H2Configuration {
         if (StringUtils.isNotBlank(configuration.getJdbcUrl())) {
             throw new IllegalArgumentException(
                     "Explicit JDBC URL configuration not permitted for H2 database connections");
+        }
+        if (StringUtils.isBlank(configuration.getDatabase())) {
+            throw new IllegalArgumentException("Must supply a database name for H2 database connections");
         }
     }
 

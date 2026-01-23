@@ -4,7 +4,6 @@
 package io.telicent.smart.cache.storage.hibernate;
 
 import io.telicent.smart.cache.storage.hibernate.configuration.DatabaseConfiguration;
-import io.telicent.smart.cache.storage.hibernate.configuration.JpaConfiguration;
 import io.telicent.smart.cache.storage.hibernate.configuration.postgres.PostgresConfiguration;
 import io.telicent.smart.cache.storage.hibernate.model.OrderManager;
 import org.testcontainers.containers.PostgreSQLContainer;
