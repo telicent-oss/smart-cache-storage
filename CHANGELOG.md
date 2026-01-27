@@ -9,6 +9,11 @@
           new `isValid()` method to test whether it is sufficiently populated
         - Related helpers like `PostgresConfiguration.prepareConnectionProperties()` may instead now throw
           `IllegalArgumentException` if passed invalid configuration
+- Build improvements:
+    - Upgraded Apache Commons Codec to 1.20.0
+    - Upgraded Flyway to 11.20.2
+    - Upgraded Hibernate to 7.2.1.Final
+    - Upgraded Postgres to 42.7.9
 
 # 0.6.1
 
