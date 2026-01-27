@@ -5,7 +5,7 @@ package io.telicent.smart.cache.storage.hibernate;
 
 import io.telicent.smart.cache.storage.hibernate.configuration.DatabaseConfiguration;
 import io.telicent.smart.cache.storage.hibernate.configuration.postgres.PostgresConfiguration;
-import io.telicent.smart.cache.storage.hibernate.model.JsonStore;
+import io.telicent.smart.cache.storage.hibernate.model.OrderManager;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -13,9 +13,9 @@ import org.testng.annotations.BeforeMethod;
 import java.util.Properties;
 
 /**
- * Tests against containerised Postgres
+ * Tests against containerised Postgres configured using the JDBC URL
  */
-public class DockerJsonStorePostgres extends AbstractJsonStorageTests {
+public class DockerTestOrderManagerPostgresJdbcUrl extends AbstractOrderManagerTests {
 
     private PostgreSQLContainer<?> postgres;
 
@@ -35,19 +35,14 @@ public class DockerJsonStorePostgres extends AbstractJsonStorageTests {
     }
 
     @Override
-    protected JsonStore createJsonStore() {
+    protected OrderManager createOrderManager() {
         Properties props = PostgresConfiguration.prepareConnectionProperties(DatabaseConfiguration.builder()
-                                                                                                  .hostname(
-                                                                                                          this.postgres.getHost())
-                                                                                                  .port(this.postgres.getMappedPort(
-                                                                                                          PostgresConfiguration.DEFAULT_PORT))
-                                                                                                  .database(
-                                                                                                          this.postgres.getDatabaseName())
+                                                                                                  .jdbcUrl(this.postgres.getJdbcUrl())
                                                                                                   .username(
                                                                                                           this.postgres.getUsername())
                                                                                                   .password(
                                                                                                           this.postgres.getPassword())
                                                                                                   .build());
-        return new JsonStore(props);
+        return new OrderManager(props);
     }
 }

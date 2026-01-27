@@ -8,7 +8,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import io.telicent.smart.cache.storage.AbstractStorage;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.functors.NOPClosure;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

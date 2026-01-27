@@ -1,5 +1,15 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.7.0
+
+- Hibernate improvements:
+    - `DatabaseConfiguration` can now optionally specify the full JDBC URL to use via new configuration variable
+      `DATABASE_JDBC_URL` which may be the preferred way to configure it in some circumstances.
+        - **BREAKING CHANGE** Previously insufficient configuration would cause a NPE, callers should instead use the
+          new `isValid()` method to test whether it is sufficiently populated
+        - Related helpers like `PostgresConfiguration.prepareConnectionProperties()` may instead now throw
+          `IllegalArgumentException` if passed invalid configuration
+
 # 0.6.1
 
 - Hibernate improvements:

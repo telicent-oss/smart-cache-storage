@@ -6,6 +6,7 @@ package io.telicent.smart.cache.storage.hibernate.configuration;
 import io.telicent.smart.cache.configuration.Configurator;
 import io.telicent.smart.cache.storage.hibernate.configuration.postgres.PostgresConfiguration;
 import lombok.*;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * A representation of basic database configuration, methods like
@@ -18,6 +19,15 @@ import lombok.*;
 @EqualsAndHashCode
 public class DatabaseConfiguration {
 
+    /**
+     * A configuration variable used to supply a full JDBC URL, if this is specified then any {@value #HOSTNAME},
+     * {@value #PORT} and {@value #DB_NAME} values are ignored in favour of this URL.
+     * <p>
+     * Note that for security reasons it is strongly recommended to not specify the credentials in the URL and the
+     * {@value #USER}/{@value #USERNAME} and {@value #PASSWORD} variables will still be honoured.
+     * </p>
+     */
+    public static final String JDBC_URL = "DATABASE_JDBC_URL";
     /**
      * A configuration variable used to supply a database host
      */
@@ -43,7 +53,7 @@ public class DatabaseConfiguration {
      */
     public static final String PASSWORD = "DATABASE_PASSWORD";
 
-    @NonNull
+    private final String jdbcUrl;
     private final String hostname, database;
     private final Integer port;
     private final String username, password;
@@ -81,6 +91,12 @@ public class DatabaseConfiguration {
      * <p>
      * The default values supplied are used if no configuration is available from the configuration API.
      * </p>
+     * <p>
+     * Since {@code 0.7.0} this may return incomplete configuration as there are now multiple ways to supply
+     * configuration and this method does not know what is considered sufficient for a given database.  The
+     * {@link #isValid()} method will give a general indication of whether enough configuration is present but depending
+     * on the underlying database backend being used this may be insufficient/incompatible with that database.
+     * </p>
      *
      * @param defaultHostname Default database hostname
      * @param defaultPort     Default database port
@@ -88,17 +104,27 @@ public class DatabaseConfiguration {
      * @param defaultUsername Default username
      * @param defaultPassword Default password
      * @return Database configuration
-     * @throws NullPointerException If any of the required configuration is missing
      */
     public static DatabaseConfiguration fromConfigurator(String defaultHostname, Integer defaultPort,
                                                          String defaultDatabase, String defaultUsername,
                                                          String defaultPassword) {
         return DatabaseConfiguration.builder()
+                                    .jdbcUrl(Configurator.get(JDBC_URL))
                                     .hostname(Configurator.get(new String[] { HOSTNAME }, defaultHostname))
                                     .port(Configurator.get(PORT, Integer::parseInt, defaultPort))
                                     .database(Configurator.get(new String[] { DB_NAME }, defaultDatabase))
                                     .username(Configurator.get(new String[] { USERNAME, USER }, defaultUsername))
                                     .password(Configurator.get(new String[] { PASSWORD }, defaultPassword))
                                     .build();
+    }
+
+    /**
+     * Determines whether the given database configuration is valid i.e. does it contain either a JDBC URL or both a
+     * Hostname and Database name.  Either combination is considered the minimum permitted valid configuration.
+     *
+     * @return True if valid, false otherwise
+     */
+    public boolean isValid() {
+        return StringUtils.isNotBlank(this.jdbcUrl) || StringUtils.isNoneBlank(this.hostname, this.database);
     }
 }
