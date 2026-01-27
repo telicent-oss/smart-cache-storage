@@ -22,6 +22,8 @@ public class H2Configuration {
      *
      * @param configuration Database configuration
      * @return Connection properties
+     * @throws IllegalArgumentException Thrown if the configuration is {@code null}, or invalid for use with an H2
+     *                                  in-memory backend
      */
     public static Properties prepareInMemoryConnectionProperties(DatabaseConfiguration configuration) {
         validateConfiguration(configuration);
@@ -62,6 +64,8 @@ public class H2Configuration {
      *                      name provided in the {@link DatabaseConfiguration#getDatabase()} method relative to the base
      *                      directory.  If the base directory is {@code null} then it is ignored.
      * @return Connection properties
+     * @throws IllegalArgumentException Thrown if the configuration is {@code null}, or invalid for use with an H2 file
+     *                                  backend
      */
     public static Properties prepareFileConnectionProperties(DatabaseConfiguration configuration, File dbBaseDir) {
         validateConfiguration(configuration);

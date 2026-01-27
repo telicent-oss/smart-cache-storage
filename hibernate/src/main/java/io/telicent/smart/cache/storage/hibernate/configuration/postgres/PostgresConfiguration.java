@@ -42,7 +42,7 @@ public class PostgresConfiguration {
      *
      * @param configuration Database configuration
      * @return Connection properties
-     * @throws IllegalArgumentException Thrown if the provided configuration is invalid
+     * @throws IllegalArgumentException Thrown if the provided configuration is {@code null} or invalid
      */
     public static Properties prepareConnectionProperties(DatabaseConfiguration configuration) {
         if (configuration == null || !configuration.isValid()) {

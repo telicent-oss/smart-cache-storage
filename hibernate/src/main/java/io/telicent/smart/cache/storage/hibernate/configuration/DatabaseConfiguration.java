@@ -91,6 +91,12 @@ public class DatabaseConfiguration {
      * <p>
      * The default values supplied are used if no configuration is available from the configuration API.
      * </p>
+     * <p>
+     * Since {@code 0.7.0} this may return incomplete configuration as there are now multiple ways to supply
+     * configuration and this method does not know what is considered sufficient for a given database.  The
+     * {@link #isValid()} method will give a general indication of whether enough configuration is present but depending
+     * on the underlying database backend being used this may be insufficient/incompatible with that database.
+     * </p>
      *
      * @param defaultHostname Default database hostname
      * @param defaultPort     Default database port
@@ -98,7 +104,6 @@ public class DatabaseConfiguration {
      * @param defaultUsername Default username
      * @param defaultPassword Default password
      * @return Database configuration
-     * @throws NullPointerException If any of the required configuration is missing
      */
     public static DatabaseConfiguration fromConfigurator(String defaultHostname, Integer defaultPort,
                                                          String defaultDatabase, String defaultUsername,
