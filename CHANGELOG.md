@@ -11,8 +11,9 @@
     - Upgraded Flyway to 12.0.0
     - Upgraded Hibernate to 7.2.3.Final
     - Upgraded Hypersistence Utils to 3.15.1
+    - Upgraded MongoDB to 5.6.3
     - Upgraded MongoJack to 5.1.0
-    - Upgraded Smart Caches Core to 0.34.0
+    - Upgraded Smart Caches Core to 0.35.0
     - Added additional benchmarks around digest computation
 
 # 0.7.0
