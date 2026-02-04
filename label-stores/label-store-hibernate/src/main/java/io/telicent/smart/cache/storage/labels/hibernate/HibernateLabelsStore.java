@@ -8,6 +8,7 @@ import io.telicent.smart.cache.storage.hibernate.TransactionContext;
 import io.telicent.smart.cache.storage.hibernate.configuration.HibernateConfiguration;
 import io.telicent.smart.cache.storage.hibernate.configuration.JpaConfiguration;
 import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
+import io.telicent.smart.cache.storage.labels.DigestHelper;
 import io.telicent.smart.cache.storage.labels.LabelsStore;
 import jakarta.persistence.RollbackException;
 import org.apache.commons.codec.binary.Hex;
@@ -15,8 +16,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.hibernate.exception.ConstraintViolationException;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 /**
@@ -32,7 +31,7 @@ public class HibernateLabelsStore extends AbstractHibernateStorage implements La
      */
     protected static final String PERSISTENCE_UNIT = "hibernate-labels-store";
     private final Base64.Encoder encoder = Base64.getEncoder();
-    private final MessageDigest sha512;
+    private final DigestHelper digest;
 
     /**
      * Creates a new hibernate backed labels store
@@ -66,12 +65,7 @@ public class HibernateLabelsStore extends AbstractHibernateStorage implements La
      */
     protected HibernateLabelsStore(Properties dbProperties, String persistenceUnit) {
         super(dbProperties, persistenceUnit);
-
-        try {
-            this.sha512 = MessageDigest.getInstance("SHA512");
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("Failed to obtain SHA512 hash function", e);
-        }
+        this.digest = new DigestHelper("SHA512");
     }
 
     @Override
@@ -106,7 +100,7 @@ public class HibernateLabelsStore extends AbstractHibernateStorage implements La
         long id;
         String encoded = encoder.encodeToString(label);
         if (encoded.length() > EncodedLabel.MAX_ENCODED_LABEL_SIZE) {
-            encoded = EncodedLabel.HASH_PREFIX + Hex.encodeHexString(this.sha512.digest(label));
+            encoded = EncodedLabel.HASH_PREFIX + Hex.encodeHexString(this.digest.digest(label));
         }
         final String finalEncoded = encoded;
         id = this.getOrCreateByNaturalId(context, encoded, EncodedLabel.class,

@@ -1,5 +1,20 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.8.0
+
+- Label store improvements:
+    - Provided a thread-safe `DigestHelper` for use in label store implementations which need to compute digests of
+      labels to ensure they can do so safely
+    - Existing implementations updated to use this
+- Build improvements:
+    - Upgraded Apache Commons Codec to 1.21.0
+    - Upgraded Flyway to 12.0.0
+    - Upgraded Hibernate to 7.2.3.Final
+    - Upgraded Hypersistence Utils to 3.15.1
+    - Upgraded MongoJack to 5.1.0
+    - Upgraded Smart Caches Core to 0.34.0
+    - Added additional benchmarks around digest computation
+
 # 0.7.0
 
 - Hibernate improvements:
