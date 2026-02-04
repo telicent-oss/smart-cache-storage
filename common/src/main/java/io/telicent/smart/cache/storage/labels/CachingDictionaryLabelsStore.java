@@ -9,8 +9,6 @@ import io.telicent.smart.cache.storage.AbstractStorage;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.collections4.CollectionUtils;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 /**
@@ -23,7 +21,7 @@ public class CachingDictionaryLabelsStore extends AbstractStorage implements Dic
     private final Cache<String, Long> labelsToIds;
     private final Cache<Long, byte[]> idsToLabels;
     protected final Base64.Encoder encoder = Base64.getEncoder();
-    protected final MessageDigest sha512;
+    protected final DigestHelper digest;
 
     /**
      * Creates a new caching store with the same cache size used for each of the individual caches
@@ -63,11 +61,7 @@ public class CachingDictionaryLabelsStore extends AbstractStorage implements Dic
                                    .maximumSize(idsToLabelsCacheSize)
                                    .build();
 
-        try {
-            this.sha512 = MessageDigest.getInstance("SHA512");
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Failed to obtain SHA512 hash");
-        }
+        this.digest = new DigestHelper("SHA512");
     }
 
     /**
@@ -104,7 +98,7 @@ public class CachingDictionaryLabelsStore extends AbstractStorage implements Dic
             return this.encoder.encodeToString(label);
         } else {
             // For anything larger take a SHA512 hash instead
-            return HASH_PREFIX + Hex.encodeHexString(this.sha512.digest(label));
+            return HASH_PREFIX + Hex.encodeHexString(this.digest.digest(label));
         }
     }
 
