@@ -45,6 +45,7 @@
     </scm>
 
     <properties>
+        <java.version>21</java.version>
         <!-- License Plugin Configuration -->
         <!--
         Note that all submodules need to declare this appropriately as well so that the plugin can correctly find
