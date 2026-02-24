@@ -6,6 +6,7 @@ package io.telicent.smart.cache.storage.hibernate.configuration.postgres;
 import io.telicent.smart.cache.storage.hibernate.configuration.DatabaseConfiguration;
 import io.telicent.smart.cache.storage.hibernate.configuration.JpaConfiguration;
 import org.testng.Assert;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.util.Properties;
@@ -38,7 +39,7 @@ public class TestPostgresConfiguration {
 
         // Then
         Assert.assertEquals(props.get(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_URL),
-                            "jdbc:postgresql://localhost:5432/test");
+                            "jdbc:postgresql://localhost:5432/test?tcpKeepAlive=true");
         Assert.assertNull(props.get(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_USER));
         Assert.assertNull(props.get(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_PASSWORD));
     }
@@ -60,27 +61,31 @@ public class TestPostgresConfiguration {
 
         // Then
         Assert.assertEquals(props.get(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_URL),
-                            "jdbc:postgresql://localhost:1234/test");
+                            "jdbc:postgresql://localhost:1234/test?tcpKeepAlive=true");
         Assert.assertEquals(props.get(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_USER), "example");
         Assert.assertEquals(props.get(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_PASSWORD), "password");
     }
 
-    @Test
-    public void givenJdbcConfiguration_whenPreparingConnectionProperties_thenAsExpected() {
+    @DataProvider(name = "jdbcUrls")
+    private Object[][] exampleJdbcUrls() {
+        return new Object[][] {
+                { "jdbc:postgresql://localhost:1234/test" },
+                { "jdbc:postgresql://localhost:1234/test?tcpKeepAlive=true" }
+        };
+    }
+
+    @Test(dataProvider = "jdbcUrls")
+    public void givenJdbcConfiguration_whenPreparingConnectionProperties_thenAsExpected(String jdbcUrl) {
         // Given
-        DatabaseConfiguration config = DatabaseConfiguration.builder()
-                                                            .jdbcUrl("jdbc:postgresql://localhost:1234/test")
-                                                            .username("example")
-                                                            .password("password")
-                                                            .build();
+        DatabaseConfiguration config =
+                DatabaseConfiguration.builder().jdbcUrl(jdbcUrl).username("example").password("password").build();
         Assert.assertTrue(config.isValid());
 
         // When
         Properties props = PostgresConfiguration.prepareConnectionProperties(config);
 
         // Then
-        Assert.assertEquals(props.get(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_URL),
-                            "jdbc:postgresql://localhost:1234/test");
+        Assert.assertEquals(props.get(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_URL), jdbcUrl);
         Assert.assertEquals(props.get(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_USER), "example");
         Assert.assertEquals(props.get(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_PASSWORD), "password");
     }
