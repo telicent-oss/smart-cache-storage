@@ -20,6 +20,10 @@
             NB - No database connection properties are supplied in this persistence unit, a consumer of this API is
                  expected to supply the relevant properties when they create an entity manager
             -->
+            
+            <!-- Hikari Connection Pooling -->
+            <property name="hibernate.hikari.maxLifetime" value="900000"/> <!-- 15 minutes -->
+            <property name="hibernate.hikari.keepaliveTime" value="300000"/> <!-- 5 minutes -->
 
             <!-- Don't automatically create the schema -->
             <property name="jakarta.persistence.schema-generation.database.action" value="create"/>

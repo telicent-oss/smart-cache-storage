@@ -31,7 +31,7 @@ public class PostgresConfiguration {
      * @return Postgres JDBC URL
      */
     public static String getJdbcUrl(DatabaseConfiguration configuration) {
-        return String.format("jdbc:postgresql://%s:%d/%s", configuration.getHostname(),
+        return String.format("jdbc:postgresql://%s:%d/%s?tcpKeepAlive=true", configuration.getHostname(),
                              configuration.getPort() != null ?
                              configuration.getPort() :
                              DEFAULT_PORT, configuration.getDatabase());

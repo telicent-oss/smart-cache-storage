@@ -1,5 +1,13 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.9.0
+
+- Hibernate improvements:
+    - Hibernate Hikari Connection Pool is now provided as a dependency by default so will automatically be used if
+      persistence.xml includes any hibernate.hikari.* properties
+- Build improvements:
+    - Added Hibernate Hikari Connection Pool
+
 # 0.8.0
 
 - Label store improvements:
