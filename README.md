@@ -17,5 +17,5 @@ Please refer to the [Usage Documentation](docs/index.md) for how to use these li
 
 ## License
 
-Copyright 2024-2025 and All Rights Reserved Telicent Ltd, see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+Copyright 2024-2026 Telicent Ltd, licensed under the [Apache 2.0](LICENSE) and [NOTICE](NOTICE).
 
