@@ -58,6 +58,12 @@
             <artifactId>flyway-core</artifactId>
         </dependency>
 
+        <!-- Need an up-to-date Jackson 3.x for Flyway to resolve CVEs -->
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>com.redgate.flyway</groupId>
             <artifactId>flyway-database-postgresql</artifactId>
