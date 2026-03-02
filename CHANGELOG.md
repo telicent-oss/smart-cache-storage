@@ -6,7 +6,15 @@
     - Hibernate Hikari Connection Pool is now provided as a dependency by default so will automatically be used if
       persistence.xml includes any hibernate.hikari.* properties
 - Build improvements:
+    - **BREAKING** Minimum Java version is now 21
     - Added Hibernate Hikari Connection Pool
+    - Upgraded Flyway to 12.0.3
+    - Upgraded Jackson 3 to 3.1.0
+    - Upgraded Hibernate to 7.2.6.Final
+    - Upgraded Hypersistence Utils to 3.15.2
+    - Upgraded MongoDB to 5.6.4
+    - Upgraded Postgres to 42.7.10
+    - Upgraded Smart Caches Core to 0.36.1
 
 # 0.8.0
 
