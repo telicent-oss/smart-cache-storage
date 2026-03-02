@@ -66,15 +66,15 @@
         <dependency.commons-codec>1.21.0</dependency.commons-codec>
         <dependency.flyway>12.0.3</dependency.flyway>
         <dependency.h2>2.4.240</dependency.h2>
-        <dependency.hibernate>7.2.5.Final</dependency.hibernate>
+        <dependency.hibernate>7.2.6.Final</dependency.hibernate>
         <dependency.hypersistence>3.15.2</dependency.hypersistence>
         <dependency.jackson3>3.1.0</dependency.jackson3>
         <dependency.jmh>1.37</dependency.jmh>
-        <dependency.mongodb>5.6.3</dependency.mongodb>
+        <dependency.mongodb>5.6.4</dependency.mongodb>
         <dependency.mongojack>5.1.0</dependency.mongojack>
         <dependency.postgres>42.7.10</dependency.postgres>
         <dependency.rocksdb>10.2.1</dependency.rocksdb>
-        <dependency.smart-caches>0.35.0</dependency.smart-caches>
+        <dependency.smart-caches>0.36.1</dependency.smart-caches>
 
     </properties>
 
