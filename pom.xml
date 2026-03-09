@@ -69,6 +69,7 @@
         <dependency.hibernate>7.2.6.Final</dependency.hibernate>
         <dependency.hypersistence>3.15.2</dependency.hypersistence>
         <dependency.jackson3>3.1.0</dependency.jackson3>
+        <dependency.jetty>12.0.32</dependency.jetty>
         <dependency.jmh>1.37</dependency.jmh>
         <dependency.mongodb>5.6.4</dependency.mongodb>
         <dependency.mongojack>5.1.0</dependency.mongojack>
@@ -127,13 +128,12 @@
                         <groupId>tools.jackson.core</groupId>
                         <artifactId>jackson-databind</artifactId>
                     </exclusion>
+                    <!-- CVE-2026-1605 -->
+                    <exclusion>
+                        <groupId>org.eclipse.jetty</groupId>
+                        <artifactId>jetty-server</artifactId>
+                    </exclusion>
                 </exclusions>
-            </dependency>
-
-            <dependency>
-                <groupId>tools.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${dependency.jackson3}</version>
             </dependency>
 
             <dependency>
@@ -160,6 +160,21 @@
                 <artifactId>mongodb</artifactId>
                 <version>${dependency.testcontainers}</version>
             </dependency>
+
+            <!-- Vulnerability patches -->
+            <!-- CVE-2026-1605 -->
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-server</artifactId>
+                <version>${dependency.jetty}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>tools.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${dependency.jackson3}</version>
+            </dependency>
+
         </dependencies>
 
     </dependencyManagement>

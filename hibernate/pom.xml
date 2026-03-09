@@ -56,12 +56,13 @@
         <dependency>
             <groupId>com.redgate.flyway</groupId>
             <artifactId>flyway-core</artifactId>
-        </dependency>
-
-        <!-- Need an up-to-date Jackson 3.x for Flyway to resolve CVEs -->
-        <dependency>
-            <groupId>tools.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
+            <exclusions>
+                <!-- CVE-2026-1605 -->
+                <exclusion>
+                    <groupId>org.eclipse.jetty</groupId>
+                    <artifactId>jetty-server</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -145,6 +146,19 @@
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <scope>test</scope>
+        </dependency>
+
+        <!-- Vulnerability patches -->
+        <!-- Need an up-to-date Jackson 3.x for Flyway to resolve CVEs -->
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
+        <!-- CVE-2026-1605 -->
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-server</artifactId>
         </dependency>
 
     </dependencies>
