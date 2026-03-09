@@ -1,5 +1,9 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.9.1
+- Build improvements:
+  - Addressing CVE-2026-1605 (Jetty)
+
 # 0.9.0
 
 - Hibernate improvements:
