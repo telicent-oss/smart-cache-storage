@@ -1,3 +1,6 @@
+/**
+ * Copyright (C) 2024-2025 Telicent Limited
+ */
 package io.telicent.smart.cache.storage.rocksdb;
 
 import org.rocksdb.ReadOptions;
@@ -10,7 +13,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class NestedTransactionContext extends ShortLivedTransactionContext {
 
     private final AtomicInteger nesting = new AtomicInteger(1);
-    private boolean committed = false;
 
     public NestedTransactionContext(TransactionDB db, ReadOptions readOptions,
                                     WriteOptions writeOptions) {
@@ -29,7 +31,6 @@ public class NestedTransactionContext extends ShortLivedTransactionContext {
     public void commit() throws RocksDBException {
         if (this.nesting.get() == 1) {
             super.commit();
-            this.committed = true;
         }
     }
 
@@ -40,12 +41,4 @@ public class NestedTransactionContext extends ShortLivedTransactionContext {
         }
     }
 
-    /**
-     * Gets whether the transaction remains active
-     *
-     * @return True if active, false otherwise
-     */
-    public boolean isActive() {
-        return !this.committed;
-    }
 }

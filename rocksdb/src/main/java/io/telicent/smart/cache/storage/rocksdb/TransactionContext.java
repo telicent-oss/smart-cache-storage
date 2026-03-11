@@ -86,4 +86,11 @@ public interface TransactionContext extends AutoCloseable {
      * @return True if empty, false if non-empty
      */
     boolean isEmpty(ColumnFamilyHandle handle);
+
+    /**
+     * Gets whether the transaction remains active i.e. hasn't been committed/closed
+     *
+     * @return True if the transaction remains active, false otherwise
+     */
+    boolean isActive();
 }

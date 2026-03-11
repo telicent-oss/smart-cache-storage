@@ -26,19 +26,28 @@ public class ShortLivedTransactionContext implements TransactionContext {
         this.rocksTransaction.setSnapshot();
     }
 
+    private void ensureNotClosed() {
+        if (this.rocksTransaction == null) {
+            throw new IllegalStateException("Transaction already closed");
+        }
+    }
+
     @Override
     public byte[] get(ColumnFamilyHandle cfHandle, byte[] key) throws RocksDBException {
+        ensureNotClosed();
         return this.rocksTransaction.get(this.readOptions, cfHandle, key);
     }
 
     @Override
     public void put(ColumnFamilyHandle cfHandle, byte[] key, byte[] value) throws RocksDBException {
+        ensureNotClosed();
         this.rocksTransaction.put(cfHandle, key, value);
     }
 
     @Override
     public List<byte[]> multiGetAsList(List<ColumnFamilyHandle> cfHandles, List<byte[]> queryKeys) throws
             RocksDBException {
+        ensureNotClosed();
         return this.rocksTransaction.multiGetAsList(this.readOptions, cfHandles, queryKeys);
     }
 
@@ -74,6 +83,7 @@ public class ShortLivedTransactionContext implements TransactionContext {
 
     @Override
     public long count(ColumnFamilyHandle handle) {
+        ensureNotClosed();
         try (RocksIterator iterator = this.rocksTransaction.getIterator(handle)) {
             long count = 0;
             iterator.seekToFirst();
@@ -87,9 +97,19 @@ public class ShortLivedTransactionContext implements TransactionContext {
 
     @Override
     public boolean isEmpty(ColumnFamilyHandle handle) {
+        ensureNotClosed();
         try (RocksIterator iterator = this.rocksTransaction.getIterator(handle)) {
             iterator.seekToFirst();
-            return iterator.isValid();
+            return !iterator.isValid();
         }
+    }
+
+    /**
+     * Gets whether the transaction remains active
+     *
+     * @return True if active, false otherwise
+     */
+    public boolean isActive() {
+        return this.rocksTransaction != null;
     }
 }

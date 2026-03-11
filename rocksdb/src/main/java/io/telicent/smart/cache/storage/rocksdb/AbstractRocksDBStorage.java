@@ -4,7 +4,10 @@
 package io.telicent.smart.cache.storage.rocksdb;
 
 import io.telicent.smart.cache.storage.AbstractStorage;
+import org.apache.commons.lang3.StringUtils;
 import org.rocksdb.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,27 +22,30 @@ import java.util.*;
  * <p>
  * The primary usage pattern for this in derived implementations is as follows:
  * </p>
- * <code>
- * // Start a fresh transaction
- * try (TransactionContext context = this.begin()) {
+ * <pre>
+ *   // Start a fresh transaction
+ *   try (TransactionContext context = this.begin()) {
  *     // Get a column family handle
  *     ColumnFamilyHandle cfHandle = this.getHandle(NAME_OF_COLUMN_FAMILY);
- * 
+ *
  *     // Perform some operations
- *     context.put(key, value);
+ *     context.put(cfHandle, key, value);
  *
  *     // Commit the transaction
  *     context.commit();
- * }
- * </code>
+ *   }
+ * </pre>
  */
 public abstract class AbstractRocksDBStorage extends AbstractStorage {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractRocksDBStorage.class);
 
     private final TransactionDB db;
     private final Options options;
     private final TransactionDBOptions transactionOptions;
     private final Map<String, ColumnFamilyHandle> columnFamilyHandles;
     private final Map<String, RocksDBCounter> counters;
+    private final ThreadLocal<NestedTransactionContext> nestedTransactions = ThreadLocal.withInitial(() -> null);
 
     /**
      * Creates a new instance of RocksDB backed storage
@@ -64,12 +70,15 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
      * @throws RocksDBException Thrown if the RocksDB storage cannot be initialised for any reason
      */
     public AbstractRocksDBStorage(File dbDir) throws IOException, RocksDBException {
+        Objects.requireNonNull(dbDir, "Database Directory cannot be null");
+
         // Load the native library
         RocksDB.loadLibrary();
 
         // Prepare column family descriptors
         ColumnFamilyOptions cfOptions = defaultColumnFamilyOptions();
         List<ColumnFamilyDescriptor> cfDescriptors = prepareColumnFamilyDescriptors(cfOptions);
+        LOGGER.info("Prepared {} column family descriptors", cfDescriptors.size());
         List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
 
         // 2. Open RocksDB with Options
@@ -80,6 +89,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
         try {
             this.db = TransactionDB.open(dbOptions, this.transactionOptions, dbDir.getAbsolutePath(), cfDescriptors,
                                          cfHandles);
+            LOGGER.info("Successfully opened RocksDB database at {}", dbDir.getAbsolutePath());
         } catch (RocksDBException e) {
             cfDescriptors.forEach(cf -> cf.getOptions().close());
             throw e;
@@ -94,6 +104,10 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
 
         // 4. Prepare any counters we need
         this.counters = this.prepareCounters();
+        if (!this.counters.isEmpty()) {
+            LOGGER.info("Prepared {} counters ({})", this.counters.size(),
+                        StringUtils.join(this.counters.keySet(), ", "));
+        }
     }
 
     /**
@@ -137,6 +151,11 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
     /**
      * Prepares the column family descriptors that will be used to obtain {@link ColumnFamilyHandle}'s for use in
      * interacting with the database
+     * <p>
+     * <strong>NB: </strong> RocksDB requires that this list <strong>MUST</strong> include the default column family
+     * whose name is given by the {@link RocksDB#DEFAULT_COLUMN_FAMILY} constant.  If this is not included in the
+     * returned list RocksDB will fail to create/open the database.
+     * </p>
      *
      * @param cfOptions Default column family options as supplied by {@link #defaultColumnFamilyOptions()}
      * @return List of column family descriptors
@@ -173,13 +192,28 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
     @Override
     protected final void closeInternal() {
         try {
+            // Ensure any updated counters are persisted at close time
+            if (!this.counters.isEmpty()) {
+                LOGGER.info("Persisting counters to ensure their values are up to date...");
+                try (TransactionContext context = this.begin()) {
+                    for (Map.Entry<String, RocksDBCounter> counter : this.counters.entrySet()) {
+                        counter.getValue().update(context);
+                        LOGGER.info("Counter {} persisted with value {}", counter.getKey(), counter.getValue().get());
+                    }
+                    context.commit();
+                    LOGGER.info("Persisted all counters successfully");
+                } catch (Throwable e) {
+                    LOGGER.warn("Unexpected error persisting counters: ", e);
+                }
+            }
+
             for (final ColumnFamilyHandle cfHandle : columnFamilyHandles.values()) {
                 cfHandle.close();
             }
             db.close();
             options.close();
             transactionOptions.close();
-        } catch (Exception e) {
+        } catch (Throwable e) {
             throw new RuntimeException("Failed to close RocksDB resources", e);
         }
     }
@@ -208,8 +242,8 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
     }
 
     /**
-     * Gets a column family that was previously defined via {@link #prepareColumnFamilyDescriptors(ColumnFamilyOptions)}
-     * and registered during object construction
+     * Gets a column family handler that was previously defined via
+     * {@link #prepareColumnFamilyDescriptors(ColumnFamilyOptions)} and registered during object construction
      *
      * @param cfNameBytes Column family name bytes
      * @return Column Family Handle, or {@code null} if no such handle registered
@@ -217,6 +251,16 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
     protected final ColumnFamilyHandle getHandle(byte[] cfNameBytes) {
         String cfName = new String(cfNameBytes, StandardCharsets.UTF_8);
         return columnFamilyHandles.get(cfName);
+    }
+
+    /**
+     * Gets the column family handle for the default column family
+     *
+     * @return Default column family handle, as RocksDB requires that we always register the default column family this
+     * is guaranteed to never be {@code null}
+     */
+    protected ColumnFamilyHandle getDefaultHandle() {
+        return this.getHandle(RocksDB.DEFAULT_COLUMN_FAMILY);
     }
 
     /**
@@ -256,7 +300,42 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
      * @return New transaction
      */
     protected final TransactionContext begin(ReadOptions readOptions, WriteOptions writeOptions) {
-        return new ShortLivedTransactionContext(this.db, readOptions, writeOptions);
+        NestedTransactionContext context = this.nestedTransactions.get();
+        if (context != null && context.isActive()) {
+            return context.increment();
+        } else {
+            return new ShortLivedTransactionContext(this.db, readOptions, writeOptions);
+        }
+    }
+
+    /**
+     * Begins a new transaction that may be nested, or increments the nested on the existing nested transaction
+     *
+     * @return Nested transaction
+     */
+    protected final TransactionContext beginNested() {
+        return this.beginNested(defaultReadOptions(), defaultWriteOptions());
+    }
+
+    /**
+     * Begins a new transaction that may be nested, or increments the nested on the existing nested transaction, the
+     * read and write options are only honoured if this is the top level transaction
+     *
+     * @param readOptions  Read options
+     * @param writeOptions Write options
+     * @return Nested transaction
+     */
+    protected final TransactionContext beginNested(ReadOptions readOptions, WriteOptions writeOptions) {
+        NestedTransactionContext context = this.nestedTransactions.get();
+        if (context == null || !context.isActive()) {
+            // No prior nested transaction, or previous one has been closed, create a fresh one
+            context = new NestedTransactionContext(this.db, readOptions, writeOptions);
+            this.nestedTransactions.set(context);
+            return context;
+        } else {
+            // Increment nesting on the existing active nested transaction
+            return context.increment();
+        }
     }
 
     /**
@@ -268,7 +347,8 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
      * @return Counter
      * @throws RocksDBException Thrown if the counter cannot be synchronised with the underlying database
      */
-    protected final RocksDBCounter createCounter(byte[] countersColumnFamilyName, String counterKey) throws RocksDBException {
+    protected final RocksDBCounter createCounter(byte[] countersColumnFamilyName, String counterKey) throws
+            RocksDBException {
         return new RocksDBCounter(this.db, this.getHandle(countersColumnFamilyName), counterKey);
     }
 }
