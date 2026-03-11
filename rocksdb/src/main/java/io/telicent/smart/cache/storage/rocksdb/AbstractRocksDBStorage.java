@@ -285,6 +285,11 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
 
     /**
      * Begins a new transaction with default read and write options
+     * <p>
+     * If this is called within the context of a pre-existing nested transaction (created by a call to
+     * {@link #beginNested()}) then the returned transaction will be a nested transaction that shares the longer running
+     * transaction context.
+     * </p>
      *
      * @return New transaction
      */
@@ -294,6 +299,11 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
 
     /**
      * Begins a new transaction with the given read and write options
+     * <p>
+     * If this is called within the context of a pre-existing nested transaction (created by a call to
+     * {@link #beginNested()}) then the returned transaction will be a nested transaction that shares the longer running
+     * transaction context.
+     * </p>
      *
      * @param readOptions  Read options
      * @param writeOptions Write options
@@ -309,7 +319,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
     }
 
     /**
-     * Begins a new transaction that may be nested, or increments the nested on the existing nested transaction
+     * Begins a new transaction that may be nested, or increments the nested of the pre-existing nested transaction
      *
      * @return Nested transaction
      */
@@ -318,7 +328,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
     }
 
     /**
-     * Begins a new transaction that may be nested, or increments the nested on the existing nested transaction, the
+     * Begins a new transaction that may be nested, or increments the nested of the existing nested transaction, the
      * read and write options are only honoured if this is the top level transaction
      *
      * @param readOptions  Read options
