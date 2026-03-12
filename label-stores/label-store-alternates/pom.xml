@@ -37,7 +37,7 @@
         <dependency>
             <groupId>at.yawk.lz4</groupId>
             <artifactId>lz4-java</artifactId>
-            <version>${dependency.lz4}</version>
+            <!-- Controlled by Smart Caches Core -->
         </dependency>
 
         <dependency>
