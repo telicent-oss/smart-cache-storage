@@ -105,7 +105,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>${dependency.lombok}</version>
+            <!-- Controlled by Smart Caches Core -->
             <scope>provided</scope>
         </dependency>
 
@@ -125,7 +125,7 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>${dependency.commons-io}</version>
+            <!-- Controlled by Smart Caches Core -->
             <scope>test</scope>
         </dependency>
 
