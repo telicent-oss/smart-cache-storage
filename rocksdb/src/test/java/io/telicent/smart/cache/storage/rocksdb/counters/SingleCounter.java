@@ -1,0 +1,28 @@
+/**
+ * Copyright (C) 2024-2025 Telicent Limited
+ */
+package io.telicent.smart.cache.storage.rocksdb.counters;
+
+import io.telicent.smart.cache.storage.rocksdb.AbstractCounterTester;
+import io.telicent.smart.cache.storage.rocksdb.RocksDBCounter;
+import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Map;
+
+public class SingleCounter extends AbstractCounterTester {
+
+    public static final String NAME = "test";
+
+    public SingleCounter(File dbDir) throws IOException, RocksDBException {
+        super(dbDir);
+    }
+
+    @Override
+    protected Map<String, RocksDBCounter> prepareCounters() throws RocksDBException {
+        return Map.of(NAME, createCounter(RocksDB.DEFAULT_COLUMN_FAMILY, NAME));
+    }
+
+}

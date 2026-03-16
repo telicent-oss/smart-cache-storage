@@ -47,7 +47,7 @@ public class RocksDBCounter {
     }
 
     /**
-     * Resynchronise the counter with the stored database state
+     * Re-synchronise the counter with the stored database state
      *
      * @throws RocksDBException Thrown if the counter cannot be synchronised
      */
@@ -100,7 +100,18 @@ public class RocksDBCounter {
      * @throws RocksDBException Thrown if the database counter cannot be updated
      */
     public void update(TransactionContext transaction) throws RocksDBException {
-        Objects.requireNonNull(transaction, "write batch cannot be null");
+        Objects.requireNonNull(transaction, "Transaction cannot be null");
         transaction.put(this.cfHandle, this.key, longToBytes(counter.get()));
+    }
+
+    /**
+     * Gets the current value of the counter
+     * <p>
+     * Intended only for logging and testing, callers should always use {@link #next()} for actual counter access.
+     * </p>
+     * @return Current counter value
+     */
+    long get() {
+        return this.counter.get();
     }
 }

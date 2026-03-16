@@ -1,8 +1,28 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.10.0
+
+- RocksDB improvements:
+    - `AbstractRocksDBStorage` improvements:
+        - `close()` now actively persists any created counters in case they have been used in a non-transactional
+          manner.
+        - Added `getDefaultHandle()` method for obtaining the default column family handle.
+        - Improved various aspects of error messages and error handling.
+        - Added some basic diagnostic logging
+    - Transaction improvements:
+        - Added `beginNested()` methods to `AbstractRocksDBStorage` that allows creating "nested" transactions from an
+          application perspective that share a single longer lived RocksDB transaction such that all reads/writes that
+          occur against the database in the context of the transaction are atomic from an application perspective.
+        - Added `isEmpty()` method to `TransactionContext` to determine whether a given column family contains any data
+        - Added `isActive()` method to `TransactionContext` to check whether a transaction is still active i.e. not
+          committed/closed
+    - Label Store improvements:
+        - Column Family handle names are now protected constants meaning storage derived from the `RocksDBLabelsStore`
+          can access and manipulate those column handles where needed
+
 # 0.9.1
 - Build improvements:
-  - Addressing CVE-2026-1605 (Jetty)
+    - Addressing CVE-2026-1605 (Jetty)
 
 # 0.9.0
 

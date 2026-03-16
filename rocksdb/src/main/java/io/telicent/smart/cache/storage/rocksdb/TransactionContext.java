@@ -78,4 +78,19 @@ public interface TransactionContext extends AutoCloseable {
      * @return Number of keys in the given column family
      */
     long count(ColumnFamilyHandle handle);
+
+    /**
+     * Determines whether the given column family is empty i.e. has no keys
+     *
+     * @param handle Column family handle
+     * @return True if empty, false if non-empty
+     */
+    boolean isEmpty(ColumnFamilyHandle handle);
+
+    /**
+     * Gets whether the transaction remains active i.e. hasn't been committed/closed
+     *
+     * @return True if the transaction remains active, false otherwise
+     */
+    boolean isActive();
 }

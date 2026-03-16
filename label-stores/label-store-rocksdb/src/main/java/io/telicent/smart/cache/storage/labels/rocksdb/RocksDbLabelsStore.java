@@ -30,15 +30,15 @@ import static org.rocksdb.RocksDB.DEFAULT_COLUMN_FAMILY;
 public class RocksDbLabelsStore extends AbstractRocksDBStorage implements LabelsStore {
 
     // Map labels to IDs
-    private static final byte[] LABELS_TO_IDS_CF = "labels_to_ids".getBytes(StandardCharsets.UTF_8);
+    protected static final byte[] LABELS_TO_IDS_CF = "labels_to_ids".getBytes(StandardCharsets.UTF_8);
     // Map IDs to labels
-    private static final byte[] IDS_TO_LABELS_CF = "ids_to_labels".getBytes(StandardCharsets.UTF_8);
+    protected static final byte[] IDS_TO_LABELS_CF = "ids_to_labels".getBytes(StandardCharsets.UTF_8);
     // Counters
-    private static final byte[] COUNTERS_CF = "counters".getBytes(StandardCharsets.UTF_8);
+    protected static final byte[] COUNTERS_CF = "counters".getBytes(StandardCharsets.UTF_8);
     // Map Keys to Label IDs
-    private static final byte[] KEYS_TO_LABELS_CF = "keys_to_labels".getBytes(StandardCharsets.UTF_8);
+    protected static final byte[] KEYS_TO_LABELS_CF = "keys_to_labels".getBytes(StandardCharsets.UTF_8);
     // Next Label ID counter key
-    private static final byte[] ID_COUNTER_KEY = "next_label_id".getBytes(StandardCharsets.UTF_8);
+    protected static final byte[] ID_COUNTER_KEY = "next_label_id".getBytes(StandardCharsets.UTF_8);
 
     /**
      * Creates a new RocksDB labels store
