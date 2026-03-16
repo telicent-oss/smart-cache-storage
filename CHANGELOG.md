@@ -16,6 +16,8 @@
         - Added `isEmpty()` method to `TransactionContext` to determine whether a given column family contains any data
         - Added `isActive()` method to `TransactionContext` to check whether a transaction is still active i.e. not
           committed/closed
+        - Added `forEach()` method to `TransactionContext` to allow full iteration and processing of a column family,
+          intended primarily for one-off expensive operations like data migration
     - Label Store improvements:
         - Column Family handle names are now protected constants meaning storage derived from the `RocksDBLabelsStore`
           can access and manipulate those column handles where needed

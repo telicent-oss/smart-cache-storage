@@ -83,6 +83,8 @@ The `TransactionContext` provides access to a intentionally limited subset of `R
   single operation.
 - `count(ColumnFamilyHandle)` for counting the keys in a column family.
 - `isEmpty(ColumnFamilyHandle)` for determining whether a given column family contains any keys.
+- `forEach(ColumnFamilyHandle, Consumer<KeyValue>)` for full iteration and processing of a column family, intended
+  for expensive one-time operations like data migrations.
 - `commit()` for committing the transaction.
 
 **NB** If you do not `commit()` the transaction then when the `close()` method is called the transaction will be
