@@ -5,6 +5,7 @@ package io.telicent.smart.cache.storage.rocksdb;
 
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.RocksIterator;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -99,7 +100,9 @@ public interface TransactionContext extends AutoCloseable {
      * Iterates over the given column family applying a consumer to each key value pair
      * <p>
      * This method should be used rarely <strong>only</strong> in scenarios where full column family iteration is
-     * required e.g. data migration.
+     * required e.g. data migration.  For very large iterations it may be better to use
+     * {@link #iterator(ColumnFamilyHandle)} instead as that provides the caller more control over how the column family
+     * is iterated.
      * </p>
      * <p>
      * Note that the {@link KeyValue} passed to the consumer is a temporary pointer into the underlying storage so the
@@ -108,7 +111,20 @@ public interface TransactionContext extends AutoCloseable {
      * itself as those pointers <strong>MAY NOT</strong> remain valid over time.
      * </p>
      *
+     * @param handle   Column family handle
      * @param consumer Consumer function
      */
     void forEach(ColumnFamilyHandle handle, Consumer<KeyValue> consumer);
+
+    /**
+     * Obtains a RocksDB iterator for the column family within the context of this transaction
+     * <p>
+     * The returned iterator will be a raw iterator not positioned anywhere, the caller should call
+     * {@link RocksIterator#seekToFirst()} or {@link RocksIterator#seek(byte[])} before starting to use the iterator
+     * </p>
+     *
+     * @param handle Column family handle
+     * @return Rocks Iterator
+     */
+    RocksIterator iterator(ColumnFamilyHandle handle);
 }

@@ -26,11 +26,21 @@ public class KeyValue {
     private final RocksIterator iterator;
 
     /**
+     * Creates a new key value instance backed by the given iterator
+     *
+     * @param iterator Iterator
+     * @return Key value
+     */
+    public static KeyValue of(RocksIterator iterator) {
+        return new KeyValue(iterator);
+    }
+
+    /**
      * Creates a new key value pointer
      *
      * @param iterator Iterator
      */
-    KeyValue(RocksIterator iterator) {
+    private KeyValue(RocksIterator iterator) {
         this.iterator = iterator;
     }
 

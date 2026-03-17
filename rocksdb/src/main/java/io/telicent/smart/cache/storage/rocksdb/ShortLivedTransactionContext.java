@@ -110,12 +110,18 @@ public class ShortLivedTransactionContext implements TransactionContext {
         ensureNotClosed();
         try (RocksIterator iterator = this.rocksTransaction.getIterator(handle)) {
             iterator.seekToFirst();
-            KeyValue keyValue = new KeyValue(iterator);
+            KeyValue keyValue = KeyValue.of(iterator);
             while (iterator.isValid()) {
                 consumer.accept(keyValue);
                 iterator.next();
             }
         }
+    }
+
+    @Override
+    public RocksIterator iterator(ColumnFamilyHandle handle) {
+        ensureNotClosed();
+        return this.rocksTransaction.getIterator(handle);
     }
 
     /**

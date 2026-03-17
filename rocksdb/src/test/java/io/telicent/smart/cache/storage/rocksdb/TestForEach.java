@@ -4,12 +4,14 @@
 package io.telicent.smart.cache.storage.rocksdb;
 
 import org.rocksdb.RocksDBException;
+import org.rocksdb.RocksIterator;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -82,6 +84,68 @@ public class TestForEach extends AbstractRocksDBTests {
                 context.forEach(external.getDefaultHandle(),
                                 kv -> recorded.put(new String(kv.key(), StandardCharsets.UTF_8),
                                                    new String(kv.value(), StandardCharsets.UTF_8)));
+
+                // Then
+                Assert.assertEquals(recorded, inputs);
+            }
+        }
+    }
+
+    @Test(dataProvider = "inputs")
+    public void givenSomeKeys_whenManuallyIterating_thenOriginalKeyValuesReturned(Map<String, String> inputs) throws
+            RocksDBException,
+            IOException {
+        // Given
+        Map<String, String> recorded = new HashMap<>();
+        try (External external = new External(this.dbDir)) {
+            try (TransactionContext context = external.start()) {
+                insertKeyValues(inputs, context, external);
+
+                // When
+                try (RocksIterator iterator = context.iterator(external.getDefaultHandle())) {
+                    iterator.seekToFirst();
+                    KeyValue keyValue = KeyValue.of(iterator);
+                    while (iterator.isValid()) {
+                        recorded.put(new String(keyValue.key(), StandardCharsets.UTF_8),
+                                     new String(keyValue.value(), StandardCharsets.UTF_8));
+                        iterator.next();
+                    }
+                }
+
+                // Then
+                Assert.assertEquals(recorded, inputs);
+            }
+        }
+    }
+
+    @Test(dataProvider = "inputs")
+    public void givenSomeKeys_whenManuallyIteratingWithSeeks_thenOriginalKeyValuesReturned(Map<String, String> inputs) throws
+            RocksDBException,
+            IOException {
+        // Given
+        Map<String, String> recorded = new HashMap<>();
+        try (External external = new External(this.dbDir)) {
+            try (TransactionContext context = external.start()) {
+                insertKeyValues(inputs, context, external);
+
+                // When
+                byte[] lastKey = null;
+                while (recorded.size() < inputs.size()) {
+                    try (RocksIterator iterator = context.iterator(external.getDefaultHandle())) {
+                        if (lastKey == null) {
+                            iterator.seekToFirst();
+                        } else {
+                            iterator.seek(lastKey);
+                            iterator.next();
+                        }
+                        KeyValue keyValue = KeyValue.of(iterator);
+                        if (iterator.isValid()) {
+                            recorded.put(new String(keyValue.key(), StandardCharsets.UTF_8),
+                                         new String(keyValue.value(), StandardCharsets.UTF_8));
+                            lastKey = Arrays.copyOf(keyValue.key(), keyValue.key().length);
+                        }
+                    }
+                }
 
                 // Then
                 Assert.assertEquals(recorded, inputs);
