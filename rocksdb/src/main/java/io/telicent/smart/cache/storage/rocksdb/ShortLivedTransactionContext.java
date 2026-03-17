@@ -7,6 +7,7 @@ import org.rocksdb.*;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * A RocksDB transaction context intended for short-lived transactions, e.g. within the context of a single method call
@@ -101,6 +102,19 @@ public class ShortLivedTransactionContext implements TransactionContext {
         try (RocksIterator iterator = this.rocksTransaction.getIterator(handle)) {
             iterator.seekToFirst();
             return !iterator.isValid();
+        }
+    }
+
+    @Override
+    public void forEach(ColumnFamilyHandle handle, Consumer<KeyValue> consumer) {
+        ensureNotClosed();
+        try (RocksIterator iterator = this.rocksTransaction.getIterator(handle)) {
+            iterator.seekToFirst();
+            KeyValue keyValue = new KeyValue(iterator);
+            while (iterator.isValid()) {
+                consumer.accept(keyValue);
+                iterator.next();
+            }
         }
     }
 

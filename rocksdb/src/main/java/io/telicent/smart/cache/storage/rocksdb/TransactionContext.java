@@ -7,6 +7,7 @@ import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * A transaction context helper for {@link AbstractRocksDBStorage} derived storage implementations
@@ -93,4 +94,21 @@ public interface TransactionContext extends AutoCloseable {
      * @return True if the transaction remains active, false otherwise
      */
     boolean isActive();
+
+    /**
+     * Iterates over the given column family applying a consumer to each key value pair
+     * <p>
+     * This method should be used rarely <strong>only</strong> in scenarios where full column family iteration is
+     * required e.g. data migration.
+     * </p>
+     * <p>
+     * Note that the {@link KeyValue} passed to the consumer is a temporary pointer into the underlying storage so the
+     * consumer <strong>MUST</strong> perform any processing of the key and/or value immediately.  It
+     * <strong>MUST</strong> also not hold onto pointers to the key/value references beyond a single invocation of
+     * itself as those pointers <strong>MAY NOT</strong> remain valid over time.
+     * </p>
+     *
+     * @param consumer Consumer function
+     */
+    void forEach(ColumnFamilyHandle handle, Consumer<KeyValue> consumer);
 }
