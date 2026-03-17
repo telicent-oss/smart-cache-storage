@@ -3,6 +3,8 @@
  */
 package io.telicent.smart.cache.storage.rocksdb;
 
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.RandomUtils;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 import org.testng.Assert;
@@ -13,8 +15,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static io.telicent.smart.cache.storage.rocksdb.AbstractRocksDBStorage.bytesToLong;
+import static io.telicent.smart.cache.storage.rocksdb.AbstractRocksDBStorage.longToBytes;
 
 public class TestForEach extends AbstractRocksDBTests {
 
@@ -119,7 +125,8 @@ public class TestForEach extends AbstractRocksDBTests {
     }
 
     @Test(dataProvider = "inputs")
-    public void givenSomeKeys_whenManuallyIteratingWithSeeks_thenOriginalKeyValuesReturned(Map<String, String> inputs) throws
+    public void givenSomeKeys_whenManuallyIteratingWithSeeks_thenOriginalKeyValuesReturned(
+            Map<String, String> inputs) throws
             RocksDBException,
             IOException {
         // Given
@@ -136,6 +143,9 @@ public class TestForEach extends AbstractRocksDBTests {
                             iterator.seekToFirst();
                         } else {
                             iterator.seek(lastKey);
+                            // NB - This next() call is only necessary because we process a batch of 1 and never
+                            // otherwise call next().  For a more normal batch processing loop where we call next()
+                            // within the batch processing this would be unnecessary
                             iterator.next();
                         }
                         KeyValue keyValue = KeyValue.of(iterator);
@@ -149,6 +159,75 @@ public class TestForEach extends AbstractRocksDBTests {
 
                 // Then
                 Assert.assertEquals(recorded, inputs);
+            }
+        }
+    }
+
+    @Test
+    public void givenNumericValues_whenIteratingInBatches_thenAllValuesRewritten() throws RocksDBException,
+            IOException {
+        // Given
+        try (External external = new External(this.dbDir)) {
+            Map<String, Long> initialValues = new LinkedHashMap<>();
+            try (TransactionContext context = external.begin()) {
+                for (int i = 1; i <= 10_000; i++) {
+                    String key = RandomStringUtils.insecure().nextAlphabetic(10);
+                    long value = RandomUtils.insecure().randomLong(0, 100_000);
+                    initialValues.put(key, value);
+                    context.put(external.getDefaultHandle(), key.getBytes(StandardCharsets.UTF_8),
+                                longToBytes(value));
+                }
+                context.commit();
+            }
+
+            // When
+            long totalProcessed = 0;
+            boolean complete = false;
+            byte[] lastKey = null;
+            while (!complete) {
+                try (TransactionContext context = external.begin()) {
+                    try (RocksIterator iterator = context.iterator(external.getDefaultHandle())) {
+                        // Start from beginning or resume from last processed key
+                        if (lastKey == null) {
+                            iterator.seekToFirst();
+                        } else {
+                            iterator.seek(lastKey);
+                        }
+
+                        int batchCount = 0;
+                        while (iterator.isValid() && batchCount < 100) {
+                            // Increment each value by 1
+                            context.put(external.getDefaultHandle(),
+                                        iterator.key(),
+                                        longToBytes(bytesToLong(iterator.value()) + 1));
+                            totalProcessed++;
+                            batchCount++;
+                            iterator.next();
+                        }
+
+                        complete = !iterator.isValid();
+                        if (!complete) {
+                            // Remember the last key we processed so next time round the loop we'll seek our new
+                            // iterator from that point
+                            lastKey = Arrays.copyOf(iterator.key(), iterator.key().length);
+                        }
+                    }
+
+                    // Commit changes from current batch
+                    context.commit();
+                }
+            }
+
+            // Then
+            Assert.assertEquals(totalProcessed, 10_000);
+            try (TransactionContext context = external.begin()) {
+                for (Map.Entry<String, Long> kvp : initialValues.entrySet()) {
+                    long actual = bytesToLong(
+                            context.get(external.getDefaultHandle(),
+                                        kvp.getKey().getBytes(StandardCharsets.UTF_8)));
+                    Assert.assertEquals(actual, kvp.getValue() + 1,
+                                        "Key " + kvp.getKey() + " did not have its value incremented as expected");
+                }
             }
         }
     }

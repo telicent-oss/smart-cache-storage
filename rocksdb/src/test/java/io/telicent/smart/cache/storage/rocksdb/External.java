@@ -10,6 +10,7 @@ import org.rocksdb.RocksDBException;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class External extends AbstractRocksDBStorage {
