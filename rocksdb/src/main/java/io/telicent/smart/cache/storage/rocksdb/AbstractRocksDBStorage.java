@@ -310,6 +310,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
      * @return New transaction
      */
     protected final TransactionContext begin(ReadOptions readOptions, WriteOptions writeOptions) {
+        ensureNotClosed();
         NestedTransactionContext context = this.nestedTransactions.get();
         if (context != null && context.isActive()) {
             return context.increment();
@@ -336,6 +337,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
      * @return Nested transaction
      */
     protected final TransactionContext beginNested(ReadOptions readOptions, WriteOptions writeOptions) {
+        ensureNotClosed();
         NestedTransactionContext context = this.nestedTransactions.get();
         if (context == null || !context.isActive()) {
             // No prior nested transaction, or previous one has been closed, create a fresh one
@@ -360,5 +362,34 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
     protected final RocksDBCounter createCounter(byte[] countersColumnFamilyName, String counterKey) throws
             RocksDBException {
         return new RocksDBCounter(this.db, this.getHandle(countersColumnFamilyName), counterKey);
+    }
+
+    /**
+     * Drops a column family
+     *
+     * @param handle Column family handle
+     * @throws RocksDBException         Thrown if there is a problem dropping a column family
+     * @throws NullPointerException     Thrown if no column family handle is provided
+     * @throws IllegalArgumentException Thrown if there is an attempt to drop the default column family
+     */
+    @SuppressWarnings("resource")
+    protected final void dropColumnFamily(ColumnFamilyHandle handle) throws RocksDBException {
+        ensureNotClosed();
+        Objects.requireNonNull(handle, "Must provide a valid column family handle to drop");
+        if (Arrays.equals(handle.getName(), RocksDB.DEFAULT_COLUMN_FAMILY)) {
+            throw new IllegalArgumentException("Cannot drop the default column family");
+        }
+
+        // Drop and then flush the column family (which actively deletes the data)
+        String key = new String(handle.getName(), StandardCharsets.UTF_8);
+        this.db.dropColumnFamily(handle);
+        try (FlushOptions flushOptions = new FlushOptions().setWaitForFlush(true)) {
+            this.db.flush(flushOptions);
+        }
+
+        // Close and remove it from our map of column families so we don't need to close it again later and we prevent
+        // access to it via getHandle()
+        handle.close();
+        this.columnFamilyHandles.remove(key);
     }
 }
