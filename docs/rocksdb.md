@@ -10,10 +10,17 @@ This API consists of several classes:
 - `RocksDBCounter` - A persistent auto-incrementing counter stored as a single key within a RocksDB column family.
 
 Developers using this API should have their storage classes extend `AbstractRocksDBStorage`, and then use the various
-protected methods to customise and implement their actual storage.  Most importantly they **MUST** override the
-`prepareColumnFamilyDescriptors()` method to supply a list of column families that the storage uses and should
-create/open when accessing the RocksDB database.  Note that you **MUST** always include the default column family
-(`RocksDB.DEFAULT_COLUMN_FAMILY`) in your list of descriptors otherwise RocksDB will refuse to open the database.
+protected methods to customise and implement their actual storage.
+
+Most importantly they **MUST** override the `prepareColumnFamilyDescriptors()` method to supply a list of column
+families that the storage uses and should create/open when accessing the RocksDB database.  Note that you **MUST**
+always include the default column family (`RocksDB.DEFAULT_COLUMN_FAMILY`) in your list of descriptors otherwise RocksDB
+will refuse to open the database.
+
+In general you **MUST** always supply the full list of column families that exist in the database otherwise RocksDB will
+refuse to open the database.  If your storage supports migrating from older schemas with different column families than
+your current schema then you **MUST** include both your current and legacy column families in order to reliably open
+both old and new format databases.
 
 Various other `protected` methods may be overridden in order to customise other aspects of the storage
 behaviour/configuration, see [configuration](#rocksdb-configuration).
@@ -26,9 +33,9 @@ Some key helper methods are as follows:
 
 - `getHandle(byte[])` for obtaining a `ColumnFamilyHandle`, the given name **MUST** match a column family descriptor
   name previously initialised in `prepareColumnFamilyDescriptors()`.
-- `getDefaultHandler()` for obtaining a `ColumnFamilyHandle` for the default column family.
+- `getDefaultHandle()` for obtaining a `ColumnFamilyHandle` for the default column family.
 - `getCounter()` for obtaining a [`RocksDBCounter`](#rocksdb-counters).
-- `begin()` for starting a new [transaction](#transaction-context).
+- `begin()`/`beginNested()` for starting a new [transaction](#transaction-context).
 
 There are a number of additional [configuration](#rocksdb-configuration) methods called by the constructor that can be
 used to customise the storage as needed.
@@ -50,7 +57,7 @@ initialising the storage:
 - `createDefaultTransactionOptions()` to create the `TransactionDBOptions` for interacting with RocksDB transactionally.
 - `defaultColumnFamilyOptions()` to create the `ColumnFamilyOptions` passed to the `prepareColumnFamilyDescriptors()`
   method.
-- `prepareCounters()` to prepare any [counters](#rocksdb-counters) needed.
+- `prepareCounters()` to prepare any [counters](#rocksdb-counters) needed for your storage.
 
 The following methods are called anytime a new [transaction](#transaction-context) is begun:
 
@@ -79,7 +86,7 @@ The `TransactionContext` provides access to a intentionally limited subset of `R
 
 - `get(ColumnFamilyHandle, byte[])` for getting the value associated with a single key.
 - `put(ColumnFamilyHandle, byte[], byte[])` for setting the value associated with a single key.
-- `multiGetAsList(List<ColumnFamilyHandle>, List<byte[]>)` for getting the values associated with multiple keys in a
+- `multiGetAsList(List<ColumnFamilyHandle>, List<byte[]>)` for getting the value(s) associated with multiple key(s) in a
   single operation.
 - `count(ColumnFamilyHandle)` for counting the keys in a column family.
 - `isEmpty(ColumnFamilyHandle)` for determining whether a given column family contains any keys.
@@ -135,7 +142,8 @@ methods:
   counter construction and should rarely, if ever, need calling after this.
 
 Note that when you `close()` the owning `AbstractRocksDBStorage` any registered counters are explicitly persisted by
-calling `update()` to ensure that values are not lost if you forgot to persist them during usage.
+calling `update()` to ensure that values are not lost if you forgot to persist them during usage.  However it is
+generally best to `update()` a counter as part of a transaction.
 
 Again see [`RocksDBLabelStore`][RocksLabelStore] for an exemplar of its usage.
 
@@ -177,7 +185,7 @@ byte[] lastKey = null;
 while (!complete) {
   try (TransactionContext context = this.begin()) {
     try (RocksIterator iterator = context.iterator(this.getDefaultHandle())) {
-      // Seek to first or our last processed key
+      // Seek to first OR our last processed key
       if (lastKey == null) {
         iterator.seekToFirst();
       } else {
@@ -206,5 +214,17 @@ while (!complete) {
   }
 }
 ```
+
+## Dropping Column Families
+
+As of `0.10.0` we provide a `dropColumnFamily(ColumnFamilyHandle)` method that can be used if you need to drop an
+existing column family.  For example after migrating data from an older storage format you might wish to remove the old
+column family.  
+
+> **NB** As RocksDB always requires the default column family to exist you cannot drop the default column family and
+attempting to do so will produce an `IllegalArgumentException`.
+
+Note that this method is a blocking call as it explicitly flushes the RocksDB database to remove the defunct files for
+the dropped column family.
 
 [RocksLabelStore]: ../label-stores/label-store-rocksdb/src/main/java/io/telicent/smart/cache/storage/labels/rocksdb/RocksDbLabelsStore.java

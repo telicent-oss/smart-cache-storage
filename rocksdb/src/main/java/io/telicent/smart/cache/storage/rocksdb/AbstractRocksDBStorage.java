@@ -310,6 +310,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
      * @return New transaction
      */
     protected final TransactionContext begin(ReadOptions readOptions, WriteOptions writeOptions) {
+        ensureNotClosed();
         NestedTransactionContext context = this.nestedTransactions.get();
         if (context != null && context.isActive()) {
             return context.increment();
@@ -336,6 +337,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
      * @return Nested transaction
      */
     protected final TransactionContext beginNested(ReadOptions readOptions, WriteOptions writeOptions) {
+        ensureNotClosed();
         NestedTransactionContext context = this.nestedTransactions.get();
         if (context == null || !context.isActive()) {
             // No prior nested transaction, or previous one has been closed, create a fresh one
@@ -367,10 +369,13 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
      *
      * @param handle Column family handle
      * @throws RocksDBException         Thrown if there is a problem dropping a column family
+     * @throws NullPointerException     Thrown if no column family handle is provided
      * @throws IllegalArgumentException Thrown if there is an attempt to drop the default column family
      */
     @SuppressWarnings("resource")
     protected final void dropColumnFamily(ColumnFamilyHandle handle) throws RocksDBException {
+        ensureNotClosed();
+        Objects.requireNonNull(handle, "Must provide a valid column family handle to drop");
         if (Arrays.equals(handle.getName(), RocksDB.DEFAULT_COLUMN_FAMILY)) {
             throw new IllegalArgumentException("Cannot drop the default column family");
         }

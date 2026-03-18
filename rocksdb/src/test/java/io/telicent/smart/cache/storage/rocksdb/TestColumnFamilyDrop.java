@@ -4,6 +4,7 @@
 package io.telicent.smart.cache.storage.rocksdb;
 
 import org.apache.commons.lang3.RandomUtils;
+import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -16,6 +17,24 @@ public class TestColumnFamilyDrop extends AbstractRocksDBTests {
 
     private static final byte[] KEY = "test".getBytes(StandardCharsets.UTF_8);
     private static final byte[] VALUE = "value".getBytes(StandardCharsets.UTF_8);
+
+    @Test(expectedExceptions = IllegalArgumentException.class)
+    public void givenStorage_whenDroppingDefault_thenIllegalArgument() throws RocksDBException, IOException {
+        // Given
+        try (ManyFamilies manyFamilies = new ManyFamilies(this.dbDir)) {
+            // When and Then
+            manyFamilies.drop(new String(RocksDB.DEFAULT_COLUMN_FAMILY, StandardCharsets.UTF_8));
+        }
+    }
+
+    @Test(expectedExceptions = NullPointerException.class)
+    public void givenStorage_whenDroppingNonExistent_thenNPE() throws RocksDBException, IOException {
+        // Given
+        try (External external = new External(this.dbDir)) {
+            // When and Then
+            external.dropColumnFamily(external.getHandle("no-such-family".getBytes(StandardCharsets.UTF_8)));
+        }
+    }
 
     @Test
     public void givenManyFamilies_whenAddingDataAndDroppingFamilies_thenDataNoLongerAvailable_andRemainsUnavailableAfterReopen() throws RocksDBException,
