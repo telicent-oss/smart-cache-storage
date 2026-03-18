@@ -24,7 +24,10 @@
         - Column Family handle names are now protected constants meaning storage derived from the `RocksDBLabelsStore`
           can access and manipulate those column handles where needed
 - Build improvements:
+    - Upgraded Flyway to 12.1.0
+    - Upgraded Hibernate to 7.2.7.Final
     - Upgraded RocksDB to 10.5.1
+    - Various build and test dependencies updated to latest available
 
 # 0.9.1
 

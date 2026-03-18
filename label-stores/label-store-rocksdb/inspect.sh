@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# Copyright (C) 2024-2025 Telicent Limited
+#
+
 
 DB=$1
 if [ -z "${DB}" ]; then
