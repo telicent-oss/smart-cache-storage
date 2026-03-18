@@ -19,7 +19,7 @@
           committed/closed
         - Added `forEach()` method to `TransactionContext` to allow full iteration and processing of a column family,
           intended primarily for one-off expensive operations like data migration
-        - Added `iterator()` method to `TransacationContext` to allow full iterator access to a column family
+        - Added `iterator()` method to `TransactionContext` to allow full iterator access to a column family
     - Label Store improvements:
         - Column Family handle names are now protected constants meaning storage derived from the `RocksDBLabelsStore`
           can access and manipulate those column handles where needed

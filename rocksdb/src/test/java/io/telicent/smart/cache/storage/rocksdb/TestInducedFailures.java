@@ -5,7 +5,6 @@ package io.telicent.smart.cache.storage.rocksdb;
 
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDB;
