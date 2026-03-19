@@ -3,7 +3,7 @@
     <parent>
         <artifactId>parent</artifactId>
         <groupId>io.telicent.smart-caches.storage</groupId>
-        <version>0.9.0-SNAPSHOT</version>
+        <version>0.10.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>hibernate</artifactId>
@@ -56,6 +56,13 @@
         <dependency>
             <groupId>com.redgate.flyway</groupId>
             <artifactId>flyway-core</artifactId>
+            <exclusions>
+                <!-- CVE-2026-1605 -->
+                <exclusion>
+                    <groupId>org.eclipse.jetty</groupId>
+                    <artifactId>jetty-server</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -98,7 +105,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>${dependency.lombok}</version>
+            <!-- Controlled by Smart Caches Core -->
             <scope>provided</scope>
         </dependency>
 
@@ -118,7 +125,7 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>${dependency.commons-io}</version>
+            <!-- Controlled by Smart Caches Core -->
             <scope>test</scope>
         </dependency>
 
@@ -139,6 +146,19 @@
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <scope>test</scope>
+        </dependency>
+
+        <!-- Vulnerability patches -->
+        <!-- Need an up-to-date Jackson 3.x for Flyway to resolve CVEs -->
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
+        <!-- CVE-2026-1605 -->
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-server</artifactId>
         </dependency>
 
     </dependencies>

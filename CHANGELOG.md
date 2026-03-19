@@ -1,12 +1,54 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.10.0
+
+- RocksDB improvements:
+    - `AbstractRocksDBStorage` improvements:
+        - `close()` now actively persists any created counters in case they have been used in a non-transactional
+          manner.
+        - Added `getDefaultHandle()` method for obtaining the default column family handle.
+        - Added `dropColumnFamily()` method for dropping column families.
+        - Improved various aspects of error messages and error handling.
+        - Added some basic diagnostic logging
+    - Transaction improvements:
+        - Added `beginNested()` methods to `AbstractRocksDBStorage` that allows creating "nested" transactions from an
+          application perspective that share a single longer lived RocksDB transaction such that all reads/writes that
+          occur against the database in the context of the transaction are atomic from an application perspective.
+        - Added `isEmpty()` method to `TransactionContext` to determine whether a given column family contains any data
+        - Added `isActive()` method to `TransactionContext` to check whether a transaction is still active i.e. not
+          committed/closed
+        - Added `forEach()` method to `TransactionContext` to allow full iteration and processing of a column family,
+          intended primarily for one-off expensive operations like data migration
+        - Added `iterator()` method to `TransactionContext` to allow full iterator access to a column family
+    - Label Store improvements:
+        - Column Family handle names are now protected constants meaning storage derived from the `RocksDBLabelsStore`
+          can access and manipulate those column handles where needed
+- Build improvements:
+    - Upgraded Flyway to 12.1.0
+    - Upgraded Hibernate to 7.2.7.Final
+    - Upgraded RocksDB to 10.5.1
+    - Various build and test dependencies updated to latest available
+
+# 0.9.1
+
+- Build improvements:
+    - Addressing CVE-2026-1605 (Jetty)
+
 # 0.9.0
 
 - Hibernate improvements:
     - Hibernate Hikari Connection Pool is now provided as a dependency by default so will automatically be used if
       persistence.xml includes any hibernate.hikari.* properties
 - Build improvements:
+    - **BREAKING** Minimum Java version is now 21
     - Added Hibernate Hikari Connection Pool
+    - Upgraded Flyway to 12.0.3
+    - Upgraded Jackson 3 to 3.1.0
+    - Upgraded Hibernate to 7.2.6.Final
+    - Upgraded Hypersistence Utils to 3.15.2
+    - Upgraded MongoDB to 5.6.4
+    - Upgraded Postgres to 42.7.10
+    - Upgraded Smart Caches Core to 0.36.1
 
 # 0.8.0
 

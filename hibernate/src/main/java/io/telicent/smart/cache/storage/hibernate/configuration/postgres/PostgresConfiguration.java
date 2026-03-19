@@ -26,10 +26,6 @@ import java.util.Properties;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class PostgresConfiguration {
-    /**
-     * The Hibernate Postgres SQL Dialect
-     */
-    public static final String HIBERNATE_DIALECT_POSTGRES = "org.hibernate.dialect.PostgreSQLDialect";
 
     /**
      * The default Postgres Port
@@ -62,7 +58,6 @@ public class PostgresConfiguration {
         }
 
         Properties properties = new Properties();
-        properties.put(HibernateConfiguration.HIBERNATE_DIALECT, HIBERNATE_DIALECT_POSTGRES);
         properties.put(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_URL,
                        StringUtils.isNotBlank(configuration.getJdbcUrl()) ? configuration.getJdbcUrl() :
                        getJdbcUrl(configuration));

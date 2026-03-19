@@ -17,8 +17,10 @@ package io.telicent.smart.cache.storage.rocksdb;
 
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.RocksIterator;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * A transaction context helper for {@link AbstractRocksDBStorage} derived storage implementations
@@ -90,4 +92,51 @@ public interface TransactionContext extends AutoCloseable {
      * @return Number of keys in the given column family
      */
     long count(ColumnFamilyHandle handle);
+
+    /**
+     * Determines whether the given column family is empty i.e. has no keys
+     *
+     * @param handle Column family handle
+     * @return True if empty, false if non-empty
+     */
+    boolean isEmpty(ColumnFamilyHandle handle);
+
+    /**
+     * Gets whether the transaction remains active i.e. hasn't been committed/closed
+     *
+     * @return True if the transaction remains active, false otherwise
+     */
+    boolean isActive();
+
+    /**
+     * Iterates over the given column family applying a consumer to each key value pair
+     * <p>
+     * This method should be used rarely <strong>only</strong> in scenarios where full column family iteration is
+     * required e.g. data migration.  For very large iterations it may be better to use
+     * {@link #iterator(ColumnFamilyHandle)} instead as that provides the caller more control over how the column family
+     * is iterated.
+     * </p>
+     * <p>
+     * Note that the {@link KeyValue} passed to the consumer is a temporary pointer into the underlying storage so the
+     * consumer <strong>MUST</strong> perform any processing of the key and/or value immediately.  It
+     * <strong>MUST</strong> also not hold onto pointers to the key/value references beyond a single invocation of
+     * itself as those pointers <strong>MAY NOT</strong> remain valid over time.
+     * </p>
+     *
+     * @param handle   Column family handle
+     * @param consumer Consumer function
+     */
+    void forEach(ColumnFamilyHandle handle, Consumer<KeyValue> consumer);
+
+    /**
+     * Obtains a RocksDB iterator for the column family within the context of this transaction
+     * <p>
+     * The returned iterator will be a raw iterator not positioned anywhere, the caller should call
+     * {@link RocksIterator#seekToFirst()} or {@link RocksIterator#seek(byte[])} before starting to use the iterator
+     * </p>
+     *
+     * @param handle Column family handle
+     * @return Rocks Iterator
+     */
+    RocksIterator iterator(ColumnFamilyHandle handle);
 }

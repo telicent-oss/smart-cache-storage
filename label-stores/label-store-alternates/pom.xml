@@ -4,7 +4,7 @@
     <parent>
         <groupId>io.telicent.smart-caches.storage</groupId>
         <artifactId>label-stores</artifactId>
-        <version>0.9.0-SNAPSHOT</version>
+        <version>0.10.1-SNAPSHOT</version>
     </parent>
     <artifactId>label-store-alternates</artifactId>
     <name>Telicent Smart Caches - Storage - Label Stores - Alternates</name>
@@ -37,7 +37,7 @@
         <dependency>
             <groupId>at.yawk.lz4</groupId>
             <artifactId>lz4-java</artifactId>
-            <version>${dependency.lz4}</version>
+            <!-- Controlled by Smart Caches Core -->
         </dependency>
 
         <dependency>

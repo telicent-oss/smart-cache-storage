@@ -97,6 +97,104 @@ The `label-store-rocksdb` module provides the `RocksDBLabelStore` implementation
 This is based upon our normal [`rocksdb`](rocksdb.md) storage so creating a store means providing a `File` representing
 the directory on disk where the label store is/will be persisted.
 
+#### Inspecting Contents of a RocksDB Labels Store
+
+One disadvantage of RocksDB is that as a key value store that doesn't provide any higher level interfaces it isn't well
+integrated into generic database explorer tools so inspecting the contents of a RocksDB database can be quite difficult.
+
+The RocksDB project does provide some command line tools for this, e.g.
+[`ldb`](https://github.com/facebook/rocksdb/wiki/Administration-and-Data-Access-Tool) which may prove useful.  If you've
+installed RocksDB on a Mac via `brew install rocksdb` the `ldb` command will be called `rocksdb_ldb` instead.
+
+> **NB** As with most in-memory databases a RocksDB database **SHOULD** ideally only be opened by a single process at
+> any one time. **DO NOT** use the `ldb` tool, or the helper script described here, against a live running database!!
+
+The helper script `inspect.sh` in the `label-store-rocksdb` module takes in a database directory and prints the ID to
+labels mapping for that database:
+
+```
+./inspect.sh /path/to/db
+Label ID 1:
+  (classification=O&urn:telicent:groups:datasets:iow:and)
+
+Label ID 2:
+  *
+
+Label ID 3:
+  (classification=O&urn:telicent:groups:datasets:starwars:and)
+
+Label ID 4:
+  (classification=O&(permitted_organisations=ALB.ALL|permitted_organisations=AUS.ALL|permitted_organisations=BEL.ALL|permitted_organisations=BGR.ALL|permitted_organisations=CAN.ALL|permitted_organisations=CZE.ALL|permitted_organisations=DEU.ALL|permitted_organisations=DNK.ALL|permitted_organisations=ESP.ALL|permitted_organisations=EST.ALL|permitted_organisations=FIN.ALL|permitted_organisations=FRA.ALL|permitted_organisations=GBR.ALL|permitted_organisations=GBR.MOD|permitted_organisations=GRC.ALL|permitted_organisations=HRV.ALL|permitted_organisations=HUN.ALL|permitted_organisations=ISL.ALL|permitted_organisations=ITA.ALL|permitted_organisations=LTU.ALL|permitted_organisations=LUX.ALL|permitted_organisations=LVA.ALL|permitted_organisations=MKD.ALL|permitted_organisations=MNE.ALL|permitted_organisations=NLD.ALL|permitted_organisations=NOR.ALL|permitted_organisations=NZL.ALL|permitted_organisations=POL.ALL|permitted_organisations=PRT.ALL|permitted_organisations=ROU.ALL|permitted_organisations=SVK.ALL|permitted_organisations=SVN.ALL|permitted_organisations=SWE.ALL|permitted_organisations=TUR.ALL|permitted_organisations=Telicent|permitted_organisations=Telidollar|permitted_organisations=USA.ALL)&(permitted_nationalities=ALB|permitted_nationalities=AUS|permitted_nationalities=BEL|permitted_nationalities=BGR|permitted_nationalities=CAN|permitted_nationalities=HRV|permitted_nationalities=CZE|permitted_nationalities=DNK|permitted_nationalities=EST|permitted_nationalities=FIN|permitted_nationalities=FRA|permitted_nationalities=DEU|permitted_nationalities=GRC|permitted_nationalities=HUN|permitted_nationalities=ISL|permitted_nationalities=ITA|permitted_nationalities=LVA|permitted_nationalities=LTU|permitted_nationalities=LUX|permitted_nationalities=MNE|permitted_nationalities=NLD|permitted_nationalities=NZL|permitted_nationalities=MKD|permitted_nationalities=NOR|permitted_nationalities=POL|permitted_nationalities=PRT|permitted_nationalities=ROU|permitted_nationalities=SVK|permitted_nationalities=SVN|permitted_nationalities=ESP|permitted_nationalities=SWE|permitted_nationalities=TUR|permitted_nationalities=GBR|permitted_nationalities=USA))
+
+Label ID 5:
+  (classification=O&(permitted_organisations=ALB.ALL|permitted_organisations=AUS.ALL|permitted_organisations=BEL.ALL|permitted_organisations=BGR.ALL|permitted_organisations=CAN.ALL|permitted_organisations=CZE.ALL|permitted_organisations=DEU.ALL|permitted_organisations=DNK.ALL|permitted_organisations=ESP.ALL|permitted_organisations=EST.ALL|permitted_organisations=FIN.ALL|permitted_organisations=FRA.ALL|permitted_organisations=GBR.ALL|permitted_organisations=GBR.MOD|permitted_organisations=GRC.ALL|permitted_organisations=HRV.ALL|permitted_organisations=HUN.ALL|permitted_organisations=ISL.ALL|permitted_organisations=ITA.ALL|permitted_organisations=LTU.ALL|permitted_organisations=LUX.ALL|permitted_organisations=LVA.ALL|permitted_organisations=MKD.ALL|permitted_organisations=MNE.ALL|permitted_organisations=NLD.ALL|permitted_organisations=NOR.ALL|permitted_organisations=NZL.ALL|permitted_organisations=POL.ALL|permitted_organisations=PRT.ALL|permitted_organisations=ROU.ALL|permitted_organisations=SVK.ALL|permitted_organisations=SVN.ALL|permitted_organisations=SWE.ALL|permitted_organisations=TUR.ALL|permitted_organisations=Telicent|permitted_organisations=Telidollar|permitted_organisations=USA.ALL)&(permitted_nationalities=ALB|permitted_nationalities=AUS|permitted_nationalities=BEL|permitted_nationalities=BGR|permitted_nationalities=CAN|permitted_nationalities=HRV|permitted_nationalities=CZE|permitted_nationalities=DNK|permitted_nationalities=EST|permitted_nationalities=FIN|permitted_nationalities=FRA|permitted_nationalities=DEU|permitted_nationalities=GRC|permitted_nationalities=HUN|permitted_nationalities=ISL|permitted_nationalities=ITA|permitted_nationalities=LVA|permitted_nationalities=LTU|permitted_nationalities=LUX|permitted_nationalities=MNE|permitted_nationalities=NLD|permitted_nationalities=NZL|permitted_nationalities=MKD|permitted_nationalities=NOR|permitted_nationalities=POL|permitted_nationalities=PRT|permitted_nationalities=ROU|permitted_nationalities=SVK|permitted_nationalities=SVN|permitted_nationalities=ESP|permitted_nationalities=SWE|permitted_nationalities=TUR|permitted_nationalities=GBR|permitted_nationalities=USA)&urn:telicent:groups:country-UKR-data-access:and)
+
+Label ID 6:
+  (classification=O&(permitted_organisations=Telidollar|permitted_organisations=Telicent)&(permitted_nationalities=GBR|permitted_nationalities=USA)&urn:telicent:groups:datasets:edge-observations:and)
+
+Label ID 7:
+  (classification=O&(permitted_nationalities=GBR))
+
+Label ID 8:
+  (classification=O&urn:telicent:groups:datasets:warspotting:and)
+
+Label ID 9:
+  (urn:telicent:groups:datasets:falklands:and)
+
+Label ID 10:
+  (classification=O&(permitted_organisations=Telicent)&(permitted_nationalities=GBR)&urn:telicent:groups:dataset:bis:and)
+
+Label ID 11:
+  (classification=O&urn:telicent:groups:datasets:random-knowledge:and)
+
+Label ID 12:
+  (classification=O&urn:telicent:groups:datasets:dataset-one:and)
+
+Label ID 13:
+  (classification=O&urn:telicent:groups:datasets:nsl-facilities:and)
+
+Label ID 14:
+  (classification=O&(permitted_organisations=GBR.ALL)&(permitted_nationalities=GBR))
+
+Label ID 15:
+  (classification=O&(permitted_organisations=Telicent)&(permitted_nationalities=GBR)&urn:telicent:groups:high-value-transactions-department:and&urn:telicent:groups:dataset:bis:and)
+
+Label ID 16:
+  (classification=O&(permitted_organisations=Telicent)&(permitted_nationalities=GBR)&urn:telicent:groups:money-laundering-department:and&urn:telicent:groups:dataset:bis:and)
+
+Label ID 17:
+  (classification=O&urn:telicent:groups:datasets:starwars:and&urn:telicent:groups:empire:and)
+
+Label ID 18:
+  (classification=O&(permitted_organisations=Telicent)&(permitted_nationalities=GBR)&urn:telicent:groups:account-pii-access:and&urn:telicent:groups:dataset:bis:and)
+
+Label ID 19:
+  (classification=O&urn:telicent:groups:datasets:starwars:and&urn:telicent:groups:rebel-alliance:and)
+
+Label ID 20:
+  (classification=O&(permitted_organisations=Telicent)&(permitted_nationalities=GBR)&urn:telicent:groups:datasets:beijing:and)
+
+Label ID 21:
+  (classification=O&urn:telicent:groups:datasets:bfo:and&urn:telicent:groups:rebel-alliance:and)
+
+Label ID 22:
+  (classification=TS&urn:telicent:groups:datasets:starwars:and&urn:telicent:groups:empire:and)
+
+Label ID 23:
+  (classification=O&(permitted_organisations=Telicent)&(permitted_nationalities=GBR|permitted_nationalities=USA)&urn:telicent:groups:datasets:bfo:and)
+
+Label ID 24:
+  (classification=O&urn:telicent:groups:datasets:hidden:and)
+
+Label ID 25:
+  (classification=O&urn:telicent:groups:datasets:orbat:and)
+
+Label ID 26:
+  (classification=O&urn:telicent:groups:datasets:bbcm:and)
+```
+
+In the above example our database has 26 unique labels.
+
 ### Caching Decorators
 
 Also in the `common` module you will find `CachingDictionaryLabelsStore` and `CachingLabelsStore` decorators that may be
