@@ -23,26 +23,37 @@
     </modules>
 
     <distributionManagement>
-        <repository>
-            <id>aws-codeartifact-telicent</id>
-            <name>Telicent Maven Packages on AWS CodeArtifact</name>
-            <url>https://telicent-098669589541.d.codeartifact.eu-west-2.amazonaws.com/maven/telicent-code-artifacts/
-            </url>
-        </repository>
         <snapshotRepository>
-            <id>aws-codeartifact-telicent</id>
-            <name>Telicent Maven Packages on AWS CodeArtifact</name>
-            <url>https://telicent-098669589541.d.codeartifact.eu-west-2.amazonaws.com/maven/telicent-code-artifacts/
-            </url>
+            <id>central</id>
+            <name>Maven Central Snapshots</name>
+            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
 
     <scm>
-        <connection>scm:git:https://github.com/telicent-io/smart-cache-storage</connection>
-        <developerConnection>scm:git:ssh://git@github.com/telicent-io/smart-cache-storage</developerConnection>
-        <url>https://github.com/telicent-io/smart-cache-storage</url>
+        <connection>scm:git:https://github.com/telicent-oss/smart-cache-storage</connection>
+        <developerConnection>scm:git:ssh://git@github.com/telicent-oss/smart-cache-storage</developerConnection>
+        <url>https://github.com/telicent-oss/smart-cache-storage</url>
         <tag>HEAD</tag>
     </scm>
+
+    <licenses>
+        <license>
+            <name>Apache-2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+            <comments>A business-friendly OSS license</comments>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Telicent Developers</name>
+            <email>opensource@telicent.io</email>
+            <organization>Telicent Ltd</organization>
+            <organizationUrl>https://telicent.io</organizationUrl>
+        </developer>
+    </developers>
 
     <properties>
         <java.version>21</java.version>
@@ -53,9 +64,6 @@
         <license.header.path>${project.basedir}</license.header.path>
 
         <analyze.failOnWarnings>false</analyze.failOnWarnings>
-
-        <!-- Not GPG signing internal builds -->
-        <gpg.skip>true</gpg.skip>
 
         <!-- Plugin Versions -->
         <plugin.editorconfig>0.2.0</plugin.editorconfig>
@@ -314,22 +322,24 @@
                     <additionalJOption>-Xdoclint:all,-missing</additionalJOption>
                 </configuration>
             </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                        <phase>verify</phase>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
 
     </build>
 
     <repositories>
-        <repository>
-            <id>aws-codeartifact-telicent</id>
-            <url>https://telicent-098669589541.d.codeartifact.eu-west-2.amazonaws.com/maven/telicent-code-artifacts/
-            </url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
         <repository>
             <id>redgate</id>
             <url>https://download.red-gate.com/maven/release</url>

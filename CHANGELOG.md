@@ -1,5 +1,15 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.10.1
+
+This is the first open source release of these libraries.
+
+- Build improvements:
+    - License updated to Apache 2.0
+    - POM metadata updated for open source release to Maven Central
+    - Added Maven GPG plugin to sign artifacts
+    - Enabled `telicent-oss` profile for builds to allow publishing to Maven Central
+
 # 0.10.0
 
 - RocksDB improvements:
