@@ -1,5 +1,12 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.10.2
+
+- Build improvements:
+    - Flyway coordinates changed to OSS coordinates
+    - Smart Caches Core upgraded to 0.36.2
+    - Reduced some test flakiness
+
 # 0.10.1
 
 This is the first open source release of these libraries.
