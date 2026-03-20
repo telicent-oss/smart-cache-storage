@@ -54,19 +54,12 @@
         </dependency>
 
         <dependency>
-            <groupId>com.redgate.flyway</groupId>
+            <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
-            <exclusions>
-                <!-- CVE-2026-1605 -->
-                <exclusion>
-                    <groupId>org.eclipse.jetty</groupId>
-                    <artifactId>jetty-server</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <dependency>
-            <groupId>com.redgate.flyway</groupId>
+            <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
 
