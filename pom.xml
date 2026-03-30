@@ -4,13 +4,13 @@
 
     <groupId>io.telicent.smart-caches.storage</groupId>
     <artifactId>parent</artifactId>
-    <version>0.10.1-SNAPSHOT</version>
+    <version>0.11.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Telicent Smart Caches - Storage - Parent</name>
     <parent>
         <groupId>io.telicent.smart-caches</groupId>
         <artifactId>parent</artifactId>
-        <version>0.36.1</version>
+        <version>0.36.2</version>
     </parent>
     <description>Libraries to simplify using common storage layers across Smart Caches</description>
 
@@ -72,18 +72,18 @@
 
         <!-- Dependency Versions -->
         <dependency.commons-codec>1.21.0</dependency.commons-codec>
-        <dependency.flyway>12.1.0</dependency.flyway>
+        <dependency.flyway>12.2.0</dependency.flyway>
         <dependency.h2>2.4.240</dependency.h2>
-        <dependency.hibernate>7.2.7.Final</dependency.hibernate>
+        <dependency.hibernate>7.3.0.Final</dependency.hibernate>
         <dependency.hypersistence>3.15.2</dependency.hypersistence>
-        <dependency.jackson3>3.1.0</dependency.jackson3>
+        <dependency.jackson3>3.1.1</dependency.jackson3>
         <dependency.jetty>12.1.7</dependency.jetty>
         <dependency.jmh>1.37</dependency.jmh>
         <dependency.mongodb>5.6.4</dependency.mongodb>
         <dependency.mongojack>5.1.0</dependency.mongojack>
         <dependency.postgres>42.7.10</dependency.postgres>
-        <dependency.rocksdb>10.5.1</dependency.rocksdb>
-        <dependency.smart-caches>0.36.1</dependency.smart-caches>
+        <dependency.rocksdb>10.9.1</dependency.rocksdb>
+        <dependency.smart-caches>0.36.2</dependency.smart-caches>
 
     </properties>
 
@@ -128,24 +128,13 @@
             </dependency>
 
             <dependency>
-                <groupId>com.redgate.flyway</groupId>
+                <groupId>org.flywaydb</groupId>
                 <artifactId>flyway-core</artifactId>
                 <version>${dependency.flyway}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>tools.jackson.core</groupId>
-                        <artifactId>jackson-databind</artifactId>
-                    </exclusion>
-                    <!-- CVE-2026-1605 -->
-                    <exclusion>
-                        <groupId>org.eclipse.jetty</groupId>
-                        <artifactId>jetty-server</artifactId>
-                    </exclusion>
-                </exclusions>
             </dependency>
 
             <dependency>
-                <groupId>com.redgate.flyway</groupId>
+                <groupId>org.flywaydb</groupId>
                 <artifactId>flyway-database-postgresql</artifactId>
                 <version>${dependency.flyway}</version>
             </dependency>
@@ -338,12 +327,5 @@
         </plugins>
 
     </build>
-
-    <repositories>
-        <repository>
-            <id>redgate</id>
-            <url>https://download.red-gate.com/maven/release</url>
-        </repository>
-    </repositories>
 
 </project>

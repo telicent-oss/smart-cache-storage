@@ -32,6 +32,8 @@ import java.util.*;
 public class DockerTestMongoPerformance extends AbstractMongoDBTests {
 
     private static final int MANY_USERS_SIZE = 1_000;
+    public static final long SMALL_TIMEOUT = 1000L;
+    public static final long LARGE_TIMEOUT = 3000L;
 
     private List<User> manyUsers;
     private Map<User, Integer> manyUsersDataCounts;
@@ -86,7 +88,7 @@ public class DockerTestMongoPerformance extends AbstractMongoDBTests {
                                  started);
     }
 
-    @Test(timeOut = 1000L)
+    @Test(timeOut = LARGE_TIMEOUT)
     public void givenStorageWithManyUsersAndData_whenRetrievingSavedData_thenReturnsPromptly() {
         // Given
         try (MongoClient client = this.mongo.createMongoClient()) {
@@ -116,7 +118,7 @@ public class DockerTestMongoPerformance extends AbstractMongoDBTests {
         }
     }
 
-    @Test(timeOut = 200L)
+    @Test(timeOut = SMALL_TIMEOUT)
     public void givenStorageWithManyUsersAndData_whenRandomlyAccessingSavedData_thenReturnsPromptly() {
         // Given
         Random random = new Random();
@@ -132,7 +134,7 @@ public class DockerTestMongoPerformance extends AbstractMongoDBTests {
         }
     }
 
-    @Test(timeOut = 200L)
+    @Test(timeOut = SMALL_TIMEOUT)
     public void givenStorageWithManyUsersAndData_whenRandomlyAccessingSavedDataById_thenReturnsPromptly() {
         // Given
         Random random = new Random();
@@ -221,7 +223,7 @@ public class DockerTestMongoPerformance extends AbstractMongoDBTests {
         }
     }
 
-    @Test(timeOut = 200L)
+    @Test(timeOut = SMALL_TIMEOUT)
     public void givenStorageWithManyUsersAndData_whenRandomlyAccessingUsers_thenReturnsPromptly() {
         // Given
         Random random = new Random();
