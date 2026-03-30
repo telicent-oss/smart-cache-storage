@@ -1,17 +1,14 @@
 /**
  * Copyright (C) Telicent Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package io.telicent.smart.cache.storage.rocksdb;
 
@@ -133,12 +130,44 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
 
     /**
      * Creates the default options for creating/opening the RocksDB database
+     * <p>
+     * The default implementation uses the recommended settings from <a
+     * href="https://github.com/facebook/rocksdb/wiki/Setup-Options-and-Basic-Tuning">Setup-Options-and-Basic-Tuning</a>
+     * </p>
      *
      * @return Default options for creating/opening the database
      */
     @SuppressWarnings("resource")
     protected Options createDefaultOptions() {
-        return new Options().setCreateIfMissing(true).setCreateMissingColumnFamilies(true);
+        // Always want to create the database and column families if missing, otherwise we can't open a new blank
+        // location as a database
+        Options options = new Options().setCreateIfMissing(true).setCreateMissingColumnFamilies(true);
+
+        // Apply all the official RocksDB recommendations
+        LOGGER.debug("Configuring RocksDB options from defaults to recommended:");
+        LOGGER.debug("maxBackgroundJobs {} to {}", options.maxBackgroundJobs(), 6);
+        options.setMaxBackgroundJobs(6);
+        LOGGER.debug("bytesPerSync {} to {}", options.bytesPerSync(), 1048576);
+        options.setBytesPerSync(1048576);
+        LOGGER.debug("compactionPriority {} to {}", options.compactionPriority(), CompactionPriority.MinOverlappingRatio);
+        options.setCompactionPriority(CompactionPriority.MinOverlappingRatio);
+
+        // Table level configuration
+        var tableOptions = new BlockBasedTableConfig();
+        LOGGER.debug("blockSize {} to {}", tableOptions.blockSize(), 16 * 1024);
+        tableOptions.setBlockSize(16 * 1024);
+        LOGGER.debug("cacheIndexAndFilterBlocks {} to {}", tableOptions.cacheIndexAndFilterBlocks(), true);
+        tableOptions.setCacheIndexAndFilterBlocks(true);
+        LOGGER.debug("pinL0FilterAndIndexBlocksInCache {} to {}", tableOptions.pinL0FilterAndIndexBlocksInCache(), true);
+        tableOptions.setPinL0FilterAndIndexBlocksInCache(true);
+        var newFilterPolicy = new BloomFilter(10.0);
+        LOGGER.debug("filterPolicy {} to {}", tableOptions.filterPolicy(), newFilterPolicy);
+        tableOptions.setFilterPolicy(newFilterPolicy);
+        LOGGER.debug("formatVersion {} to {}", tableOptions.formatVersion(), 5);
+        tableOptions.setFormatVersion(5);
+        options.setTableFormatConfig(tableOptions);
+        
+        return options;
     }
 
     /**
@@ -176,11 +205,18 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
 
     /**
      * Creates the default column family options used when accessing column families
+     * <p>
+     * The default implementation uses the recommended settings from <a
+     * href="https://github.com/facebook/rocksdb/wiki/Setup-Options-and-Basic-Tuning">Setup-Options-and-Basic-Tuning</a>
+     * </p>
      *
      * @return Default column family options
      */
+    @SuppressWarnings("resource")
     protected ColumnFamilyOptions defaultColumnFamilyOptions() {
-        return new ColumnFamilyOptions();
+        return new ColumnFamilyOptions().setLevelCompactionDynamicLevelBytes(true)
+                                        .setCompressionType(CompressionType.LZ4_COMPRESSION)
+                                        .setBottommostCompressionType(CompressionType.ZLIB_COMPRESSION);
     }
 
     /**

@@ -1,5 +1,12 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.11.0
+
+- RocksDB improvements:
+    - Configure default RocksDB options with the RocksDB recommended settings for basic tuning
+- Build improvements:
+    - RocksDB upgraded to 10.9.1
+
 # 0.10.2
 
 - Build improvements:
