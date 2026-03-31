@@ -25,7 +25,7 @@ jobs:
 
       - name: Build benchmark jar
         run: |
-          mvn -pl label-store-benchmarks -am -DskipTests -Dcyclonedx.skip -Djavadoc.skip package
+          mvn -pl :label-store-benchmarks -am -DskipTests -Dcyclonedx.skip -Dmaven.javadoc.skip package
 
       - name: Run Label Store benchmarks
         run: |
