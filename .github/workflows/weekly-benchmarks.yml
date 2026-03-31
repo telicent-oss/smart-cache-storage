@@ -42,4 +42,4 @@ jobs:
           alert-threshold: '50%'
           comment-on-alert: true
           fail-on-alert: true
-          alert-comment-cc-users: '@rvesse'
+          alert-comment-cc-users: '@rvesse,@telicentpaul,@robwtelicent'
