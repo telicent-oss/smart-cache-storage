@@ -1,0 +1,45 @@
+name: Weekly Benchmarks
+
+on:
+  schedule:
+    - cron: '0 1 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  run-benchmarks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build benchmark jar
+        run: |
+          mvn -pl label-store-benchmarks -am -DskipTests -Dcyclonedx.skip -Djavadoc.skip package
+
+      - name: Run Label Store benchmarks
+        run: |
+          java -jar label-stores/label-store-benchmarks/target/benchmarks.jar -rf json -rff label-stores/label-store-benchmarks/target/benchmarks.json
+
+      - name: Store benchmark results
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: Label Store Benchmarks
+          tool: 'jmh'
+          output-file-path: label-stores/label-store-benchmarks/target/benchmarks.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          alert-threshold: '200%'
+          comment-on-alert: true
+          fail-on-alert: true
+          alert-comment-cc-users: '@rvesse'
