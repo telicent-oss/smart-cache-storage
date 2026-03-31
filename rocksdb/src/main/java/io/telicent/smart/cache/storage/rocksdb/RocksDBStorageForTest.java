@@ -77,10 +77,13 @@ public class RocksDBStorageForTest extends AbstractRocksDBStorage
 
     @Override
     public RestoreStatus restore(RestoreConfig config) throws RestoreException {
-        ensureNotClosed();
+        //ensureNotClosed();
 
         if (config.getBackupDir() == null) {
             throw new RestoreException("Backup directory must be specified for RocksDB restores");
+        }
+        if (!isClosed()) {
+            throw new RestoreException("Database must be closed before restore operation");
         }
 
         try {
@@ -158,21 +161,37 @@ public class RocksDBStorageForTest extends AbstractRocksDBStorage
 
     public byte[] get(byte[] key) throws RocksDBException {
         try (TransactionContext context = begin()) {
-            return context.get(getDefaultHandle(), key);
+            byte[] value = context.get(getDefaultHandle(), key);
+            // Treat empty arrays as deleted/null (tombstone pattern)
+            return (value != null && value.length == 0) ? null : value;
         }
     }
 
     public void delete(byte[] key) throws RocksDBException {
         try (TransactionContext context = begin()) {
             // Put null or empty to delete - depends on your implementation
-            context.put(getDefaultHandle(), key, null);
-            context.commit();
+            getTransactionDB().delete(getDefaultHandle(), key);
         }
     }
 
     public long count() throws RocksDBException {
         try (TransactionContext context = begin()) {
             return context.count(getDefaultHandle());
+        }
+    }
+
+    private Transaction getTransaction(TransactionContext context) {
+        // Option 1: If you add getTransaction() to TransactionContext interface
+        // return context.getTransaction();
+
+        // Option 2: Workaround using reflection
+        try {
+            java.lang.reflect.Field field = context.getClass().getDeclaredField("transaction");
+            field.setAccessible(true);
+            return (Transaction) field.get(context);
+        } catch (Exception e) {
+            throw new RuntimeException("Could not access transaction field. " +
+                                               "Consider adding 'Transaction getTransaction()' to TransactionContext interface", e);
         }
     }
 }

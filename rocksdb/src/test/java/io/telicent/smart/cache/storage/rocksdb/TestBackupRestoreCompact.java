@@ -16,36 +16,47 @@
 package io.telicent.smart.cache.storage.rocksdb;
 
 import io.telicent.smart.cache.storage.*;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.io.TempDir;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Comparator;
 
 import static org.testng.Assert.*;
 
 public class TestBackupRestoreCompact {
-    @TempDir
+
     File tempDir;
 
     private RocksDBStorageForTest storage;
     private File dbDir;
     private File backupDir;
 
-    @BeforeEach
+    @BeforeMethod
     void setup() throws Exception {
+        tempDir = Files.createTempDirectory("test-").toFile();
         dbDir = new File(tempDir, "db");
         backupDir = new File(tempDir, "backups");
         storage = new RocksDBStorageForTest(dbDir);
     }
 
-    @AfterEach
-    void teardown() {
+    @AfterMethod
+    void teardown() throws IOException {
         if (storage != null && !storage.isClosed()) {
             storage.close();
         }
+        Files.walk(tempDir.toPath())
+             .sorted(Comparator.reverseOrder()) // delete children first
+             .forEach(path -> {
+                 try {
+                     Files.delete(path);
+                 } catch (Exception e) {
+                     System.out.println(e.getMessage());
+                 }
+             });
     }
 
     @Test
@@ -82,7 +93,7 @@ public class TestBackupRestoreCompact {
         storage.close();
 
         // Restore from backup
-        storage = new RocksDBStorageForTest(dbDir);
+        //storage = new RocksDBStorageForTest(dbDir);
 
         RestoreConfig restoreConfig = RestoreConfig.builder()
                                                    .name("test-backup")
@@ -96,13 +107,17 @@ public class TestBackupRestoreCompact {
 
         // Verify data is restored (key3 should be gone)
         // Note: Need to close and reopen after restore for changes to take effect
-        storage.close();
+        //storage.close();
         storage = new RocksDBStorageForTest(dbDir);
 
         assertEquals("value1".getBytes(), storage.get("key1".getBytes()));
         assertEquals("value2".getBytes(), storage.get("key2".getBytes()));
         assertNull(storage.get("key3".getBytes()), "key3 should not exist after restore");
         assertEquals(2, storage.count(), "Should have 2 keys after restore");
+
+        // Verify content of restored data
+        assertEquals(new String(storage.get("key1".getBytes())), "value1");
+        assertEquals(new String(storage.get("key2".getBytes())), "value2");
     }
 
     @Test
@@ -127,31 +142,31 @@ public class TestBackupRestoreCompact {
         assertNotNull(status, "Compact status should not be null");
         assertTrue(status.getSizeBefore() >= 0, "Size before should be non-negative");
         assertTrue(status.getSizeAfter() >= 0, "Size after should be non-negative");
+        //TODO
+        //  Size after compaction should be <= size before expected [true] but found [false]
         assertTrue(status.getSizeAfter() <= status.getSizeBefore(),
                    "Size after compaction should be <= size before");
         assertNotNull(status.getTimestamp(), "Compact status should have timestamp");
     }
 
-    @Test
-    void testBackupFailsWhenDirectoryNotSpecified() {
+    @Test(expectedExceptions = BackupException.class,
+            expectedExceptionsMessageRegExp = ".*Backup directory must be specified.*")
+    public void testBackupFailsWhenDirectoryNotSpecified() {
         BackupConfig invalidConfig = BackupConfig.builder()
                                                  .name("invalid")
                                                  .build();
 
-        BackupException exception = Assertions.assertThrows(BackupException.class,
-                                                            () -> storage.backup(invalidConfig));
-        assertTrue(exception.getMessage().contains("Backup directory must be specified"));
+        storage.backup(invalidConfig);
     }
 
-    @Test
-    void testRestoreFailsWhenDirectoryNotSpecified() {
+    @Test(expectedExceptions = RestoreException.class,
+            expectedExceptionsMessageRegExp = ".*Backup directory must be specified.*")
+    public void testRestoreFailsWhenDirectoryNotSpecified() {
         RestoreConfig invalidConfig = RestoreConfig.builder()
                                                    .name("invalid")
                                                    .build();
 
-        RestoreException exception = Assertions.assertThrows(RestoreException.class,
-                                                  () -> storage.restore(invalidConfig));
-        assertTrue(exception.getMessage().contains("Backup directory must be specified"));
+        storage.restore(invalidConfig);
     }
 
     @Test
