@@ -15,11 +15,12 @@
  */
 package io.telicent.smart.cache.storage;
 
-import org.apache.commons.lang3.builder.Builder;
-
 import java.time.Instant;
 import java.util.Optional;
 
+//TODO
+// treat it a bit like details?
+// maybe change it to details? Do I really need status?
 public class BackupStatus {
     private final boolean success;
     private final String backupId;

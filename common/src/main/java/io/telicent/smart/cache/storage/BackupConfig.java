@@ -15,8 +15,6 @@
  */
 package io.telicent.smart.cache.storage;
 
-import org.apache.commons.lang3.builder.Builder;
-
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,8 +22,8 @@ import java.util.Objects;
 
 public class BackupConfig {
     private final String name;
-    private final File backupDir;  // For filesystem-based backups (RocksDB)
-    private final Map<String, Object> options;  // For implementation-specific options
+    private final File backupDir;  // for filesystem-based backups (RocksDB)
+    private final Map<String, Object> options;  // for implementation-specific options
 
     private BackupConfig(Builder builder) {
         this.name = Objects.requireNonNull(builder.name, "Backup name cannot be null");

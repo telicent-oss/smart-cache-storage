@@ -17,6 +17,8 @@ package io.telicent.smart.cache.storage;
 
 import java.io.File;
 
+//TODO
+// do I really need this? This is just an example from the ticket
 public interface FileSystemBackupRestore extends BackupRestoreCapable {
     BackupStatus backup(File backupDir, String name);
 
