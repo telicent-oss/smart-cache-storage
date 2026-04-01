@@ -75,8 +75,6 @@ public class TestBackupCapabilities {
         assertTrue(status.isSuccess());
         assertEquals(status.getBackupId(), "backup-123");
         assertEquals(status.getBytesBackedUp(), 1048576L);
-        //TODO
-        // null - NOT the same issue acc, backupstatus has start and end time, backupdetails has timestamp
         assertNotNull(status.getStartTime());
         assertFalse(status.getErrorMessage().isPresent());
     }

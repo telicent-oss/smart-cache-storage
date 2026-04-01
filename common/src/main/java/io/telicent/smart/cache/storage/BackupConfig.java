@@ -20,13 +20,20 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+//TODO
+// should there be backupId here too? Should name be optional? What does config even really do?
 public class BackupConfig {
     private final String name;
+//    private final String backupId;
     private final File backupDir;  // for filesystem-based backups (RocksDB)
     private final Map<String, Object> options;  // for implementation-specific options
 
     private BackupConfig(Builder builder) {
+        //TODO
+        // depending on what config does, the name should be nullable and the ID not.
+        // is the name the config name, or the backup name, or what?
         this.name = Objects.requireNonNull(builder.name, "Backup name cannot be null");
+//        this.backupId = builder.backupId;
         this.backupDir = builder.backupDir;
         this.options = new HashMap<>(builder.options);
     }
@@ -34,6 +41,8 @@ public class BackupConfig {
     public String getName() {
         return name;
     }
+
+//    public String getBackupId() { return backupId; }
 
     public File getBackupDir() {
         return backupDir;
@@ -53,6 +62,7 @@ public class BackupConfig {
 
     public static class Builder {
         private String name;
+//        private String backupId;
         private File backupDir;
         private Map<String, Object> options = new HashMap<>();
 
@@ -60,6 +70,11 @@ public class BackupConfig {
             this.name = name;
             return this;
         }
+
+//        public Builder backupId(String backupId) {
+//            this.backupId = backupId;
+//            return this;
+//        }
 
         /**
          * Sets the backup directory for filesystem-based backups

@@ -18,6 +18,8 @@ package io.telicent.smart.cache.storage;
 import java.time.Instant;
 import java.util.Optional;
 
+//TODO
+// should it be timestamp, or also start and end time? Or nothing at all?
 public class RestoreStatus {
     private final boolean success;
     private final String backupId;

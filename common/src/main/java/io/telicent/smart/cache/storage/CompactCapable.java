@@ -15,7 +15,15 @@
  */
 package io.telicent.smart.cache.storage;
 
-
+/**
+ * Marker interface indicating that a storage implementation supports compaction.
+ */
 public interface CompactCapable {
+
+    /**
+     * Compacts the storage to reclaim space and optimize performance
+     * @return status of the compaction operation
+     * @throws CompactException if compaction fails
+     */
     CompactStatus compact() throws CompactException;
 }

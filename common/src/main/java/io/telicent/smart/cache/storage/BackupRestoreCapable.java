@@ -19,12 +19,52 @@ package io.telicent.smart.cache.storage;
 import java.io.File;
 import java.util.List;
 
+/**
+ * Marker interface indicating that a storage implementation supports backup and restore operations.
+ * <p>
+ * Flexible configuration via {@link BackupConfig} and {@link RestoreConfig}
+ * so that different storage implementations are supported
+ * </p>
+ */
 public interface BackupRestoreCapable {
+
+    /**
+     * Creates a backup of the storage using the provided configuration
+     *
+     * @param config backup configuration
+     * @return status of the backup operation
+     * @throws BackupException if the backup operation fails
+     */
     BackupStatus backup(BackupConfig config) throws BackupException;
+
+    /**
+     * Restores the storage from a backup using the provided configuration
+     *
+     * @param config restore configuration
+     * @return status of the restore operation
+     * @throws RestoreException if the restore operation fails
+     */
     RestoreStatus restore(RestoreConfig config) throws RestoreException;
+
+    //TODO
+    // for not file-based system implementations should list take the backupDir? What does it take in graph?
+    // same for delete
+    /**
+     * Lists all backups in a directory
+     * @param backupDir
+     * @return a list of all backups in a directory
+     * @throws BackupException if list operation fails
+     */
     default List<BackupDetails> listBackups(File backupDir) throws BackupException {
         throw new UnsupportedOperationException("Backup listing not supported by this storage implementation");
     }
+
+    /**
+     * Deletes a backup given its backupId
+     * @param backupDir
+     * @param backupId
+     * @throws BackupException if delete operation fails
+     */
     default void deleteBackup(File backupDir, String backupId) throws BackupException {
         throw new UnsupportedOperationException("Backup deletion not supported by this storage implementation");
     }

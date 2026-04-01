@@ -18,8 +18,9 @@ package io.telicent.smart.cache.storage;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
+//TODO
+// same as for backup: what do those config classes do?
 public class RestoreConfig {
     private final String backupId;
     private final File backupDir;
