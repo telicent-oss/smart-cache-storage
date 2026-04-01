@@ -16,7 +16,16 @@
 package io.telicent.smart.cache.storage;
 
 
+import java.io.File;
+import java.util.List;
+
 public interface BackupRestoreCapable {
     BackupStatus backup(BackupConfig config) throws BackupException;
     RestoreStatus restore(RestoreConfig config) throws RestoreException;
+    default List<BackupDetails> listBackups(File backupDir) throws BackupException {
+        throw new UnsupportedOperationException("Backup listing not supported by this storage implementation");
+    }
+    default void deleteBackup(File backupDir, String backupId) throws BackupException {
+        throw new UnsupportedOperationException("Backup deletion not supported by this storage implementation");
+    }
 }

@@ -15,24 +15,25 @@
  */
 package io.telicent.smart.cache.storage;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 
-//TODO
-// treat it a bit like details?
-// maybe change it to details? Do I really need status?
+
 public class BackupStatus {
     private final boolean success;
     private final String backupId;
     private final long bytesBackedUp;
-    private final Instant timestamp;
+    private final Instant startTime;
+    private final Instant endTime;
     private final String errorMessage;
 
     private BackupStatus(Builder builder) {
         this.success = builder.success;
         this.backupId = builder.backupId;
         this.bytesBackedUp = builder.bytesBackedUp;
-        this.timestamp = builder.timestamp != null ? builder.timestamp : Instant.now();
+        this.startTime = builder.startTime;
+        this.endTime = builder.endTime != null ? builder.endTime : Instant.now();
         this.errorMessage = builder.errorMessage;
     }
 
@@ -48,8 +49,14 @@ public class BackupStatus {
         return bytesBackedUp;
     }
 
-    public Instant getTimestamp() {
-        return timestamp;
+    public Instant getStartTime() { return startTime; }
+    public Instant getEndTime() { return endTime; }
+
+    public Duration getDuration() {
+        if (startTime != null && endTime != null) {
+            return Duration.between(startTime, endTime);
+        }
+        return Duration.ZERO;
     }
 
     public Optional<String> getErrorMessage() {
@@ -60,11 +67,12 @@ public class BackupStatus {
         return new Builder();
     }
 
-    public static BackupStatus success(String backupId, long bytesBackedUp) {
+    public static BackupStatus success(String backupId, long bytesBackedUp, Instant startTime) {
         return builder()
                 .success(true)
                 .backupId(backupId)
                 .bytesBackedUp(bytesBackedUp)
+                .startTime(startTime)
                 .build();
     }
 
@@ -79,7 +87,8 @@ public class BackupStatus {
         private boolean success;
         private String backupId;
         private long bytesBackedUp;
-        private Instant timestamp;
+        private Instant startTime;
+        private Instant endTime;
         private String errorMessage;
 
         public Builder success(boolean success) {
@@ -97,8 +106,13 @@ public class BackupStatus {
             return this;
         }
 
-        public Builder timestamp(Instant timestamp) {
-            this.timestamp = timestamp;
+        public Builder startTime(Instant startTime) {
+            this.startTime = startTime;
+            return this;
+        }
+
+        public Builder endTime(Instant endTime) {
+            this.endTime = endTime;
             return this;
         }
 

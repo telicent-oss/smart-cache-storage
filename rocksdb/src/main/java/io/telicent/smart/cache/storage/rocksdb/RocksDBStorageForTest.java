@@ -17,12 +17,16 @@ package io.telicent.smart.cache.storage.rocksdb;
 
 import io.telicent.smart.cache.storage.*;
 import org.rocksdb.*;
+import org.rocksdb.BackupInfo;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class RocksDBStorageForTest extends AbstractRocksDBStorage
         implements BackupRestoreCapable, CompactCapable {
@@ -47,6 +51,7 @@ public class RocksDBStorageForTest extends AbstractRocksDBStorage
         if (config.getBackupDir() == null) {
             throw new BackupException("Backup directory must be specified for RocksDB backups");
         }
+        Instant startTime = Instant.now();
         try {
             File backupDir = config.getBackupDir();
             Files.createDirectories(backupDir.toPath());
@@ -59,10 +64,15 @@ public class RocksDBStorageForTest extends AbstractRocksDBStorage
                 List<BackupInfo> backupInfos = backupEngine.getBackupInfo();
                 BackupInfo latestBackup = backupInfos.getLast();
 
-                return BackupStatus.success(
-                        String.valueOf(latestBackup.backupId()),
-                        latestBackup.size()
-                );
+                Instant endTime = Instant.now();
+
+                return BackupStatus.builder()
+                                   .success(true)
+                                   .backupId(String.valueOf(latestBackup.backupId()))
+                                   .bytesBackedUp(latestBackup.size())
+                                   .startTime(startTime)
+                                   .endTime(endTime)
+                                   .build();
             }
         } catch (RocksDBException | IOException e) {
             throw new BackupException("Failed to create backup: " + e.getMessage(), e);
@@ -83,14 +93,29 @@ public class RocksDBStorageForTest extends AbstractRocksDBStorage
                  BackupEngine backupEngine = BackupEngine.open(Env.getDefault(), backupOptions);
                  RestoreOptions restoreOptions = new RestoreOptions(false)) {
 
-                backupEngine.restoreDbFromLatestBackup(
-                        dbDir.getAbsolutePath(),
-                        dbDir.getAbsolutePath(),
-                        restoreOptions
-                );
+                if (config.getBackupId() != null) {
+                    int backupId = Integer.parseInt(config.getBackupId());
+                    backupEngine.restoreDbFromBackup(
+                            backupId,
+                            dbDir.getAbsolutePath(),
+                            dbDir.getAbsolutePath(),
+                            restoreOptions
+                    );
+                } else {
+                    backupEngine.restoreDbFromLatestBackup(
+                            dbDir.getAbsolutePath(),
+                            dbDir.getAbsolutePath(),
+                            restoreOptions
+                    );
+                }
 
                 List<BackupInfo> backupInfos = backupEngine.getBackupInfo();
-                BackupInfo restoredBackup = backupInfos.getLast();
+                BackupInfo restoredBackup =config.getBackupId() != null
+                                           ? backupInfos.stream()
+                                                        .filter(b -> String.valueOf(b.backupId()).equals(config.getBackupId()))
+                                                        .findFirst()
+                                                        .orElseThrow(() -> new RestoreException("Backup not found: " + config.getBackupId()))
+                                           : backupInfos.getLast();
 
                 return RestoreStatus.success(
                         String.valueOf(restoredBackup.backupId()),
@@ -120,14 +145,41 @@ public class RocksDBStorageForTest extends AbstractRocksDBStorage
         }
     }
 
+    @Override
+    public List<BackupDetails> listBackups(File backupDir) throws BackupException {
+        try (BackupEngineOptions backupOptions = new BackupEngineOptions(backupDir.getAbsolutePath());
+             BackupEngine backupEngine = BackupEngine.open(Env.getDefault(), backupOptions)) {
+
+            return backupEngine.getBackupInfo().stream()
+                               .map(rocksBackup -> new io.telicent.smart.cache.storage.BackupDetails(
+                                       Optional.empty(),
+                                       String.valueOf(rocksBackup.backupId()),
+                                       Instant.ofEpochSecond(rocksBackup.timestamp()),
+                                       rocksBackup.size()
+                               ))
+                               .collect(Collectors.toList());
+
+        } catch (RocksDBException e) {
+            throw new BackupException("Failed to list backups: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void deleteBackup(File backupDir, String backupId) throws BackupException {
+        try (BackupEngineOptions backupOptions = new BackupEngineOptions(backupDir.getAbsolutePath());
+             BackupEngine backupEngine = BackupEngine.open(Env.getDefault(), backupOptions)) {
+
+            int id = Integer.parseInt(backupId);
+            backupEngine.deleteBackup(id);
+
+        } catch (RocksDBException | NumberFormatException e) {
+            throw new BackupException("Failed to delete backup " + backupId + ": " + e.getMessage(), e);
+        }
+    }
+
     /**
      * Helper method to estimate database size
      */
-//    private long estimateSize() throws RocksDBException {
-//        String sizeStr = getDb().getProperty("rocksdb.total-sst-files-size");
-//        return sizeStr != null ? Long.parseLong(sizeStr) : 0L;
-//    }
-
     private long estimateSize() throws CompactException {
         try {
             return Files.walk(dbDir.toPath())

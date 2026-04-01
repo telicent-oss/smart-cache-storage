@@ -60,29 +60,24 @@ public class TestBackupCapabilities {
     public void testRestoreConfigBuilder() {
         File dir = new File("/tmp/restore");
         RestoreConfig config = RestoreConfig.builder()
-                                            .name("test-restore")
                                             .backupDir(dir)
                                             .option("verify", true)
                                             .build();
 
-        assertEquals(config.getName(), "test-restore");
         assertEquals(config.getBackupDir(), dir);
         assertEquals(config.getOption("verify"), true);
     }
 
-    @Test(expectedExceptions = NullPointerException.class)
-    public void testRestoreConfigRequiresName() {
-        RestoreConfig.builder().build();
-    }
-
     @Test
     public void testBackupStatusSuccess() {
-        BackupStatus status = BackupStatus.success("backup-123", 1048576L);
+        BackupStatus status = BackupStatus.success("backup-123", 1048576L, Instant.now());
 
         assertTrue(status.isSuccess());
         assertEquals(status.getBackupId(), "backup-123");
         assertEquals(status.getBytesBackedUp(), 1048576L);
-        assertNotNull(status.getTimestamp());
+        //TODO
+        // null - NOT the same issue acc, backupstatus has start and end time, backupdetails has timestamp
+        assertNotNull(status.getStartTime());
         assertFalse(status.getErrorMessage().isPresent());
     }
 
@@ -102,13 +97,13 @@ public class TestBackupCapabilities {
                                           .success(true)
                                           .backupId("id-456")
                                           .bytesBackedUp(2097152L)
-                                          .timestamp(now)
+                                          .startTime(now)
                                           .build();
 
         assertTrue(status.isSuccess());
         assertEquals(status.getBackupId(), "id-456");
         assertEquals(status.getBytesBackedUp(), 2097152L);
-        assertEquals(status.getTimestamp(), now);
+        assertEquals(status.getStartTime(), now);
     }
 
     @Test

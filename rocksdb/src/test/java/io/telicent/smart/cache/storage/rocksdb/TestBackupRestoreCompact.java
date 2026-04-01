@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Comparator;
+import java.util.List;
 
 import static org.testng.Assert.*;
 
@@ -76,7 +77,7 @@ public class TestBackupRestoreCompact {
         assertTrue(backupStatus.isSuccess(), "Backup should succeed");
         assertNotNull(backupStatus.getBackupId(), "Backup ID should not be null");
         assertTrue(backupStatus.getBytesBackedUp() > 0, "Should have backed up some bytes");
-        assertNotNull(backupStatus.getTimestamp(), "Backup should have timestamp");
+        assertNotNull(backupStatus.getStartTime(), "Backup should have a start time");
 
         // Given
         storage.put("key3".getBytes(), "value3".getBytes());
@@ -86,7 +87,6 @@ public class TestBackupRestoreCompact {
         storage.close();
 
         RestoreConfig restoreConfig = RestoreConfig.builder()
-                                                   .name("test-backup")
                                                    .backupDir(backupDir)
                                                    .build();
         // When
@@ -196,10 +196,20 @@ public class TestBackupRestoreCompact {
             expectedExceptionsMessageRegExp = ".*Backup directory must be specified.*")
     public void testRestoreFailsWhenDirectoryNotSpecified() {
         RestoreConfig invalidConfig = RestoreConfig.builder()
-                                                   .name("invalid")
                                                    .build();
 
         storage.restore(invalidConfig);
+    }
+
+    @Test(expectedExceptions = RestoreException.class,
+            expectedExceptionsMessageRegExp = ".*Database must be closed before restore operation.*")
+    public void testRestoreFailsWhenDbNotClosed() {
+        RestoreConfig config = RestoreConfig.builder()
+                                            .backupDir(backupDir)
+                                            .build();
+
+        // storage is still open here
+        storage.restore(config);
     }
 
     @Test
@@ -242,4 +252,91 @@ public class TestBackupRestoreCompact {
         assertTrue(status2.isSuccess());
         assertNotEquals(status1.getBackupId(), status2.getBackupId());
     }
+
+    @Test
+    public void testListBackups() throws Exception {
+        // Create multiple backups
+        storage.put("key1".getBytes(), "value1".getBytes());
+        BackupConfig config1 = BackupConfig.builder()
+                                           .name("backup-1")
+                                           .backupDir(backupDir)
+                                           .build();
+        storage.backup(config1);
+
+        storage.put("key2".getBytes(), "value2".getBytes());
+        BackupConfig config2 = BackupConfig.builder()
+                                           .name("backup-2")
+                                           .backupDir(backupDir)
+                                           .build();
+        storage.backup(config2);
+
+        // List backups
+        List<BackupDetails> backups = storage.listBackups(backupDir);
+
+        assertEquals(backups.size(), 2);
+        assertEquals(backups.get(0).getBackupId(), "1");
+        assertEquals(backups.get(1).getBackupId(), "2");
+        assertTrue(backups.get(0).getSizeBytes() > 0);
+    }
+
+    @Test
+    public void testRestoreSpecificBackup() throws Exception {
+        // Create first backup
+        storage.put("key1".getBytes(), "value1".getBytes());
+        BackupStatus backup1 = storage.backup(BackupConfig.builder()
+                                                          .name("backup-1")
+                                                          .backupDir(backupDir)
+                                                          .build());
+
+        // Create second backup
+        storage.put("key2".getBytes(), "value2".getBytes());
+        BackupStatus backup2 = storage.backup(BackupConfig.builder()
+                                                          .name("backup-2")
+                                                          .backupDir(backupDir)
+                                                          .build());
+
+        storage.close();
+
+        // Restore from first backup (not latest)
+        RestoreConfig restoreConfig = RestoreConfig.builder()
+                                                   .backupId(backup1.getBackupId())
+                                                   .backupDir(backupDir)
+                                                   .build();
+
+        storage.restore(restoreConfig);
+        storage = new RocksDBStorageForTest(dbDir);
+
+        // Should only have key1, not key2
+        assertNotNull(storage.get("key1".getBytes()));
+        assertNull(storage.get("key2".getBytes()));
+    }
+
+    @Test
+    public void testDeleteBackup() {
+        BackupStatus backup1 = storage.backup(BackupConfig.builder()
+                                                          .name("to-delete")
+                                                          .backupDir(backupDir)
+                                                          .build());
+
+        assertEquals(storage.listBackups(backupDir).size(), 1);
+
+        storage.deleteBackup(backupDir, backup1.getBackupId());
+
+        assertEquals(storage.listBackups(backupDir).size(), 0);
+    }
+
+    @Test(expectedExceptions = BackupException.class,
+            expectedExceptionsMessageRegExp = ".*Failed to delete backup.*")
+    public void testDeleteBackupFailed() {
+        BackupStatus backup1 = storage.backup(BackupConfig.builder()
+                                                          .name("to-delete")
+                                                          .backupDir(backupDir)
+                                                          .build());
+
+        assertEquals(storage.listBackups(backupDir).size(), 1);
+        storage.deleteBackup(backupDir, backup1.getBackupId());
+        assertEquals(storage.listBackups(backupDir).size(), 0);
+        storage.deleteBackup(backupDir, backup1.getBackupId());
+    }
+
 }

@@ -21,22 +21,22 @@ import java.util.Map;
 import java.util.Objects;
 
 public class RestoreConfig {
-    private final String name;
+    private final String backupId;
     private final File backupDir;
     private final Map<String, Object> options;
 
     private RestoreConfig(Builder builder) {
-        this.name = Objects.requireNonNull(builder.name, "Backup name cannot be null");
         this.backupDir = builder.backupDir;
         this.options = new HashMap<>(builder.options);
-    }
-
-    public String getName() {
-        return name;
+        this.backupId = builder.backupId;
     }
 
     public File getBackupDir() {
         return backupDir;
+    }
+
+    public String getBackupId() {
+        return backupId;
     }
 
     public Map<String, Object> getOptions() {
@@ -52,12 +52,12 @@ public class RestoreConfig {
     }
 
     public static class Builder {
-        private String name;
+        private String backupId;
         private File backupDir;
         private Map<String, Object> options = new HashMap<>();
 
-        public Builder name(String name) {
-            this.name = name;
+        public Builder backupId(String backupId) {
+            this.backupId = backupId;
             return this;
         }
 
