@@ -15,23 +15,19 @@
  */
 package io.telicent.smart.cache.storage;
 
-import java.time.Instant;
 import java.util.Optional;
 
-//TODO
-// should it be timestamp, or also start and end time? Or nothing at all?
+
 public class RestoreStatus {
     private final boolean success;
     private final String backupId;
     private final long bytesRestored;
-    private final Instant timestamp;
     private final String errorMessage;
 
     private RestoreStatus(Builder builder) {
         this.success = builder.success;
         this.backupId = builder.backupId;
         this.bytesRestored = builder.bytesRestored;
-        this.timestamp = builder.timestamp != null ? builder.timestamp : Instant.now();
         this.errorMessage = builder.errorMessage;
     }
 
@@ -45,10 +41,6 @@ public class RestoreStatus {
 
     public long getBytesRestored() {
         return bytesRestored;
-    }
-
-    public Instant getTimestamp() {
-        return timestamp;
     }
 
     public Optional<String> getErrorMessage() {
@@ -78,7 +70,6 @@ public class RestoreStatus {
         private boolean success;
         private String backupId;
         private long bytesRestored;
-        private Instant timestamp;
         private String errorMessage;
 
         public Builder success(boolean success) {
@@ -93,11 +84,6 @@ public class RestoreStatus {
 
         public Builder bytesRestored(long bytesRestored) {
             this.bytesRestored = bytesRestored;
-            return this;
-        }
-
-        public Builder timestamp(Instant timestamp) {
-            this.timestamp = timestamp;
             return this;
         }
 

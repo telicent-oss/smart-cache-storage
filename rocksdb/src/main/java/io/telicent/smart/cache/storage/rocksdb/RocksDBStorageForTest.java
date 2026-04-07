@@ -131,15 +131,16 @@ public class RocksDBStorageForTest extends AbstractRocksDBStorage
     public CompactStatus compact() throws CompactException {
         ensureNotClosed();
         try {
+            Instant startTime = Instant.now();
             long sizeBefore = estimateSize();
             try (FlushOptions flushOptions = new FlushOptions().setWaitForFlush(true)) {
                 getTransactionDB().flush(flushOptions);
             }
-            //getDb().compactRange();
             getTransactionDB().compactRange(getDefaultHandle());
+            Instant endTime = Instant.now();
             long sizeAfter = estimateSize();
 
-            return new CompactStatus(sizeBefore, sizeAfter, sizeBefore - sizeAfter);
+            return new CompactStatus(sizeBefore, sizeAfter, sizeBefore - sizeAfter, startTime, endTime);
         } catch (RocksDBException e) {
             throw new CompactException("Failed to compact database: " + e.getMessage(), e);
         }
@@ -154,7 +155,8 @@ public class RocksDBStorageForTest extends AbstractRocksDBStorage
                                .map(rocksBackup -> new io.telicent.smart.cache.storage.BackupDetails(
                                        Optional.empty(),
                                        String.valueOf(rocksBackup.backupId()),
-                                       Instant.ofEpochSecond(rocksBackup.timestamp()),
+                                       Optional.empty(),
+                                       Optional.ofNullable(Instant.ofEpochSecond(rocksBackup.timestamp())),
                                        rocksBackup.size()
                                ))
                                .collect(Collectors.toList());
@@ -188,7 +190,7 @@ public class RocksDBStorageForTest extends AbstractRocksDBStorage
                             try {
                                 return Files.size(path);
                             } catch (IOException e) {
-                                // Log but don't fail - just skip this file
+                                // no failure - only skips this file
                                 return 0L;
                             }
                         })

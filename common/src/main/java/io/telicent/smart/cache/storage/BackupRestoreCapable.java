@@ -46,12 +46,9 @@ public interface BackupRestoreCapable {
      */
     RestoreStatus restore(RestoreConfig config) throws RestoreException;
 
-    //TODO
-    // for not file-based system implementations should list take the backupDir? What does it take in graph?
-    // same for delete
     /**
      * Lists all backups in a directory
-     * @param backupDir
+     * @param backupDir backup directory
      * @return a list of all backups in a directory
      * @throws BackupException if list operation fails
      */
@@ -61,8 +58,8 @@ public interface BackupRestoreCapable {
 
     /**
      * Deletes a backup given its backupId
-     * @param backupDir
-     * @param backupId
+     * @param backupDir backup directory
+     * @param backupId ID of the backup
      * @throws BackupException if delete operation fails
      */
     default void deleteBackup(File backupDir, String backupId) throws BackupException {

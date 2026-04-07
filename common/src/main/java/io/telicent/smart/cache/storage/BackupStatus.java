@@ -67,14 +67,13 @@ public class BackupStatus {
         return new Builder();
     }
 
-    //TODO
-    // how do we get end time? It's missing from here. Might not need it in failure, but we surely do need it in success
-    public static BackupStatus success(String backupId, long bytesBackedUp, Instant startTime) {
+    public static BackupStatus success(String backupId, long bytesBackedUp, Instant startTime, Instant endTime) {
         return builder()
                 .success(true)
                 .backupId(backupId)
                 .bytesBackedUp(bytesBackedUp)
                 .startTime(startTime)
+                .endTime(endTime)
                 .build();
     }
 

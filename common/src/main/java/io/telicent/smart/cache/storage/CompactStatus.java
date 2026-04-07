@@ -17,27 +17,24 @@ package io.telicent.smart.cache.storage;
 
 import java.time.Instant;
 
-//TODO
-// should it be timestamp, or also start and end time? Or nothing at all?
+
 public class CompactStatus {
     private final long sizeBefore;
     private final long sizeAfter;
     private final long reclaimedBytes;
-    private final Instant timestamp;
+    private final Instant startTime;
+    private final Instant endTime;
 
-    public CompactStatus(long sizeBefore, long sizeAfter) {
-        this(sizeBefore, sizeAfter, sizeBefore - sizeAfter, Instant.now());
+    public CompactStatus(long sizeBefore, long sizeAfter, Instant startTime, Instant endTime) {
+        this(sizeBefore, sizeAfter, sizeBefore - sizeAfter, startTime, endTime);
     }
 
-    public CompactStatus(long sizeBefore, long sizeAfter, long reclaimedBytes) {
-        this(sizeBefore, sizeAfter, reclaimedBytes, Instant.now());
-    }
-
-    public CompactStatus(long sizeBefore, long sizeAfter, long reclaimedBytes, Instant timestamp) {
+    public CompactStatus(long sizeBefore, long sizeAfter, long reclaimedBytes, Instant startTime, Instant endTime) {
         this.sizeBefore = sizeBefore;
         this.sizeAfter = sizeAfter;
         this.reclaimedBytes = reclaimedBytes;
-        this.timestamp = timestamp;
+        this.startTime = startTime;
+        this.endTime = endTime;
     }
 
     public long getSizeBefore() {
@@ -52,7 +49,11 @@ public class CompactStatus {
         return reclaimedBytes;
     }
 
-    public Instant getTimestamp() {
-        return timestamp;
+    public Instant getStartTime() {
+        return startTime;
+    }
+
+    public Instant getEndTime() {
+        return endTime;
     }
 }

@@ -22,13 +22,15 @@ import java.util.Optional;
 public class BackupDetails {
     private final Optional<String> name;
     private final String backupId;
-    private final Instant timestamp;
+    private final Optional<Instant> startTime;
+    private final Optional<Instant> endTime;
     private final long sizeBytes;
 
-    public BackupDetails(Optional<String> name, String backupId, Instant timestamp, long sizeBytes) {
-        this.name = name;
+    public BackupDetails(Optional<String> name, String backupId, Optional<Instant> startTime, Optional<Instant> endTime, long sizeBytes) {
+        this.name = name != null ? name : Optional.empty();
+        this.startTime = startTime != null ? startTime : Optional.empty();
+        this.endTime = endTime != null ? endTime : Optional.empty();
         this.backupId = Objects.requireNonNull(backupId, "Backup ID cannot be null");
-        this.timestamp = timestamp;
         this.sizeBytes = sizeBytes;
     }
 
@@ -40,9 +42,8 @@ public class BackupDetails {
         return backupId;
     }
 
-    public Instant getTimestamp() {
-        return timestamp;
-    }
+    public Optional<Instant> getStartTime() { return startTime; }
+    public Optional<Instant> getEndTime() { return endTime; }
 
     public long getSizeBytes() {
         return sizeBytes;
@@ -51,6 +52,6 @@ public class BackupDetails {
     @Override
     public String toString() {
         return String.format("BackupDetails{name=%s, id=%s, start-time=%s, end-time=%s, size=%d}",
-                             name, backupId, timestamp, sizeBytes);
+                             name, backupId, startTime, endTime, sizeBytes);
     }
 }

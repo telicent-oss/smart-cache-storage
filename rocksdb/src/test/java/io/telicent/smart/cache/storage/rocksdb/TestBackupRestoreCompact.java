@@ -28,6 +28,7 @@ import java.util.List;
 
 import static org.testng.Assert.*;
 
+
 public class TestBackupRestoreCompact {
 
     File tempDir;
@@ -129,57 +130,52 @@ public class TestBackupRestoreCompact {
         assertTrue(status.getSizeAfter() >= 0, "Size after should be non-negative");
         assertTrue(status.getSizeAfter() <= status.getSizeBefore(),
                    "Size after compaction should be <= size before");
-        assertNotNull(status.getTimestamp(), "Compact status should have timestamp");
+        assertNotNull(status.getStartTime(), "Compact status should have a start time");
+        assertNotNull(status.getEndTime(), "Compact status should have an end time");
     }
 
     @Test
     void testCompactionMoreData() throws Exception {
-        // Given - Create much more data to trigger SST file generation
-        // RocksDB default memtable size is ~64MB, so we need to exceed that
+        // Given
         int numKeys = 10_000;
-        int valueSize = 10_240; // 10KB per value = ~100MB total
-
+        int valueSize = 10_240;
         for (int i = 0; i < numKeys; i++) {
             storage.put(("key" + i).getBytes(), new byte[valueSize]);
         }
 
-        // Force a flush to ensure data is in SST files, not just memtable
+        // force a flush to ensure data is in SST files, not just memtable
         storage.flush();
-
         long countBefore = storage.count();
         assertEquals(numKeys, countBefore);
 
-        // Delete half the data to create waste
+        // delete half the data to create waste
         int deleteCount = numKeys / 2;
         for (int i = 0; i < deleteCount; i++) {
             storage.delete(("key" + i).getBytes());
         }
         assertEquals(numKeys - deleteCount, storage.count());
 
-        // Force another flush to write tombstones to SST files
+        // force another flush to write tombstones to SST files
         storage.flush();
 
-        // When - Compact the database
+        // When
         CompactStatus status = storage.compact();
 
         // Then
         assertNotNull(status, "Compact status should not be null");
         assertTrue(status.getSizeBefore() > 0, "Size before should be positive");
         assertTrue(status.getSizeAfter() > 0, "Size after should be positive");
-
-        // After compaction, size should decrease (tombstones removed)
-        // We use >= instead of > to handle edge cases where compaction doesn't reduce size
         assertTrue(status.getSizeAfter() <= status.getSizeBefore(),
                    String.format("Size after compaction (%d) should be <= size before (%d)",
                                  status.getSizeAfter(), status.getSizeBefore()));
 
-        // Verify we reclaimed some space (at least 10% of the deleted data)
+        // verify space was reclaimed (at least 10% of the deleted data)
         long expectedReclaimed = (deleteCount * valueSize) / 10;
         assertTrue(status.getReclaimedBytes() >= expectedReclaimed || status.getSizeAfter() < status.getSizeBefore(),
                    String.format("Should have reclaimed some space. Before: %d, After: %d, Reclaimed: %d",
                                  status.getSizeBefore(), status.getSizeAfter(), status.getReclaimedBytes()));
-
-        assertNotNull(status.getTimestamp(), "Compact status should have timestamp");
+        assertNotNull(status.getStartTime(), "Compact status should have a start time");
+        assertNotNull(status.getEndTime(), "Compact status should have an end time");
     }
 
     @Test(expectedExceptions = BackupException.class,
@@ -208,7 +204,6 @@ public class TestBackupRestoreCompact {
                                             .backupDir(backupDir)
                                             .build();
 
-        // storage is still open here
         storage.restore(config);
     }
 
@@ -255,7 +250,7 @@ public class TestBackupRestoreCompact {
 
     @Test
     public void testListBackups() throws Exception {
-        // Create multiple backups
+        // Given
         storage.put("key1".getBytes(), "value1".getBytes());
         BackupConfig config1 = BackupConfig.builder()
                                            .name("backup-1")
@@ -270,9 +265,10 @@ public class TestBackupRestoreCompact {
                                            .build();
         storage.backup(config2);
 
-        // List backups
+        // When
         List<BackupDetails> backups = storage.listBackups(backupDir);
 
+        // Then
         assertEquals(backups.size(), 2);
         assertEquals(backups.get(0).getBackupId(), "1");
         assertEquals(backups.get(1).getBackupId(), "2");
@@ -281,23 +277,21 @@ public class TestBackupRestoreCompact {
 
     @Test
     public void testRestoreSpecificBackup() throws Exception {
-        // Create first backup
+        // Given
         storage.put("key1".getBytes(), "value1".getBytes());
         BackupStatus backup1 = storage.backup(BackupConfig.builder()
                                                           .name("backup-1")
                                                           .backupDir(backupDir)
                                                           .build());
 
-        // Create second backup
         storage.put("key2".getBytes(), "value2".getBytes());
         BackupStatus backup2 = storage.backup(BackupConfig.builder()
                                                           .name("backup-2")
                                                           .backupDir(backupDir)
                                                           .build());
-
         storage.close();
 
-        // Restore from first backup (not latest)
+        // When
         RestoreConfig restoreConfig = RestoreConfig.builder()
                                                    .backupId(backup1.getBackupId())
                                                    .backupDir(backupDir)
@@ -306,22 +300,24 @@ public class TestBackupRestoreCompact {
         storage.restore(restoreConfig);
         storage = new RocksDBStorageForTest(dbDir);
 
-        // Should only have key1, not key2
+        // Then
         assertNotNull(storage.get("key1".getBytes()));
         assertNull(storage.get("key2".getBytes()));
     }
 
     @Test
     public void testDeleteBackup() {
+        // given
         BackupStatus backup1 = storage.backup(BackupConfig.builder()
                                                           .name("to-delete")
                                                           .backupDir(backupDir)
                                                           .build());
-
         assertEquals(storage.listBackups(backupDir).size(), 1);
 
+        //When
         storage.deleteBackup(backupDir, backup1.getBackupId());
 
+        //Then
         assertEquals(storage.listBackups(backupDir).size(), 0);
     }
 
@@ -338,5 +334,4 @@ public class TestBackupRestoreCompact {
         assertEquals(storage.listBackups(backupDir).size(), 0);
         storage.deleteBackup(backupDir, backup1.getBackupId());
     }
-
 }

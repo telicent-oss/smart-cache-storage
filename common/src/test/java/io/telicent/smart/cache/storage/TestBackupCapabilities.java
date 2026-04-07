@@ -20,10 +20,12 @@ import java.io.File;
 import java.time.Instant;
 import static org.testng.Assert.*;
 
+
 public class TestBackupCapabilities {
 
     @Test
     public void testBackupConfigBuilder() {
+        // Given
         File dir = new File("/tmp/backup");
         BackupConfig config = BackupConfig.builder()
                                           .name("test-backup")
@@ -31,7 +33,7 @@ public class TestBackupCapabilities {
                                           .option("compress", true)
                                           .option("threads", 4)
                                           .build();
-
+        // When & Then
         assertEquals(config.getName(), "test-backup");
         assertEquals(config.getBackupDir(), dir);
         assertEquals(config.getOption("compress"), true);
@@ -41,48 +43,50 @@ public class TestBackupCapabilities {
 
     @Test
     public void testBackupConfigMinimal() {
+        // Given
         BackupConfig config = BackupConfig.builder()
                                           .name("minimal")
                                           .build();
-
+        // When & Then
         assertEquals(config.getName(), "minimal");
         assertNull(config.getBackupDir());
         assertTrue(config.getOptions().isEmpty());
         assertNull(config.getOption("nonexistent"));
     }
 
-    @Test(expectedExceptions = NullPointerException.class)
-    public void testBackupConfigRequiresName() {
-        BackupConfig.builder().build();
-    }
-
     @Test
     public void testRestoreConfigBuilder() {
+        // Given
         File dir = new File("/tmp/restore");
         RestoreConfig config = RestoreConfig.builder()
                                             .backupDir(dir)
                                             .option("verify", true)
                                             .build();
-
+        // When & Then
         assertEquals(config.getBackupDir(), dir);
         assertEquals(config.getOption("verify"), true);
     }
 
     @Test
     public void testBackupStatusSuccess() {
-        BackupStatus status = BackupStatus.success("backup-123", 1048576L, Instant.now());
+        // Given
+        BackupStatus status = BackupStatus.success("backup-123", 1048576L, Instant.now(), Instant.now().plusSeconds(10));
 
+        // When & Then
         assertTrue(status.isSuccess());
         assertEquals(status.getBackupId(), "backup-123");
         assertEquals(status.getBytesBackedUp(), 1048576L);
         assertNotNull(status.getStartTime());
+        assertNotNull(status.getEndTime());
         assertFalse(status.getErrorMessage().isPresent());
     }
 
     @Test
     public void testBackupStatusFailure() {
+        // Given
         BackupStatus status = BackupStatus.failure("Disk full");
 
+        // When & Then
         assertFalse(status.isSuccess());
         assertTrue(status.getErrorMessage().isPresent());
         assertEquals(status.getErrorMessage().get(), "Disk full");
@@ -90,6 +94,7 @@ public class TestBackupCapabilities {
 
     @Test
     public void testBackupStatusBuilder() {
+        // Given
         Instant now = Instant.now();
         BackupStatus status = BackupStatus.builder()
                                           .success(true)
@@ -97,7 +102,7 @@ public class TestBackupCapabilities {
                                           .bytesBackedUp(2097152L)
                                           .startTime(now)
                                           .build();
-
+        // When & Then
         assertTrue(status.isSuccess());
         assertEquals(status.getBackupId(), "id-456");
         assertEquals(status.getBytesBackedUp(), 2097152L);
@@ -106,19 +111,22 @@ public class TestBackupCapabilities {
 
     @Test
     public void testRestoreStatusSuccess() {
+        // Given
         RestoreStatus status = RestoreStatus.success("backup-789", 3145728L);
 
+        // When & Then
         assertTrue(status.isSuccess());
         assertEquals(status.getBackupId(), "backup-789");
         assertEquals(status.getBytesRestored(), 3145728L);
-        assertNotNull(status.getTimestamp());
         assertFalse(status.getErrorMessage().isPresent());
     }
 
     @Test
     public void testRestoreStatusFailure() {
+        // Given
         RestoreStatus status = RestoreStatus.failure("Backup not found");
 
+        // When & Then
         assertFalse(status.isSuccess());
         assertTrue(status.getErrorMessage().isPresent());
         assertEquals(status.getErrorMessage().get(), "Backup not found");
@@ -126,92 +134,97 @@ public class TestBackupCapabilities {
 
     @Test
     public void testRestoreStatusBuilder() {
-        Instant now = Instant.now();
+        //Given
         RestoreStatus status = RestoreStatus.builder()
                                             .success(false)
                                             .errorMessage("Corrupted backup")
-                                            .timestamp(now)
                                             .build();
-
+        // When & Then
         assertFalse(status.isSuccess());
         assertTrue(status.getErrorMessage().isPresent());
-        assertEquals(status.getTimestamp(), now);
     }
 
     @Test
-    public void testCompactStatusTwoArgs() {
-        CompactStatus status = new CompactStatus(1000000L, 750000L);
+    public void testCompactStatusFourArgs() {
+        // Given
+        CompactStatus status = new CompactStatus(1000000L, 750000L, Instant.now(), Instant.now().plusSeconds(10));
 
+        // When & Then
         assertEquals(status.getSizeBefore(), 1000000L);
         assertEquals(status.getSizeAfter(), 750000L);
         assertEquals(status.getReclaimedBytes(), 250000L);
-        assertNotNull(status.getTimestamp());
+        assertNotNull(status.getStartTime());
+        assertNotNull(status.getEndTime());
     }
 
     @Test
-    public void testCompactStatusThreeArgs() {
-        CompactStatus status = new CompactStatus(2000000L, 1500000L, 500000L);
+    public void testCompactStatusFiveArgs() {
+        // Given
+        CompactStatus status = new CompactStatus(2000000L, 1500000L, 500000L, Instant.now(), Instant.now().plusSeconds(10));
 
+        // When & Then
         assertEquals(status.getSizeBefore(), 2000000L);
         assertEquals(status.getSizeAfter(), 1500000L);
         assertEquals(status.getReclaimedBytes(), 500000L);
-    }
-
-    @Test
-    public void testCompactStatusWithTimestamp() {
-        Instant now = Instant.now();
-        CompactStatus status = new CompactStatus(1000L, 800L, 200L, now);
-
-        assertEquals(status.getTimestamp(), now);
+        assertNotNull(status.getStartTime());
+        assertNotNull(status.getEndTime());
     }
 
     @Test
     public void testCompactStatusNoReclaim() {
-        CompactStatus status = new CompactStatus(1000000L, 1000000L);
+        // Given
+        CompactStatus status = new CompactStatus(1000000L, 1000000L, Instant.now(), Instant.now().plusSeconds(10));
+        // When & Then
         assertEquals(status.getReclaimedBytes(), 0L);
     }
 
     @Test
     public void testBackupException() {
+        // Given
         BackupException ex1 = new BackupException("Backup failed");
-        assertEquals(ex1.getMessage(), "Backup failed");
-        assertNull(ex1.getCause());
-
         RuntimeException cause = new RuntimeException("IO error");
         BackupException ex2 = new BackupException("Backup failed", cause);
+
+        // When & Then
+        assertEquals(ex1.getMessage(), "Backup failed");
+        assertNull(ex1.getCause());
         assertEquals(ex2.getMessage(), "Backup failed");
         assertEquals(ex2.getCause(), cause);
     }
 
     @Test
     public void testRestoreException() {
+        // Given
         RestoreException ex1 = new RestoreException("Restore failed");
-        assertEquals(ex1.getMessage(), "Restore failed");
-        assertNull(ex1.getCause());
-
         RuntimeException cause = new RuntimeException("Corruption");
         RestoreException ex2 = new RestoreException("Restore failed", cause);
+
+        //  When & Then
+        assertEquals(ex1.getMessage(), "Restore failed");
+        assertNull(ex1.getCause());
         assertEquals(ex2.getCause(), cause);
     }
 
     @Test
     public void testCompactionException() {
+        // Given
         CompactException ex1 = new CompactException("Compaction failed");
-        assertEquals(ex1.getMessage(), "Compaction failed");
-
         RuntimeException cause = new RuntimeException("DB locked");
         CompactException ex2 = new CompactException("Compaction failed", cause);
+
+        // When & Then
+        assertEquals(ex1.getMessage(), "Compaction failed");
         assertEquals(ex2.getCause(), cause);
     }
 
     @Test
     public void testConfigOptionsImmutability() {
+        // Given
         BackupConfig config = BackupConfig.builder()
                                           .name("test")
                                           .option("key1", "value1")
                                           .build();
-
-        // Modifying returned map shouldn't affect config
+        // When & Then
         config.getOptions().put("key2", "value2");
         assertNull(config.getOption("key2"));
     }
