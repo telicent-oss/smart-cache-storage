@@ -22,7 +22,6 @@ import org.rocksdb.WriteOptions;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-
 /**
  * A virtual "nested" transaction context that allows for longer lived transactions that appear "nested" from the
  * application perspective but are actually just one shared longer running transaction.  The transaction is only

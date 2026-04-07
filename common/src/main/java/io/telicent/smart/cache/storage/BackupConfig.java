@@ -22,8 +22,8 @@ import java.util.Map;
 
 public class BackupConfig {
     private final String name;
-    private final File backupDir;  // for filesystem-based backups (RocksDB)
-    private final Map<String, Object> options;  // for implementation-specific options
+    private final File backupDir;
+    private final Map<String, Object> options;
 
     private BackupConfig(Builder builder) {
         this.name = builder.name;
@@ -61,17 +61,11 @@ public class BackupConfig {
             return this;
         }
 
-        /**
-         * Sets the backup directory for filesystem-based backups
-         */
         public Builder backupDir(File backupDir) {
             this.backupDir = backupDir;
             return this;
         }
 
-        /**
-         * Adds an implementation-specific option
-         */
         public Builder option(String key, Object value) {
             this.options.put(key, value);
             return this;
