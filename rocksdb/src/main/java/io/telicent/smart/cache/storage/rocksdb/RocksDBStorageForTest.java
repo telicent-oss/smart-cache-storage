@@ -28,6 +28,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * An example implementation of the BackupRestoreCapable and CompactCapable interfaces.
+ */
 public class RocksDBStorageForTest extends AbstractRocksDBStorage
         implements BackupRestoreCapable, CompactCapable {
 
