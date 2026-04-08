@@ -185,23 +185,23 @@ public class RocksDBStorageForTest extends AbstractRocksDBStorage
     /**
      * Helper method to estimate database size
      */
-    private long estimateSize() throws CompactException {
-        try {
-            return Files.walk(dbDir.toPath())
-                        .filter(Files::isRegularFile)
-                        .mapToLong(path -> {
-                            try {
-                                return Files.size(path);
-                            } catch (IOException e) {
-                                // no failure - only skips this file
-                                return 0L;
-                            }
-                        })
-                        .sum();
-        } catch (IOException e) {
-            throw new CompactException("Failed to estimate database size: " + e.getMessage(), e);
-        }
-    }
+private long estimateSize() throws CompactException {
+      try (Stream<Path> paths = Files.walk(dbDir.toPath())) {
+          return paths
+                  .filter(Files::isRegularFile)
+                  .mapToLong(path -> {
+                      try {
+                          return Files.size(path);
+                      } catch (IOException e) {
+                          // Skip files we fail to stat rather than failing the whole estimate
+                          return 0L;
+                      }
+                  })
+                  .sum();
+      } catch (IOException e) {
+          throw new CompactException("Failed to estimate database size: " + e.getMessage(), e);
+      }
+  }
 
     /**
      * Accessor for the underlying RocksDB instance (for backup/restore operations)
