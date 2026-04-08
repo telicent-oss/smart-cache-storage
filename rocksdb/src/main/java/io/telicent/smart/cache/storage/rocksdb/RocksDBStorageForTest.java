@@ -25,7 +25,6 @@ import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.nio.file.Path;
 import java.util.stream.Stream;
@@ -158,10 +157,10 @@ public class RocksDBStorageForTest extends AbstractRocksDBStorage
 
             return backupEngine.getBackupInfo().stream()
                                .map(rocksBackup -> new io.telicent.smart.cache.storage.BackupDetails(
-                                       Optional.empty(),
+                                       null,
                                        String.valueOf(rocksBackup.backupId()),
-                                       Optional.empty(),
-                                       Optional.ofNullable(Instant.ofEpochSecond(rocksBackup.timestamp())),
+                                       null,
+                                       Instant.ofEpochSecond(rocksBackup.timestamp()),
                                        rocksBackup.size()
                                ))
                                .collect(Collectors.toList());

@@ -24,8 +24,4 @@ public class RestoreException extends RuntimeException{
     public RestoreException(String message, Throwable cause) {
         super(message, cause);
     }
-
-    public RestoreException(Throwable cause) {
-        super(cause);
-    }
 }

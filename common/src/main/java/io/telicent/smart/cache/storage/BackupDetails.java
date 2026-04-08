@@ -19,32 +19,70 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * Metadata about existing backups.
+ */
 public class BackupDetails {
-    private final Optional<String> name;
+    private final String name;
     private final String backupId;
-    private final Optional<Instant> startTime;
-    private final Optional<Instant> endTime;
+    private final Instant startTime;
+    private final Instant endTime;
     private final long sizeBytes;
 
-    public BackupDetails(Optional<String> name, String backupId, Optional<Instant> startTime, Optional<Instant> endTime, long sizeBytes) {
-        this.name = name != null ? name : Optional.empty();
-        this.startTime = startTime != null ? startTime : Optional.empty();
-        this.endTime = endTime != null ? endTime : Optional.empty();
+    /**
+     * Creates a new {@code BackupDetails} instance.
+     *
+     * @param name      the human-readable name of the backup, or {@code null} if not available
+     * @param backupId  the unique identifier of the backup; must not be {@code null}
+     * @param startTime the time at which the backup started, or {@code null} if not recorded
+     * @param endTime   the time at which the backup completed, or {@code null} if not recorded
+     * @param sizeBytes the total size of the backup in bytes
+     */
+    public BackupDetails(String name, String backupId, Instant startTime, Instant endTime, long sizeBytes) {
+        this.name = name;
+        this.startTime = startTime;
+        this.endTime = endTime;
         this.backupId = Objects.requireNonNull(backupId, "Backup ID cannot be null");
         this.sizeBytes = sizeBytes;
     }
 
+    /**
+     * Returns the human-readable name of the backup, if available.
+     *
+     * @return an {@link Optional} containing the name, or empty if not set
+     */
     public Optional<String> getName() {
-        return name;
+        return Optional.ofNullable(this.name);
     }
 
+    /**
+     * Returns the unique identifier of the backup.
+     *
+     * @return the backup ID; never {@code null}
+     */
     public String getBackupId() {
         return backupId;
     }
 
-    public Optional<Instant> getStartTime() { return startTime; }
-    public Optional<Instant> getEndTime() { return endTime; }
+    /**
+     * Returns the time at which the backup started, if recorded.
+     *
+     * @return an {@link Optional} containing the start time, or empty if not recorded
+     */
+    public Optional<Instant> getStartTime() { return Optional.ofNullable(startTime); }
 
+    /**
+     * Returns the time at which the backup completed, if recorded.
+     *
+     * @return an {@link Optional} containing the end time, or empty if not recorded
+     */
+    public Optional<Instant> getEndTime() { return Optional.ofNullable(endTime); }
+
+    /**
+     * Returns the total size of the backup in bytes.
+     *
+     * @return the size in bytes
+     */
     public long getSizeBytes() {
         return sizeBytes;
     }

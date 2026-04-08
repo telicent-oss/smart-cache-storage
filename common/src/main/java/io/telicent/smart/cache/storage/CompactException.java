@@ -24,8 +24,4 @@ public class CompactException extends RuntimeException{
     public CompactException(String message, Throwable cause) {
         super(message, cause);
     }
-
-    public CompactException(Throwable cause) {
-        super(cause);
-    }
 }
