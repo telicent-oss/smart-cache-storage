@@ -7,6 +7,10 @@
 - Build improvements:
     - RocksDB upgraded to 10.9.1
 
+# 0.10.3
+- Build improvements:
+  - Update dependencies
+
 # 0.10.2
 
 - Build improvements:
