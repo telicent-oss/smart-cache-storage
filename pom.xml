@@ -74,12 +74,12 @@
         <dependency.commons-codec>1.21.0</dependency.commons-codec>
         <dependency.flyway>12.3.0</dependency.flyway>
         <dependency.h2>2.4.240</dependency.h2>
-        <dependency.hibernate>7.3.0.Final</dependency.hibernate>
+        <dependency.hibernate>7.3.1.Final</dependency.hibernate>
         <dependency.hypersistence>3.15.2</dependency.hypersistence>
-        <dependency.jackson3>3.1.1</dependency.jackson3>
+        <dependency.jackson3>3.1.2</dependency.jackson3>
         <dependency.jetty>12.1.8</dependency.jetty>
         <dependency.jmh>1.37</dependency.jmh>
-        <dependency.mongodb>5.6.4</dependency.mongodb>
+        <dependency.mongodb>5.6.5</dependency.mongodb>
         <dependency.mongojack>5.1.0</dependency.mongojack>
         <dependency.postgres>42.7.10</dependency.postgres>
         <dependency.rocksdb>10.10.1.1</dependency.rocksdb>
