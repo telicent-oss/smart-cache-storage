@@ -82,7 +82,7 @@
         <dependency.mongodb>5.6.4</dependency.mongodb>
         <dependency.mongojack>5.1.0</dependency.mongojack>
         <dependency.postgres>42.7.10</dependency.postgres>
-        <dependency.rocksdb>10.10.1</dependency.rocksdb>
+        <dependency.rocksdb>10.10.1.1</dependency.rocksdb>
         <dependency.smart-caches>0.36.3</dependency.smart-caches>
 
     </properties>
