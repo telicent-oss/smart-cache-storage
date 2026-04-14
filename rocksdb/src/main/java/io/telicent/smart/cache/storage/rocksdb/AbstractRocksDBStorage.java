@@ -59,8 +59,11 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
     private final Map<String, RocksDBCounter> counters;
     private final ThreadLocal<NestedTransactionContext> nestedTransactions = ThreadLocal.withInitial(() -> null);
 
-    protected final TransactionDB getTransactionDB() {
+    public final TransactionDB getTransactionDB() {
         return this.db;
+    }
+    public final Map<String, ColumnFamilyHandle> getColumnFamilyHandles() {
+        return this.columnFamilyHandles;
     }
 
     /**

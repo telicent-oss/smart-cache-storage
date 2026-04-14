@@ -128,8 +128,8 @@ public class TestBackupRestoreCompact {
         assertNotNull(status, "Compact status should not be null");
         assertTrue(status.getSizeBefore() >= 0, "Size before should be non-negative");
         assertTrue(status.getSizeAfter() >= 0, "Size after should be non-negative");
-        assertTrue(status.getSizeAfter() <= status.getSizeBefore(),
-                   "Size after compaction should be <= size before");
+        assertTrue(status.getSizeAfter() < status.getSizeBefore(),
+                   "Size after compaction should be < size before");
         assertNotNull(status.getStartTime(), "Compact status should have a start time");
         assertNotNull(status.getEndTime(), "Compact status should have an end time");
     }
