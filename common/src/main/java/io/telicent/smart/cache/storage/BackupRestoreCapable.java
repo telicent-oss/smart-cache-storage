@@ -48,21 +48,21 @@ public interface BackupRestoreCapable {
 
     /**
      * Lists all backups in a directory
-     * @param backupDir backup directory
+     * @param backupLocation backup directory
      * @return a list of all backups in a directory
      * @throws BackupException if list operation fails
      */
-    default List<BackupDetails> listBackups(File backupDir) throws BackupException {
+    default List<BackupDetails> listBackups(String backupLocation) throws BackupException {
         throw new UnsupportedOperationException("Backup listing not supported by this storage implementation");
     }
 
     /**
      * Deletes a backup given its backupId
-     * @param backupDir backup directory
+     * @param backupLocation backup directory
      * @param backupId ID of the backup
      * @throws BackupException if delete operation fails
      */
-    default void deleteBackup(File backupDir, String backupId) throws BackupException {
+    default void deleteBackup(String backupLocation, String backupId) throws BackupException {
         throw new UnsupportedOperationException("Backup deletion not supported by this storage implementation");
     }
 }

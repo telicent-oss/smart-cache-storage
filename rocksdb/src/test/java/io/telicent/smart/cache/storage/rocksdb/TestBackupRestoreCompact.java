@@ -35,13 +35,13 @@ public class TestBackupRestoreCompact {
 
     private RocksDBStorageForTest storage;
     private File dbDir;
-    private File backupDir;
+    private String backupDir;
 
     @BeforeMethod
     void setup() throws Exception {
         tempDir = Files.createTempDirectory("test-").toFile();
         dbDir = new File(tempDir, "db");
-        backupDir = new File(tempDir, "backups");
+        backupDir = new File(tempDir, "backups").getAbsolutePath();
         storage = new RocksDBStorageForTest(dbDir);
     }
 
@@ -70,7 +70,7 @@ public class TestBackupRestoreCompact {
 
         BackupConfig backupConfig = BackupConfig.builder()
                                                 .name("test-backup")
-                                                .backupDir(backupDir)
+                                                .backupLocation(backupDir)
                                                 .build();
         // When
         BackupStatus backupStatus = storage.backup(backupConfig);
@@ -88,7 +88,7 @@ public class TestBackupRestoreCompact {
         storage.close();
 
         RestoreConfig restoreConfig = RestoreConfig.builder()
-                                                   .backupDir(backupDir)
+                                                   .backupLocation(backupDir)
                                                    .build();
         // When
         RestoreStatus restoreStatus = storage.restore(restoreConfig);
@@ -165,8 +165,8 @@ public class TestBackupRestoreCompact {
         assertNotNull(status, "Compact status should not be null");
         assertTrue(status.getSizeBefore() > 0, "Size before should be positive");
         assertTrue(status.getSizeAfter() > 0, "Size after should be positive");
-        assertTrue(status.getSizeAfter() <= status.getSizeBefore(),
-                   String.format("Size after compaction (%d) should be <= size before (%d)",
+        assertTrue(status.getSizeAfter() < status.getSizeBefore(),
+                   String.format("Size after compaction (%d) should be < size before (%d)",
                                  status.getSizeAfter(), status.getSizeBefore()));
 
         // verify space was reclaimed (at least 10% of the deleted data)
@@ -201,7 +201,7 @@ public class TestBackupRestoreCompact {
             expectedExceptionsMessageRegExp = ".*Database must be closed before restore operation.*")
     public void testRestoreFailsWhenDbNotClosed() {
         RestoreConfig config = RestoreConfig.builder()
-                                            .backupDir(backupDir)
+                                            .backupLocation(backupDir)
                                             .build();
 
         storage.restore(config);
@@ -214,7 +214,7 @@ public class TestBackupRestoreCompact {
 
         BackupConfig config = BackupConfig.builder()
                                           .name("metadata-test")
-                                          .backupDir(backupDir)
+                                          .backupLocation(backupDir)
                                           .build();
         // When
         BackupStatus status = storage.backup(config);
@@ -230,7 +230,7 @@ public class TestBackupRestoreCompact {
         storage.put("key1".getBytes(), "value1".getBytes());
         BackupConfig config1 = BackupConfig.builder()
                                            .name("backup-1")
-                                           .backupDir(backupDir)
+                                           .backupLocation(backupDir)
                                            .build();
         // When
         BackupStatus status1 = storage.backup(config1);
@@ -239,7 +239,7 @@ public class TestBackupRestoreCompact {
         storage.put("key2".getBytes(), "value2".getBytes());
         BackupConfig config2 = BackupConfig.builder()
                                            .name("backup-2")
-                                           .backupDir(backupDir)
+                                           .backupLocation(backupDir)
                                            .build();
         BackupStatus status2 = storage.backup(config2);
 
@@ -254,14 +254,14 @@ public class TestBackupRestoreCompact {
         storage.put("key1".getBytes(), "value1".getBytes());
         BackupConfig config1 = BackupConfig.builder()
                                            .name("backup-1")
-                                           .backupDir(backupDir)
+                                           .backupLocation(backupDir)
                                            .build();
         storage.backup(config1);
 
         storage.put("key2".getBytes(), "value2".getBytes());
         BackupConfig config2 = BackupConfig.builder()
                                            .name("backup-2")
-                                           .backupDir(backupDir)
+                                           .backupLocation(backupDir)
                                            .build();
         storage.backup(config2);
 
@@ -281,20 +281,20 @@ public class TestBackupRestoreCompact {
         storage.put("key1".getBytes(), "value1".getBytes());
         BackupStatus backup1 = storage.backup(BackupConfig.builder()
                                                           .name("backup-1")
-                                                          .backupDir(backupDir)
+                                                          .backupLocation(backupDir)
                                                           .build());
 
         storage.put("key2".getBytes(), "value2".getBytes());
         BackupStatus backup2 = storage.backup(BackupConfig.builder()
                                                           .name("backup-2")
-                                                          .backupDir(backupDir)
+                                                          .backupLocation(backupDir)
                                                           .build());
         storage.close();
 
         // When
         RestoreConfig restoreConfig = RestoreConfig.builder()
                                                    .backupId(backup1.getBackupId())
-                                                   .backupDir(backupDir)
+                                                   .backupLocation(backupDir)
                                                    .build();
 
         storage.restore(restoreConfig);
@@ -310,7 +310,7 @@ public class TestBackupRestoreCompact {
         // given
         BackupStatus backup1 = storage.backup(BackupConfig.builder()
                                                           .name("to-delete")
-                                                          .backupDir(backupDir)
+                                                          .backupLocation(backupDir)
                                                           .build());
         assertEquals(storage.listBackups(backupDir).size(), 1);
 
@@ -326,7 +326,7 @@ public class TestBackupRestoreCompact {
     public void testDeleteBackupFailed() {
         BackupStatus backup1 = storage.backup(BackupConfig.builder()
                                                           .name("to-delete")
-                                                          .backupDir(backupDir)
+                                                          .backupLocation(backupDir)
                                                           .build());
 
         assertEquals(storage.listBackups(backupDir).size(), 1);

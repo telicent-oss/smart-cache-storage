@@ -16,6 +16,7 @@
 package io.telicent.smart.cache.storage.rocksdb;
 
 import io.telicent.smart.cache.storage.*;
+import org.apache.commons.io.FileUtils;
 import org.rocksdb.*;
 import org.rocksdb.BackupInfo;
 
@@ -26,8 +27,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.nio.file.Path;
-import java.util.stream.Stream;
 
 /**
  * An example implementation of the BackupRestoreCapable and CompactCapable interfaces.
@@ -52,12 +51,12 @@ public class RocksDBStorageForTest extends AbstractRocksDBStorage
     @Override
     public BackupStatus backup(BackupConfig config) throws BackupException {
         ensureNotClosed();
-        if (config.getBackupDir() == null) {
+        if (config.getBackupLocation() == null) {
             throw new BackupException("Backup directory must be specified for RocksDB backups");
         }
         Instant startTime = Instant.now();
         try {
-            File backupDir = config.getBackupDir();
+            File backupDir = new File(config.getBackupLocation());
             Files.createDirectories(backupDir.toPath());
 
             try (BackupEngineOptions backupOptions = new BackupEngineOptions(backupDir.getAbsolutePath());
@@ -85,14 +84,14 @@ public class RocksDBStorageForTest extends AbstractRocksDBStorage
 
     @Override
     public RestoreStatus restore(RestoreConfig config) throws RestoreException {
-        if (config.getBackupDir() == null) {
+        if (config.getBackupLocation() == null) {
             throw new RestoreException("Backup directory must be specified for RocksDB restores");
         }
         if (!isClosed()) {
             throw new RestoreException("Database must be closed before restore operation");
         }
         try {
-            File backupDir = config.getBackupDir();
+            File backupDir = new File(config.getBackupLocation());
             try (BackupEngineOptions backupOptions = new BackupEngineOptions(backupDir.getAbsolutePath());
                  BackupEngine backupEngine = BackupEngine.open(Env.getDefault(), backupOptions);
                  RestoreOptions restoreOptions = new RestoreOptions(false)) {
@@ -136,13 +135,14 @@ public class RocksDBStorageForTest extends AbstractRocksDBStorage
         ensureNotClosed();
         try {
             Instant startTime = Instant.now();
-            long sizeBefore = estimateSize();
+            long sizeBefore = FileUtils.sizeOfDirectory(dbDir);
             try (FlushOptions flushOptions = new FlushOptions().setWaitForFlush(true)) {
                 getTransactionDB().flush(flushOptions);
             }
             getTransactionDB().compactRange(getDefaultHandle());
+            flush();
             Instant endTime = Instant.now();
-            long sizeAfter = estimateSize();
+            long sizeAfter = FileUtils.sizeOfDirectory(dbDir);
 
             return new CompactStatus(sizeBefore, sizeAfter, sizeBefore - sizeAfter, startTime, endTime);
         } catch (RocksDBException e) {
@@ -151,7 +151,8 @@ public class RocksDBStorageForTest extends AbstractRocksDBStorage
     }
 
     @Override
-    public List<BackupDetails> listBackups(File backupDir) throws BackupException {
+    public List<BackupDetails> listBackups(String backupLocation) throws BackupException {
+        File backupDir = new File(backupLocation);
         try (BackupEngineOptions backupOptions = new BackupEngineOptions(backupDir.getAbsolutePath());
              BackupEngine backupEngine = BackupEngine.open(Env.getDefault(), backupOptions)) {
 
@@ -171,7 +172,8 @@ public class RocksDBStorageForTest extends AbstractRocksDBStorage
     }
 
     @Override
-    public void deleteBackup(File backupDir, String backupId) throws BackupException {
+    public void deleteBackup(String backupLocation, String backupId) throws BackupException {
+        File backupDir = new File(backupLocation);
         try (BackupEngineOptions backupOptions = new BackupEngineOptions(backupDir.getAbsolutePath());
              BackupEngine backupEngine = BackupEngine.open(Env.getDefault(), backupOptions)) {
 
@@ -182,27 +184,6 @@ public class RocksDBStorageForTest extends AbstractRocksDBStorage
             throw new BackupException("Failed to delete backup " + backupId + ": " + e.getMessage(), e);
         }
     }
-
-    /**
-     * Helper method to estimate database size
-     */
-private long estimateSize() throws CompactException {
-      try (Stream<Path> paths = Files.walk(dbDir.toPath())) {
-          return paths
-                  .filter(Files::isRegularFile)
-                  .mapToLong(path -> {
-                      try {
-                          return Files.size(path);
-                      } catch (IOException e) {
-                          // Skip files we fail to stat rather than failing the whole estimate
-                          return 0L;
-                      }
-                  })
-                  .sum();
-      } catch (IOException e) {
-          throw new CompactException("Failed to estimate database size: " + e.getMessage(), e);
-      }
-  }
 
     /**
      * Accessor for the underlying RocksDB instance (for backup/restore operations)
