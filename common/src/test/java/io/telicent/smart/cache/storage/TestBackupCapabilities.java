@@ -26,16 +26,16 @@ public class TestBackupCapabilities {
     @Test
     public void testBackupConfigBuilder() {
         // Given
-        File dir = new File("/tmp/backup");
+        String dir = "/tmp/backup";
         BackupConfig config = BackupConfig.builder()
                                           .name("test-backup")
-                                          .backupDir(dir)
+                                          .backupLocation(dir)
                                           .option("compress", true)
                                           .option("threads", 4)
                                           .build();
         // When & Then
         assertEquals(config.getName(), "test-backup");
-        assertEquals(config.getBackupDir(), dir);
+        assertEquals(config.getBackupLocation(), dir);
         assertEquals(config.getOption("compress"), true);
         assertEquals(config.getOption("threads"), 4);
         assertEquals(config.getOptions().size(), 2);
@@ -49,7 +49,7 @@ public class TestBackupCapabilities {
                                           .build();
         // When & Then
         assertEquals(config.getName(), "minimal");
-        assertNull(config.getBackupDir());
+        assertNull(config.getBackupLocation());
         assertTrue(config.getOptions().isEmpty());
         assertNull(config.getOption("nonexistent"));
     }
@@ -57,13 +57,13 @@ public class TestBackupCapabilities {
     @Test
     public void testRestoreConfigBuilder() {
         // Given
-        File dir = new File("/tmp/restore");
+        String dir = "/tmp/restore";
         RestoreConfig config = RestoreConfig.builder()
-                                            .backupDir(dir)
+                                            .backupLocation(dir)
                                             .option("verify", true)
                                             .build();
         // When & Then
-        assertEquals(config.getBackupDir(), dir);
+        assertEquals(config.getBackupLocation(), dir);
         assertEquals(config.getOption("verify"), true);
     }
 

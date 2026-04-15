@@ -15,7 +15,6 @@
  */
 package io.telicent.smart.cache.storage;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,11 +24,11 @@ import java.util.Map;
  */
 public class RestoreConfig {
     private final String backupId;
-    private final File backupDir;
+    private final String backupLocation;
     private final Map<String, Object> options;
 
     private RestoreConfig(Builder builder) {
-        this.backupDir = builder.backupDir;
+        this.backupLocation = builder.backupLocation;
         this.options = new HashMap<>(builder.options);
         this.backupId = builder.backupId;
     }
@@ -39,8 +38,8 @@ public class RestoreConfig {
      *
      * @return the backup directory
      */
-    public File getBackupDir() {
-        return backupDir;
+    public String getBackupLocation() {
+        return backupLocation;
     }
 
     /**
@@ -82,7 +81,7 @@ public class RestoreConfig {
 
     public static class Builder {
         private String backupId;
-        private File backupDir;
+        private String backupLocation;
         private Map<String, Object> options = new HashMap<>();
 
         /**
@@ -99,11 +98,11 @@ public class RestoreConfig {
         /**
          * Sets the directory from which backups will be restored.
          *
-         * @param backupDir the backup directory
+         * @param backupLocation the backup directory
          * @return this builder
          */
-        public Builder backupDir(File backupDir) {
-            this.backupDir = backupDir;
+        public Builder backupLocation(String backupLocation) {
+            this.backupLocation = backupLocation;
             return this;
         }
 
