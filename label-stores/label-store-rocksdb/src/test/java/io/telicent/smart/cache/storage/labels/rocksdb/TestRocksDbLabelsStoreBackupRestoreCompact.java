@@ -35,13 +35,13 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
     File tempDir;
     private RocksDbLabelsStore store;
     private File dbDir;
-    private File backupDir;
+    private String backupDir;
 
     @BeforeMethod
     void setup() throws Exception {
         tempDir = Files.createTempDirectory("test-labels-store-").toFile();
         dbDir = new File(tempDir, "db");
-        backupDir = new File(tempDir, "backups");
+        backupDir = new File(tempDir, "backups").getAbsolutePath();
         store = new RocksDbLabelsStore(dbDir);
     }
 
@@ -79,7 +79,7 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
 
         BackupConfig backupConfig = BackupConfig.builder()
                                                 .name("test-backup")
-                                                .backupDir(backupDir)
+                                                .backupLocation(backupDir)
                                                 .build();
         // When
         BackupStatus backupStatus = store.backup(backupConfig);
@@ -96,7 +96,7 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
 
         store.close();
         RestoreConfig restoreConfig = RestoreConfig.builder()
-                                                   .backupDir(backupDir)
+                                                   .backupLocation(backupDir)
                                                    .build();
 
         // When
@@ -177,7 +177,7 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
     @Test(expectedExceptions = RestoreException.class,
             expectedExceptionsMessageRegExp = ".*Database must be closed before restore operation.*")
     public void testRestoreFailsWhenDbNotClosed() {
-        store.restore(RestoreConfig.builder().backupDir(backupDir).build());
+        store.restore(RestoreConfig.builder().backupLocation(backupDir).build());
     }
 
     @Test
@@ -188,7 +188,7 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
 
         BackupConfig config = BackupConfig.builder()
                                           .name("metadata-test")
-                                          .backupDir(backupDir)
+                                          .backupLocation(backupDir)
                                           .build();
         // When
         BackupStatus status = store.backup(config);
@@ -205,7 +205,7 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
         store.setLabel("key1".getBytes(), id1);
         BackupStatus status1 = store.backup(BackupConfig.builder()
                                                         .name("backup-1")
-                                                        .backupDir(backupDir)
+                                                        .backupLocation(backupDir)
                                                         .build());
         assertTrue(status1.isSuccess());
 
@@ -213,7 +213,7 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
         store.setLabel("key2".getBytes(), id2);
         BackupStatus status2 = store.backup(BackupConfig.builder()
                                                         .name("backup-2")
-                                                        .backupDir(backupDir)
+                                                        .backupLocation(backupDir)
                                                         .build());
 
         assertTrue(status2.isSuccess());
@@ -224,10 +224,10 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
     public void testListBackups() {
         // Given
         store.setLabel("key1".getBytes(), store.idForLabel("label1".getBytes()));
-        store.backup(BackupConfig.builder().name("backup-1").backupDir(backupDir).build());
+        store.backup(BackupConfig.builder().name("backup-1").backupLocation(backupDir).build());
 
         store.setLabel("key2".getBytes(), store.idForLabel("label2".getBytes()));
-        store.backup(BackupConfig.builder().name("backup-2").backupDir(backupDir).build());
+        store.backup(BackupConfig.builder().name("backup-2").backupLocation(backupDir).build());
 
         // When
         List<BackupDetails> backups = store.listBackups(backupDir);
@@ -245,17 +245,17 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
         store.setLabel("key1".getBytes(), store.idForLabel("label1".getBytes()));
         BackupStatus backup1 = store.backup(BackupConfig.builder()
                                                         .name("backup-1")
-                                                        .backupDir(backupDir)
+                                                        .backupLocation(backupDir)
                                                         .build());
 
         store.setLabel("key2".getBytes(), store.idForLabel("label2".getBytes()));
-        store.backup(BackupConfig.builder().name("backup-2").backupDir(backupDir).build());
+        store.backup(BackupConfig.builder().name("backup-2").backupLocation(backupDir).build());
         store.close();
 
         // When
         store.restore(RestoreConfig.builder()
                                    .backupId(backup1.getBackupId())
-                                   .backupDir(backupDir)
+                                   .backupLocation(backupDir)
                                    .build());
         store = new RocksDbLabelsStore(dbDir);
 
@@ -270,7 +270,7 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
         store.setLabel("key1".getBytes(), store.idForLabel("label1".getBytes()));
         BackupStatus backup = store.backup(BackupConfig.builder()
                                                        .name("to-delete")
-                                                       .backupDir(backupDir)
+                                                       .backupLocation(backupDir)
                                                        .build());
         assertEquals(store.listBackups(backupDir).size(), 1);
         // When
@@ -285,7 +285,7 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
         store.setLabel("key1".getBytes(), store.idForLabel("label1".getBytes()));
         BackupStatus backup = store.backup(BackupConfig.builder()
                                                        .name("to-delete")
-                                                       .backupDir(backupDir)
+                                                       .backupLocation(backupDir)
                                                        .build());
         assertEquals(store.listBackups(backupDir).size(), 1);
         store.deleteBackup(backupDir, backup.getBackupId());

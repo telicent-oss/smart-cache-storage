@@ -340,12 +340,12 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
     @Override
     public BackupStatus backup(BackupConfig config) throws BackupException {
         ensureNotClosed();
-        if (config.getBackupDir() == null) {
+        if (config.getBackupLocation() == null) {
             throw new BackupException("Backup directory must be specified for RocksDB backups");
         }
         Instant startTime = Instant.now();
         try {
-            File backupDir = config.getBackupDir();
+            File backupDir = new File(config.getBackupLocation());
             Files.createDirectories(backupDir.toPath());
 
             try (BackupEngineOptions backupOptions = new BackupEngineOptions(backupDir.getAbsolutePath());
@@ -373,14 +373,14 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
 
     @Override
     public RestoreStatus restore(RestoreConfig config) throws RestoreException {
-        if (config.getBackupDir() == null) {
+        if (config.getBackupLocation() == null) {
             throw new RestoreException("Backup directory must be specified for RocksDB restores");
         }
         if (!isClosed()) {
             throw new RestoreException("Database must be closed before restore operation");
         }
         try {
-            File backupDir = config.getBackupDir();
+            File backupDir = new File(config.getBackupLocation());
             try (BackupEngineOptions backupOptions = new BackupEngineOptions(backupDir.getAbsolutePath());
                  BackupEngine backupEngine = BackupEngine.open(Env.getDefault(), backupOptions);
                  RestoreOptions restoreOptions = new RestoreOptions(false)) {
@@ -431,6 +431,7 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
             for (ColumnFamilyHandle handle : getAllColumnFamilyHandles()) {
                 getTransactionDB().compactRange(handle);
             }
+            flush();
             Instant endTime = Instant.now();
             long sizeAfter = estimateSize();
 
@@ -441,8 +442,8 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
     }
 
     @Override
-    public List<BackupDetails> listBackups(File backupDir) throws BackupException {
-        try (BackupEngineOptions backupOptions = new BackupEngineOptions(backupDir.getAbsolutePath());
+    public List<BackupDetails> listBackups(String backupDir) throws BackupException {
+        try (BackupEngineOptions backupOptions = new BackupEngineOptions(backupDir);
              BackupEngine backupEngine = BackupEngine.open(Env.getDefault(), backupOptions)) {
 
             return backupEngine.getBackupInfo().stream()
@@ -461,8 +462,8 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
     }
 
     @Override
-    public void deleteBackup(File backupDir, String backupId) throws BackupException {
-        try (BackupEngineOptions backupOptions = new BackupEngineOptions(backupDir.getAbsolutePath());
+    public void deleteBackup(String backupDir, String backupId) throws BackupException {
+        try (BackupEngineOptions backupOptions = new BackupEngineOptions(backupDir);
              BackupEngine backupEngine = BackupEngine.open(Env.getDefault(), backupOptions)) {
 
             int id = Integer.parseInt(backupId);
