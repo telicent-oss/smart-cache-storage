@@ -59,7 +59,9 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
     private final Map<String, RocksDBCounter> counters;
     private final ThreadLocal<NestedTransactionContext> nestedTransactions = ThreadLocal.withInitial(() -> null);
 
-    public final TransactionDB getTransactionDB() {
+    protected final File dbDir;
+
+    protected final TransactionDB getTransactionDB() {
         return this.db;
     }
     public final Map<String, ColumnFamilyHandle> getColumnFamilyHandles() {
@@ -89,6 +91,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
      * @throws RocksDBException Thrown if the RocksDB storage cannot be initialised for any reason
      */
     public AbstractRocksDBStorage(File dbDir) throws IOException, RocksDBException {
+        this.dbDir = dbDir;
         Objects.requireNonNull(dbDir, "Database Directory cannot be null");
 
         // Load the native library

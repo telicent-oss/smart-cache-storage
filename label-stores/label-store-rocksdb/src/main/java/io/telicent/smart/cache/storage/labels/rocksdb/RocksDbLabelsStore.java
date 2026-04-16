@@ -24,6 +24,8 @@ import io.telicent.smart.cache.storage.rocksdb.TransactionContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.rocksdb.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,12 +48,6 @@ import static org.rocksdb.RocksDB.DEFAULT_COLUMN_FAMILY;
 public class RocksDbLabelsStore extends AbstractRocksDBStorage implements LabelsStore, BackupRestoreCapable,
         CompactCapable {
 
-    private final File dbDir;
-
-    public File getDbDir() {
-        return dbDir;
-    }
-
     // Map labels to IDs
     protected static final byte[] LABELS_TO_IDS_CF = "labels_to_ids".getBytes(StandardCharsets.UTF_8);
     // Map IDs to labels
@@ -62,6 +58,7 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
     protected static final byte[] KEYS_TO_LABELS_CF = "keys_to_labels".getBytes(StandardCharsets.UTF_8);
     // Next Label ID counter key
     protected static final byte[] ID_COUNTER_KEY = "next_label_id".getBytes(StandardCharsets.UTF_8);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RocksDbLabelsStore.class);
 
     /**
      * Creates a new RocksDB labels store
@@ -72,7 +69,6 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
      */
     public RocksDbLabelsStore(File dbDir) throws IOException, RocksDBException {
         super(dbDir);
-        this.dbDir = dbDir;
     }
 
     @Override
@@ -324,7 +320,7 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
         }
     }
 
-    public void removeLabel(byte[] key) {
+    void removeLabel(byte[] key) {
         ensureNotClosed();
         if (DictionaryLabelsStore.isInvalidByteSequence(key)) {
             throw new NullPointerException("key cannot be null/empty");
@@ -344,6 +340,7 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
             throw new BackupException("Backup directory must be specified for RocksDB backups");
         }
         Instant startTime = Instant.now();
+        LOGGER.info("Starting backup at {}", startTime);
         try {
             File backupDir = new File(config.getBackupLocation());
             Files.createDirectories(backupDir.toPath());
@@ -351,12 +348,13 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
             try (BackupEngineOptions backupOptions = new BackupEngineOptions(backupDir.getAbsolutePath());
                  BackupEngine backupEngine = BackupEngine.open(Env.getDefault(), backupOptions)) {
 
-                backupEngine.createNewBackup(getDb(), true);
+                backupEngine.createNewBackup(getTransactionDB(), true);
 
                 List<BackupInfo> backupInfos = backupEngine.getBackupInfo();
                 BackupInfo latestBackup = backupInfos.getLast();
 
                 Instant endTime = Instant.now();
+                LOGGER.info("Backup {} created successfully at {}", latestBackup.backupId(), endTime);
 
                 return BackupStatus.builder()
                                    .success(true)
@@ -379,6 +377,7 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
         if (!isClosed()) {
             throw new RestoreException("Database must be closed before restore operation");
         }
+        LOGGER.info("Starting restore of {}", config.getBackupLocation());
         try {
             File backupDir = new File(config.getBackupLocation());
             try (BackupEngineOptions backupOptions = new BackupEngineOptions(backupDir.getAbsolutePath());
@@ -409,6 +408,7 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
                                                         .orElseThrow(() -> new RestoreException("Backup not found: " + config.getBackupId()))
                                            : backupInfos.getLast();
 
+                LOGGER.info("Restored {} from backup {}", dbDir.getPath(), restoredBackup.backupId());
                 return RestoreStatus.success(
                         String.valueOf(restoredBackup.backupId()),
                         restoredBackup.size()
@@ -424,17 +424,19 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
         ensureNotClosed();
         try {
             Instant startTime = Instant.now();
+            LOGGER.info("Starting compact operation at {}", startTime);
             long sizeBefore = estimateSize();
             try (FlushOptions flushOptions = new FlushOptions().setWaitForFlush(true)) {
                 getTransactionDB().flush(flushOptions);
             }
             for (ColumnFamilyHandle handle : getAllColumnFamilyHandles()) {
                 getTransactionDB().compactRange(handle);
+                LOGGER.info("Compaction of ColumnFamily {} has been completed.", handle);
             }
             flush();
             Instant endTime = Instant.now();
             long sizeAfter = estimateSize();
-
+            LOGGER.info("Compaction finished at {}, reclaimed {} bytes.", endTime, sizeBefore - sizeAfter);
             return new CompactStatus(sizeBefore, sizeAfter, sizeBefore - sizeAfter, startTime, endTime);
         } catch (RocksDBException e) {
             throw new CompactException("Failed to compact database: " + e.getMessage(), e);
@@ -468,6 +470,7 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
 
             int id = Integer.parseInt(backupId);
             backupEngine.deleteBackup(id);
+            LOGGER.info("Deleted backup {}", id);
 
         } catch (RocksDBException | NumberFormatException e) {
             throw new BackupException("Failed to delete backup " + backupId + ": " + e.getMessage(), e);
@@ -480,13 +483,12 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
     public long estimateSize() throws RocksDBException {
         long totalSize = 0;
 
-        // Query size for EACH column family
         for (ColumnFamilyHandle handle : getAllColumnFamilyHandles()) {
             String sizeStr = getTransactionDB().getProperty(handle, "rocksdb.total-sst-files-size");
             if (sizeStr != null && !sizeStr.isEmpty()) {
                 long size = Long.parseLong(sizeStr);
                 totalSize += size;
-                System.out.println("CF " + new String(handle.getName()) + " size: " + size);
+                LOGGER.debug("ColumnFamily {} size: {}", new String(handle.getName()), size);
             }
         }
         return totalSize;
@@ -496,14 +498,7 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
         return getColumnFamilyHandles().values();
     }
 
-    /**
-     * Accessor for the underlying RocksDB instance (for backup/restore operations)
-     */
-    private TransactionDB getDb() {
-        return this.getTransactionDB();
-    }
-
-    public void flush() throws RocksDBException {
+    void flush() throws RocksDBException {
         try (FlushOptions flushOptions = new FlushOptions().setWaitForFlush(true)) {
             List<ColumnFamilyHandle> handles = new ArrayList<>(getAllColumnFamilyHandles());
             getTransactionDB().flush(flushOptions, handles);
