@@ -280,17 +280,15 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
 
     protected final void openInternal() {
         try {
-            this.options = new Options()
-                    .setCreateIfMissing(true)
-                    .setCreateMissingColumnFamilies(true);
-            this.transactionOptions = new TransactionDBOptions();
+            this.options = createDefaultOptions();
+            this.transactionOptions = createDefaultTransactionOptions();
 
             columnFamilyHandles.clear();
 
             List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
 
             try (DBOptions dbOptions = new DBOptions(this.options)) {
-                try (ColumnFamilyOptions cfOptions = new ColumnFamilyOptions()) {
+                try (ColumnFamilyOptions cfOptions = defaultColumnFamilyOptions()) {
                     List<ColumnFamilyDescriptor> cfDescriptors = prepareColumnFamilyDescriptors(cfOptions);
 
                     this.db = TransactionDB.open(dbOptions, this.transactionOptions,
