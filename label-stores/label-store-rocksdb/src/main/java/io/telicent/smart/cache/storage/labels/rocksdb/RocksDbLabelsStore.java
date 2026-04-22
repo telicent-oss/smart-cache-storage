@@ -374,12 +374,19 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
         if (config.getBackupLocation() == null) {
             throw new RestoreException("Backup directory must be specified for RocksDB restores");
         }
-        if (!isClosed()) {
-            throw new RestoreException("Database must be closed before restore operation");
-        }
+        // or just close?
+//        if (!isClosed()) {
+//            close();
+//        }
+
+        this.restoring = true;
         LOGGER.info("Starting restore of {}", config.getBackupLocation());
         try {
+            closeInternal();
             File backupDir = new File(config.getBackupLocation());
+            if (!backupDir.exists()) {
+                throw new RestoreException("Backup directory " + config.getBackupLocation() + " does not exist");
+            }
             try (BackupEngineOptions backupOptions = new BackupEngineOptions(backupDir.getAbsolutePath());
                  BackupEngine backupEngine = BackupEngine.open(Env.getDefault(), backupOptions);
                  RestoreOptions restoreOptions = new RestoreOptions(false)) {
@@ -408,14 +415,27 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
                                                         .orElseThrow(() -> new RestoreException("Backup not found: " + config.getBackupId()))
                                            : backupInfos.getLast();
 
+                openInternal();
+//                this.closed = false;
+
                 LOGGER.info("Restored {} from backup {}", dbDir.getPath(), restoredBackup.backupId());
                 return RestoreStatus.success(
                         String.valueOf(restoredBackup.backupId()),
                         restoredBackup.size()
                 );
             }
-        } catch (RocksDBException e) {
+        } catch (RocksDBException | RuntimeException e) {
+            try {
+                openInternal();
+                this.closed = false;
+            } catch (Throwable reopenError) {
+                LOGGER.error("Failed to reopen store after failed restore", reopenError);
+                this.closed = true;
+            }
             throw new RestoreException("Failed to restore from backup: " + e.getMessage(), e);
+
+        } finally {
+            this.restoring = false;
         }
     }
 

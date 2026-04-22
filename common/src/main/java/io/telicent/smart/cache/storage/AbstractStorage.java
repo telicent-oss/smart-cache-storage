@@ -24,7 +24,8 @@ public abstract class AbstractStorage implements AutoCloseable {
      */
     public static final String STORAGE_ALREADY_CLOSED = "Storage already closed";
 
-    private volatile boolean closed = false;
+    protected volatile boolean closed = false;
+    protected volatile boolean restoring = false;
 
     /**
      * Ensures that the storage has not been closed and throws an {@link IllegalStateException} if it has
@@ -39,6 +40,9 @@ public abstract class AbstractStorage implements AutoCloseable {
     protected final void ensureNotClosed() {
         if (this.closed) {
             throw new IllegalStateException(STORAGE_ALREADY_CLOSED);
+        }
+        if (this.restoring) {
+            throw new RestoreException("Storage is currently being restored and cannot be used until restore completes");
         }
     }
 

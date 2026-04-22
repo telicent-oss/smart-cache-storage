@@ -22,6 +22,7 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -92,7 +93,6 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
         store.setLabel("key2".getBytes(), label3Id);
         assertEquals(3, store.keyCount());
 
-        store.close();
         RestoreConfig restoreConfig = RestoreConfig.builder()
                                                    .backupLocation(backupDir)
                                                    .build();
@@ -104,8 +104,6 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
         assertTrue(restoreStatus.isSuccess(), "Restore should succeed");
         assertNotNull(restoreStatus.getBackupId(), "Restore should have backup ID");
         assertTrue(restoreStatus.getBytesRestored() > 0, "Should have restored some bytes");
-
-        store = new RocksDbLabelsStore(dbDir);
 
         assertEquals(2, store.keyCount(), "Should have 2 keys after restore");
         assertEquals(2, store.labelCount(), "Should have 2 labels after restore");
@@ -170,12 +168,6 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
             expectedExceptionsMessageRegExp = ".*Backup directory must be specified.*")
     public void testRestoreFailsWhenDirectoryNotSpecified() {
         store.restore(RestoreConfig.builder().build());
-    }
-
-    @Test(expectedExceptions = RestoreException.class,
-            expectedExceptionsMessageRegExp = ".*Database must be closed before restore operation.*")
-    public void testRestoreFailsWhenDbNotClosed() {
-        store.restore(RestoreConfig.builder().backupLocation(backupDir).build());
     }
 
     @Test
@@ -248,18 +240,69 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
 
         store.setLabel("key2".getBytes(), store.idForLabel("label2".getBytes()));
         store.backup(BackupConfig.builder().name("backup-2").backupLocation(backupDir).build());
-        store.close();
 
         // When
         store.restore(RestoreConfig.builder()
                                    .backupId(backup1.getBackupId())
                                    .backupLocation(backupDir)
                                    .build());
-        store = new RocksDbLabelsStore(dbDir);
 
         // Then
         assertNotNull(store.getLabel("key1".getBytes()));
         assertNull(store.getLabel("key2".getBytes()));
+    }
+
+    @Test
+    void testStoreIsUsableAfterRestore() throws Exception {
+        // Given
+        addLabels(2);
+        assertEquals(2, store.keyCount());
+        assertEquals(2, store.labelCount());
+
+        long label1Id = store.idForLabel("label0".getBytes());
+        long label2Id = store.idForLabel("label1".getBytes());
+
+        BackupConfig backupConfig = BackupConfig.builder()
+                                                .name("post-restore-usability")
+                                                .backupLocation(backupDir)
+                                                .build();
+        BackupStatus backupStatus = store.backup(backupConfig);
+        assertTrue(backupStatus.isSuccess());
+
+        long label3Id = store.idForLabel("label2".getBytes());
+        store.setLabel("key2".getBytes(), label3Id);
+        assertEquals(3, store.keyCount());
+
+        // When
+        RestoreStatus restoreStatus = store.restore(RestoreConfig.builder()
+                                                                 .backupLocation(backupDir)
+                                                                 .build());
+        assertTrue(restoreStatus.isSuccess());
+
+        // Then
+        assertEquals(2, store.keyCount(), "Should have 2 keys after restore");
+        assertEquals(2, store.labelCount(), "Should have 2 labels after restore");
+        assertEquals(label1Id, store.getLabel("key0".getBytes()));
+        assertEquals(label2Id, store.getLabel("key1".getBytes()));
+        assertNull(store.getLabel("key2".getBytes()), "key2 should not exist after restore");
+
+        //verifies store is fully usable after restore
+        long newLabelId = store.idForLabel("newLabel".getBytes());
+        store.setLabel("newKey".getBytes(), newLabelId);
+        assertEquals(3, store.keyCount(), "Should be able to add new keys after restore");
+        assertEquals(newLabelId, store.getLabel("newKey".getBytes()),
+                     "Should be able to read newly written key after restore");
+
+        store.removeLabel("newKey".getBytes());
+        assertEquals(2, store.keyCount(), "Should be able to delete keys after restore");
+        assertNull(store.getLabel("newKey".getBytes()), "Deleted key should not exist after restore");
+
+        // second backup/restore cycle
+        BackupStatus secondBackup = store.backup(BackupConfig.builder()
+                                                             .name("post-restore-backup")
+                                                             .backupLocation(backupDir)
+                                                             .build());
+        assertTrue(secondBackup.isSuccess(), "Should be able to backup again after restore");
     }
 
     @Test
@@ -289,6 +332,79 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
         store.deleteBackup(backupDir, backup.getBackupId());
         assertEquals(store.listBackups(backupDir).size(), 0);
         store.deleteBackup(backupDir, backup.getBackupId());
+    }
+
+    @Test
+    void testStoreThrowsIllegalStateWhenUsedDuringRestore() throws Exception {
+        // Given
+        addLabels(2);
+        BackupStatus backupStatus = store.backup(BackupConfig.builder()
+                                                             .name("lock-test")
+                                                             .backupLocation(backupDir)
+                                                             .build());
+        assertTrue(backupStatus.isSuccess());
+
+        // simulates the store being mid-restore
+        Field restoringField = AbstractStorage.class.getDeclaredField("restoring");
+        restoringField.setAccessible(true);
+        restoringField.set(store, true);
+
+        try {
+            // Then
+            assertThrows(RestoreException.class, () -> store.setLabel("key".getBytes(), 1L));
+            assertThrows(RestoreException.class, () -> store.getLabel("key0".getBytes()));
+            assertThrows(RestoreException.class, () -> store.removeLabel("key0".getBytes()));
+            assertThrows(RestoreException.class, () -> store.keyCount());
+            assertThrows(RestoreException.class, () -> store.labelCount());
+            assertThrows(RestoreException.class, () -> store.idForLabel("label0".getBytes()));
+        } finally {
+            restoringField.set(store, false);
+        }
+    }
+
+    @Test
+    void testStoreIsUsableAfterRestoreCompletes() throws Exception {
+        // Given
+        addLabels(2);
+        store.backup(BackupConfig.builder()
+                                 .name("lock-release-test")
+                                 .backupLocation(backupDir)
+                                 .build());
+
+        // When
+        store.restore(RestoreConfig.builder()
+                                   .backupLocation(backupDir)
+                                   .build());
+
+        // Then
+        Field restoringField = AbstractStorage.class.getDeclaredField("restoring");
+        restoringField.setAccessible(true);
+        assertFalse((Boolean) restoringField.get(store), "restoring flag should be cleared after restore");
+
+        // if these throw anything the test fails
+        store.setLabel("newKey".getBytes(), store.idForLabel("newLabel".getBytes()));
+        store.getLabel("newKey".getBytes());
+    }
+
+    @Test
+    void testRestoringFlagClearedEvenOnFailure() throws Exception {
+        // Given
+        addLabels(2);
+
+        // When
+        assertThrows(RestoreException.class, () -> store.restore(
+                RestoreConfig.builder()
+                             .backupLocation("/nonexistent/path/to/backups")
+                             .build()
+        ));
+
+        // Then
+        Field restoringField = AbstractStorage.class.getDeclaredField("restoring");
+        restoringField.setAccessible(true);
+        assertFalse((Boolean) restoringField.get(store), "restoring flag should be cleared even after failed restore");
+
+        // store should still be usable and not throw
+        store.keyCount();
     }
 
     private void addLabels(int count) {
