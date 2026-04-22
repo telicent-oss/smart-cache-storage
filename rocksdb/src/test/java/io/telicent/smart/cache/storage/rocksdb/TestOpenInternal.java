@@ -15,50 +15,28 @@
  */
 package io.telicent.smart.cache.storage.rocksdb;
 
-import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
 import org.testng.annotations.Test;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileAlreadyExistsException;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.testng.Assert.*;
 
 public class TestOpenInternal extends AbstractRocksDBTests {
 
     @Test
-    public void givenStorage_whenOpened_thenAllColumnFamilyHandlesPopulated() throws RocksDBException, IOException {
-        // Given
-        try (ManyFamilies storage = new ManyFamilies(this.dbDir)) {
-            // Then
-            Map<String, ColumnFamilyHandle> handles = storage.getColumnFamilyHandles();
-            assertNotNull(handles);
-            assertFalse(handles.isEmpty());
-
-            assertEquals(handles.size(), ManyFamilies.NAMES.size() + 1);
-            for (Map.Entry<String, ColumnFamilyHandle> entry : handles.entrySet()) {
-                assertNotNull(entry.getValue(), "Handle for CF '" + entry.getKey() + "' should not be null");
-                assertTrue(entry.getValue().isOwningHandle(),
-                           "Handle for CF '" + entry.getKey() + "' should be owning");
-            }
-        }
-    }
-
-    @Test
-    public void givenStorage_whenClosedAndReopened_thenDataIsPersisted() throws RocksDBException, IOException {
+    public void givenStorage_whenClosedAndReopenedInternally_thenDataIsPersisted() throws RocksDBException, IOException {
         // Given
         byte[] key = "key".getBytes(StandardCharsets.UTF_8);
         byte[] value = "value".getBytes(StandardCharsets.UTF_8);
         try (ManyFamilies storage = new ManyFamilies(this.dbDir)) {
             storage.put("A", key, value);
-        }
-
-        // When
-        try (ManyFamilies storage = new ManyFamilies(this.dbDir)) {
+            // When
+            storage.closeInternal();
+            storage.openInternal();
             // Then
             byte[] retrieved = storage.get("A", key);
             assertNotNull(retrieved);
@@ -66,58 +44,23 @@ public class TestOpenInternal extends AbstractRocksDBTests {
         }
     }
 
-    @Test
-    public void givenStorage_whenClosedAndReopened_thenHandlesAreNewObjects() throws RocksDBException, IOException {
-        // Given
-        Map<String, ColumnFamilyHandle> firstHandles;
-        try (ManyFamilies storage = new ManyFamilies(this.dbDir)) {
-            firstHandles = new HashMap<>(storage.getColumnFamilyHandles());
-        }
-
-        // When
-        try (ManyFamilies storage = new ManyFamilies(this.dbDir)) {
-            Map<String, ColumnFamilyHandle> secondHandles = storage.getColumnFamilyHandles();
-
-            // Then
-            for (String cfName : secondHandles.keySet()) {
-                if (firstHandles.containsKey(cfName)) {
-                    assertNotSame(firstHandles.get(cfName), secondHandles.get(cfName),
-                                  "Handle for CF '" + cfName + "' should be a new object after reopen");
-                }
-            }
-        }
-        for (Map.Entry<String, ColumnFamilyHandle> entry : firstHandles.entrySet()) {
-            assertFalse(entry.getValue().isOwningHandle(),
-                        "Old handle for CF '" + entry.getKey() + "' should no longer be owning after close");
-        }
-    }
-
-    @Test
-    public void givenStorage_whenClosedAndReopened_thenHandleMapDoesNotAccumulateStaleEntries()
+    @Test(expectedExceptions = RuntimeException.class)
+    public void givenCorruptedDatabase_whenOpeningInternally_thenThrowsRuntimeException_2()
             throws RocksDBException, IOException {
         // Given
-        int firstSize;
-        try (ManyFamilies storage = new ManyFamilies(this.dbDir)) {
-            firstSize = storage.getColumnFamilyHandles().size();
-        }
+        ManyFamilies storage = new ManyFamilies(this.dbDir);
+        storage.put("A", "key".getBytes(StandardCharsets.UTF_8), "value".getBytes(StandardCharsets.UTF_8));
+        storage.closeInternal();
 
-        // When
-        try (ManyFamilies storage = new ManyFamilies(this.dbDir)) {
-            // Then
-            assertEquals(storage.getColumnFamilyHandles().size(), firstSize,
-                         "Handle map should not accumulate stale entries across reopens");
+        File[] manifestFiles = this.dbDir.listFiles((dir, name) -> name.startsWith("MANIFEST"));
+        assertNotNull(manifestFiles);
+        assertTrue(manifestFiles.length > 0);
+        try (FileOutputStream fos = new FileOutputStream(manifestFiles[0])) {
+            fos.write("corrupted".getBytes(StandardCharsets.UTF_8));
         }
-    }
-
-    //TODO
-    // it prob shouldn't be FileAlreadyExistsException
-    @Test(expectedExceptions = FileAlreadyExistsException.class)
-    public void givenInvalidDirectory_whenOpening_thenThrows() throws RocksDBException, IOException {
-        // Given
-        File invalidDir = new File(this.dbDir, "not-a-directory-2");
-        assertTrue(invalidDir.createNewFile());
 
         // When and Then
-        new ManyFamilies(invalidDir);
+        // throws the RuntimeException
+        storage.openInternal();
     }
 }

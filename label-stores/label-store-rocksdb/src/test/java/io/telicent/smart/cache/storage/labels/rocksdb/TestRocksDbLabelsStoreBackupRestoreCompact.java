@@ -70,8 +70,8 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
     void testBackupAndRestore() throws Exception {
         // Given
         addLabels(2);
-        assertEquals(2, store.keyCount());
-        assertEquals(2, store.labelCount());
+        assertEquals(store.keyCount(), 2);
+        assertEquals(store.labelCount(), 2);
 
         long label1Id = store.idForLabel("label0".getBytes());
         long label2Id = store.idForLabel("label1".getBytes());
@@ -91,7 +91,7 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
         // Given
         long label3Id = store.idForLabel("label2".getBytes());
         store.setLabel("key2".getBytes(), label3Id);
-        assertEquals(3, store.keyCount());
+        assertEquals(store.keyCount(), 3);
 
         RestoreConfig restoreConfig = RestoreConfig.builder()
                                                    .backupLocation(backupDir)
@@ -105,10 +105,10 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
         assertNotNull(restoreStatus.getBackupId(), "Restore should have backup ID");
         assertTrue(restoreStatus.getBytesRestored() > 0, "Should have restored some bytes");
 
-        assertEquals(2, store.keyCount(), "Should have 2 keys after restore");
-        assertEquals(2, store.labelCount(), "Should have 2 labels after restore");
-        assertEquals(label1Id, store.getLabel("key0".getBytes()));
-        assertEquals(label2Id, store.getLabel("key1".getBytes()));
+        assertEquals(store.keyCount(), 2, "Should have 2 keys after restore");
+        assertEquals(store.labelCount(), 2, "Should have 2 labels after restore");
+        assertEquals(store.getLabel("key0".getBytes()), label1Id);
+        assertEquals(store.getLabel("key1".getBytes()), label2Id);
         assertNull(store.getLabel("key2".getBytes()), "key2 should not exist after restore");
     }
 
@@ -131,15 +131,15 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
         }
         store.flush();
 
-        assertEquals(numLabels, store.keyCount());
-        assertEquals(numLabels, store.labelCount());
+        assertEquals(store.keyCount(), numLabels);
+        assertEquals(store.labelCount(), numLabels);
 
         // When
         int deleteCount = numLabels / 2;
         for (int i = 0; i < deleteCount; i++) {
             store.removeLabel(("key" + i).getBytes());
         }
-        assertEquals(numLabels/2, store.keyCount());
+        assertEquals(store.keyCount(), numLabels/2);
 
         store.flush();
 
@@ -184,7 +184,7 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
         BackupStatus status = store.backup(config);
         // Then
         assertTrue(status.isSuccess());
-        assertEquals("1", status.getBackupId());
+        assertEquals(status.getBackupId(), "1");
         assertFalse(status.getErrorMessage().isPresent());
     }
 
@@ -256,8 +256,8 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
     void testStoreIsUsableAfterRestore() throws Exception {
         // Given
         addLabels(2);
-        assertEquals(2, store.keyCount());
-        assertEquals(2, store.labelCount());
+        assertEquals(store.keyCount(), 2);
+        assertEquals(store.labelCount(), 2);
 
         long label1Id = store.idForLabel("label0".getBytes());
         long label2Id = store.idForLabel("label1".getBytes());
@@ -271,7 +271,7 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
 
         long label3Id = store.idForLabel("label2".getBytes());
         store.setLabel("key2".getBytes(), label3Id);
-        assertEquals(3, store.keyCount());
+        assertEquals(store.keyCount(), 3);
 
         // When
         RestoreStatus restoreStatus = store.restore(RestoreConfig.builder()
@@ -280,21 +280,21 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
         assertTrue(restoreStatus.isSuccess());
 
         // Then
-        assertEquals(2, store.keyCount(), "Should have 2 keys after restore");
-        assertEquals(2, store.labelCount(), "Should have 2 labels after restore");
-        assertEquals(label1Id, store.getLabel("key0".getBytes()));
-        assertEquals(label2Id, store.getLabel("key1".getBytes()));
+        assertEquals(store.keyCount(), 2, "Should have 2 keys after restore");
+        assertEquals(store.labelCount(), 2, "Should have 2 labels after restore");
+        assertEquals(store.getLabel("key0".getBytes()), label1Id);
+        assertEquals(store.getLabel("key1".getBytes()), label2Id);
         assertNull(store.getLabel("key2".getBytes()), "key2 should not exist after restore");
 
         //verifies store is fully usable after restore
         long newLabelId = store.idForLabel("newLabel".getBytes());
         store.setLabel("newKey".getBytes(), newLabelId);
-        assertEquals(3, store.keyCount(), "Should be able to add new keys after restore");
-        assertEquals(newLabelId, store.getLabel("newKey".getBytes()),
+        assertEquals(store.keyCount(), 3, "Should be able to add new keys after restore");
+        assertEquals(store.getLabel("newKey".getBytes()), newLabelId,
                      "Should be able to read newly written key after restore");
 
         store.removeLabel("newKey".getBytes());
-        assertEquals(2, store.keyCount(), "Should be able to delete keys after restore");
+        assertEquals(store.keyCount(), 2, "Should be able to delete keys after restore");
         assertNull(store.getLabel("newKey".getBytes()), "Deleted key should not exist after restore");
 
         // second backup/restore cycle

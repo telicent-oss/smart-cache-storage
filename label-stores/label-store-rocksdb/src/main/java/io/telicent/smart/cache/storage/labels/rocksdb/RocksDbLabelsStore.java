@@ -320,6 +320,11 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
         }
     }
 
+
+    /**
+     * Remove a label given its key. For testing purposes.
+     * @param key key
+     */
     void removeLabel(byte[] key) {
         ensureNotClosed();
         if (DictionaryLabelsStore.isInvalidByteSequence(key)) {
@@ -340,7 +345,7 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
             throw new BackupException("Backup directory must be specified for RocksDB backups");
         }
         Instant startTime = Instant.now();
-        LOGGER.info("Starting backup at {}", startTime);
+        LOGGER.info("Starting backup...");
         try {
             File backupDir = new File(config.getBackupLocation());
             Files.createDirectories(backupDir.toPath());
@@ -374,10 +379,6 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
         if (config.getBackupLocation() == null) {
             throw new RestoreException("Backup directory must be specified for RocksDB restores");
         }
-        // or just close?
-//        if (!isClosed()) {
-//            close();
-//        }
 
         this.restoring = true;
         LOGGER.info("Starting restore of {}", config.getBackupLocation());
@@ -408,7 +409,7 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
                 }
 
                 List<BackupInfo> backupInfos = backupEngine.getBackupInfo();
-                BackupInfo restoredBackup =config.getBackupId() != null
+                BackupInfo restoredBackup = config.getBackupId() != null
                                            ? backupInfos.stream()
                                                         .filter(b -> String.valueOf(b.backupId()).equals(config.getBackupId()))
                                                         .findFirst()
@@ -416,7 +417,6 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
                                            : backupInfos.getLast();
 
                 openInternal();
-//                this.closed = false;
 
                 LOGGER.info("Restored {} from backup {}", dbDir.getPath(), restoredBackup.backupId());
                 return RestoreStatus.success(
@@ -444,7 +444,7 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
         ensureNotClosed();
         try {
             Instant startTime = Instant.now();
-            LOGGER.info("Starting compact operation at {}", startTime);
+            LOGGER.info("Starting compact operation...");
             long sizeBefore = estimateSize();
             try (FlushOptions flushOptions = new FlushOptions().setWaitForFlush(true)) {
                 getTransactionDB().flush(flushOptions);
