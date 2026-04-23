@@ -136,6 +136,11 @@ public class ShortLivedTransactionContext implements TransactionContext {
         return this.rocksTransaction.getIterator(handle);
     }
 
+    @Override
+    public void delete(ColumnFamilyHandle handle, byte[] key) throws RocksDBException {
+        this.rocksTransaction.delete(handle, key);
+    }
+
     /**
      * Gets whether the transaction remains active
      *

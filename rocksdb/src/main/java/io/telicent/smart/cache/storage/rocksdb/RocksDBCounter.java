@@ -21,6 +21,7 @@ import org.rocksdb.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 import static io.telicent.smart.cache.storage.rocksdb.AbstractRocksDBStorage.bytesToLong;
 import static io.telicent.smart.cache.storage.rocksdb.AbstractRocksDBStorage.longToBytes;
@@ -35,20 +36,20 @@ public class RocksDBCounter {
 
     private final byte[] key;
     private final AtomicLong counter = new AtomicLong(INITIAL_ID);
-    private final TransactionDB db;
-    private final ColumnFamilyHandle cfHandle;
+    private final Supplier<TransactionDB> dbSupplier;
+    private final Supplier<ColumnFamilyHandle> cfHandleSupplier;
 
     /**
      * Creates a new counter instance
      *
-     * @param db       RocksDB
-     * @param cfHandle Column Family in which the counter is stored
+     * @param dbSupplier       RocksDB
+     * @param cfHandleSupplier Column Family in which the counter is stored
      * @param key      Key for the counter
      * @throws RocksDBException Thrown if the counter value cannot be {@link #sync()}'d from the database
      */
-    public RocksDBCounter(TransactionDB db, ColumnFamilyHandle cfHandle, String key) throws RocksDBException {
-        this.db = Objects.requireNonNull(db, "db cannot be null");
-        this.cfHandle = Objects.requireNonNull(cfHandle, "cfHandle cannot be null");
+    public RocksDBCounter(Supplier<TransactionDB> dbSupplier, Supplier<ColumnFamilyHandle> cfHandleSupplier, String key) throws RocksDBException {
+        this.dbSupplier = Objects.requireNonNull(dbSupplier, "dbSupplier cannot be null");
+        this.cfHandleSupplier = Objects.requireNonNull(cfHandleSupplier, "cfHandleSupplier cannot be null");
         if (StringUtils.isBlank(key)) {
             throw new IllegalArgumentException("key cannot be blank/empty");
         }
@@ -64,12 +65,12 @@ public class RocksDBCounter {
      * @throws RocksDBException Thrown if the counter cannot be synchronised
      */
     public void sync() throws RocksDBException {
-        byte[] storedIdBytes = db.get(this.cfHandle, this.key);
+        byte[] storedIdBytes = this.dbSupplier.get().get(this.cfHandleSupplier.get(), this.key);
         long initialId = INITIAL_ID;
         if (storedIdBytes != null) {
             initialId = bytesToLong(storedIdBytes);
         } else {
-            this.db.put(this.cfHandle, this.key, longToBytes(initialId));
+            this.dbSupplier.get().put(this.cfHandleSupplier.get(), this.key, longToBytes(initialId));
         }
         this.counter.set(initialId);
     }
@@ -113,7 +114,7 @@ public class RocksDBCounter {
      */
     public void update(TransactionContext transaction) throws RocksDBException {
         Objects.requireNonNull(transaction, "Transaction cannot be null");
-        transaction.put(this.cfHandle, this.key, longToBytes(counter.get()));
+        transaction.put(this.cfHandleSupplier.get(), this.key, longToBytes(counter.get()));
     }
 
     /**

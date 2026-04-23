@@ -150,4 +150,41 @@ public class TestShortLivedTransactionContext {
             context.close();
         }
     }
+
+    @Test
+    public void givenMockTransaction_whenDeleting_thenDelegatesDeleteToRocksTransaction() throws RocksDBException {
+        // Given
+        TransactionDB db = mock(TransactionDB.class);
+        Transaction transaction = mock(Transaction.class);
+        when(db.beginTransaction(any())).thenReturn(transaction);
+        ReadOptions readOptions = mock(ReadOptions.class);
+        WriteOptions writeOptions = mock(WriteOptions.class);
+        ColumnFamilyHandle handle = mock(ColumnFamilyHandle.class);
+        byte[] key = "deleteKey".getBytes();
+
+        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions)) {
+            // When
+            context.delete(handle, key);
+
+            // Then
+            verify(transaction, times(1)).delete(handle, key);
+        }
+    }
+
+    @Test(expectedExceptions = RocksDBException.class)
+    public void givenMockTransaction_whenDeleteFails_thenRocksDBExceptionPropagates() throws RocksDBException {
+        // Given
+        TransactionDB db = mock(TransactionDB.class);
+        Transaction transaction = mock(Transaction.class);
+        ColumnFamilyHandle handle = mock(ColumnFamilyHandle.class);
+        doThrow(new RocksDBException("delete failed")).when(transaction).delete(any(), any(byte[].class));
+        when(db.beginTransaction(any())).thenReturn(transaction);
+        ReadOptions readOptions = mock(ReadOptions.class);
+        WriteOptions writeOptions = mock(WriteOptions.class);
+
+        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions)) {
+            // When and Then
+            context.delete(handle, "key".getBytes());
+        }
+    }
 }

@@ -139,4 +139,6 @@ public interface TransactionContext extends AutoCloseable {
      * @return Rocks Iterator
      */
     RocksIterator iterator(ColumnFamilyHandle handle);
+
+    void delete(ColumnFamilyHandle handle, byte[] key) throws RocksDBException;
 }

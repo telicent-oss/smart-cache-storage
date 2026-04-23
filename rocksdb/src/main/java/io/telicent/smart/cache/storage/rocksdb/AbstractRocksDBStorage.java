@@ -51,16 +51,20 @@ import java.util.*;
 public abstract class AbstractRocksDBStorage extends AbstractStorage {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractRocksDBStorage.class);
-
-    private final TransactionDB db;
-    private final Options options;
-    private final TransactionDBOptions transactionOptions;
+    private TransactionDB db;
+    private Options options;
+    private TransactionDBOptions transactionOptions;
     private final Map<String, ColumnFamilyHandle> columnFamilyHandles;
     private final Map<String, RocksDBCounter> counters;
     private final ThreadLocal<NestedTransactionContext> nestedTransactions = ThreadLocal.withInitial(() -> null);
 
+    protected final File dbDir;
+
     protected final TransactionDB getTransactionDB() {
         return this.db;
+    }
+    public final Map<String, ColumnFamilyHandle> getColumnFamilyHandles() {
+        return this.columnFamilyHandles;
     }
 
     /**
@@ -86,6 +90,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
      * @throws RocksDBException Thrown if the RocksDB storage cannot be initialised for any reason
      */
     public AbstractRocksDBStorage(File dbDir) throws IOException, RocksDBException {
+        this.dbDir = dbDir;
         Objects.requireNonNull(dbDir, "Database Directory cannot be null");
 
         // Load the native library
@@ -273,6 +278,34 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
         }
     }
 
+    protected final void openInternal() {
+        try {
+            this.options = createDefaultOptions();
+            this.transactionOptions = createDefaultTransactionOptions();
+
+            columnFamilyHandles.clear();
+
+            List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
+
+            try (DBOptions dbOptions = new DBOptions(this.options)) {
+                try (ColumnFamilyOptions cfOptions = defaultColumnFamilyOptions()) {
+                    List<ColumnFamilyDescriptor> cfDescriptors = prepareColumnFamilyDescriptors(cfOptions);
+
+                    this.db = TransactionDB.open(dbOptions, this.transactionOptions,
+                                                 dbDir.getAbsolutePath(), cfDescriptors, cfHandles);
+
+                    for (int i = 0; i < cfDescriptors.size(); i++) {
+                        String cfName = new String(cfDescriptors.get(i).getName(), StandardCharsets.UTF_8);
+                        columnFamilyHandles.put(cfName, cfHandles.get(i));
+                    }
+                }
+            }
+            LOGGER.info("RocksDB opened successfully at {}", dbDir.getAbsolutePath());
+        } catch (RocksDBException e) {
+            throw new RuntimeException("Failed to open RocksDB", e);
+        }
+    }
+
     /**
      * Converts a long into a byte sequence for storage in RocksDB
      *
@@ -416,7 +449,12 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage {
      */
     protected final RocksDBCounter createCounter(byte[] countersColumnFamilyName, String counterKey) throws
             RocksDBException {
-        return new RocksDBCounter(this.db, this.getHandle(countersColumnFamilyName), counterKey);
+        String cfName = new String(countersColumnFamilyName, StandardCharsets.UTF_8);
+        return new RocksDBCounter(
+                () -> this.db,
+                () -> this.columnFamilyHandles.get(cfName),
+                counterKey
+        );
     }
 
     /**
