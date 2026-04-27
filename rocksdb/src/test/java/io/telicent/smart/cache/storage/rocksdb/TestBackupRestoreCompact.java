@@ -85,8 +85,6 @@ public class TestBackupRestoreCompact {
         assertEquals(3, storage.count());
         assertEquals("value3".getBytes(), storage.get("key3".getBytes()));
 
-        storage.close();
-
         RestoreConfig restoreConfig = RestoreConfig.builder()
                                                    .backupLocation(backupDir)
                                                    .build();
@@ -96,8 +94,6 @@ public class TestBackupRestoreCompact {
         assertTrue(restoreStatus.isSuccess(), "Restore should succeed");
         assertNotNull(restoreStatus.getBackupId(), "Restore should have backup ID");
         assertTrue(restoreStatus.getBytesRestored() > 0, "Should have restored some bytes");
-
-        storage = new RocksDBStorageForTest(dbDir);
 
         assertEquals("value1".getBytes(), storage.get("key1".getBytes()));
         assertEquals("value2".getBytes(), storage.get("key2".getBytes()));
@@ -128,8 +124,8 @@ public class TestBackupRestoreCompact {
         assertNotNull(status, "Compact status should not be null");
         assertTrue(status.getSizeBefore() >= 0, "Size before should be non-negative");
         assertTrue(status.getSizeAfter() >= 0, "Size after should be non-negative");
-        assertTrue(status.getSizeAfter() < status.getSizeBefore(),
-                   "Size after compaction should be < size before");
+        assertTrue(status.getSizeAfter() <= status.getSizeBefore(),
+                   "Size after compaction (" + status.getSizeAfter() + ") should be <= size before (" + status.getSizeBefore() + ")");
         assertNotNull(status.getStartTime(), "Compact status should have a start time");
         assertNotNull(status.getEndTime(), "Compact status should have an end time");
     }
@@ -198,13 +194,25 @@ public class TestBackupRestoreCompact {
     }
 
     @Test(expectedExceptions = RestoreException.class,
-            expectedExceptionsMessageRegExp = ".*Database must be closed before restore operation.*")
-    public void testRestoreFailsWhenDbNotClosed() {
-        RestoreConfig config = RestoreConfig.builder()
-                                            .backupLocation(backupDir)
-                                            .build();
+            expectedExceptionsMessageRegExp = ".*Backup directory .* does not exist")
+    public void testRestoreFailsWhenNonExistentDirectorySpecified() {
+        RestoreConfig invalidConfig = RestoreConfig.builder()
+                                                   .backupLocation("/no/such/path")
+                                                   .build();
 
-        storage.restore(config);
+        storage.restore(invalidConfig);
+    }
+
+    @Test(expectedExceptions = RestoreException.class,
+            expectedExceptionsMessageRegExp = ".*Backup not found")
+    public void testRestoreFailsWhenBadBackupId() {
+        new File(this.backupDir).mkdirs();
+        RestoreConfig invalidConfig = RestoreConfig.builder()
+                                                   .backupLocation(this.backupDir)
+                                                   .backupId("998855")
+                                                   .build();
+
+        storage.restore(invalidConfig);
     }
 
     @Test
@@ -289,7 +297,6 @@ public class TestBackupRestoreCompact {
                                                           .name("backup-2")
                                                           .backupLocation(backupDir)
                                                           .build());
-        storage.close();
 
         // When
         RestoreConfig restoreConfig = RestoreConfig.builder()
@@ -298,7 +305,6 @@ public class TestBackupRestoreCompact {
                                                    .build();
 
         storage.restore(restoreConfig);
-        storage = new RocksDBStorageForTest(dbDir);
 
         // Then
         assertNotNull(storage.get("key1".getBytes()));

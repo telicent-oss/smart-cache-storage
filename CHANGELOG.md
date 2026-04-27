@@ -2,10 +2,19 @@
 
 # 0.11.0
 
+- Core API improvements:
+    - Introduced new `BackupRestoreCapable` and `CompactCapable` interfaces to provide storage agnostic backup/restore
+      and compaction operations
 - RocksDB improvements:
     - Configure default RocksDB options with the RocksDB recommended settings for basic tuning
+    - Added support for backup/restore and compaction of RocksDB storage into `AbstactRocksStorage`
 - Build improvements:
-    - RocksDB upgraded to 10.9.1
+    - Apache Commons Codec upgraded to 1.22.0
+    - Flyway upgraded to 12.4.0
+    - Hibernate upgraded to 7.3.2.Final
+    - Jackson upgraded to 3.1.2
+    - MongoDB upgraded to 5.6.5
+    - RocksDB upgraded to 10.10.1.1
 
 # 0.10.3
 - Build improvements:
