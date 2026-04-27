@@ -3,10 +3,11 @@
 # 0.11.0
 
 - Core API improvements:
-    - Introduced new `BackupRestoreCapable` and `CompactCapable` interfaces to provide storage agnostic backup/restore
-      and compaction operations
+    - Introduced new `BackupRestoreCapable` and `CompactCapable` interfaces (plus related config and status classes) to
+      provide storage agnostic backup/restore and compaction APIs
 - RocksDB improvements:
-    - Configure default RocksDB options with the RocksDB recommended settings for basic tuning
+    - Configure default RocksDB options with the RocksDB recommended settings for basic tuning, derived storage
+      implementations can further customise for specific use cases/tuning
     - Added support for backup/restore and compaction of RocksDB storage into `AbstactRocksStorage`
 - Build improvements:
     - Apache Commons Codec upgraded to 1.22.0
