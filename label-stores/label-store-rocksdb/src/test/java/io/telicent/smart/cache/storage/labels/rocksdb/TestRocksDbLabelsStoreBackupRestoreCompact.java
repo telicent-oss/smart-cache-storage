@@ -126,10 +126,10 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
 
             // force flush every 10k records to create multiple SST files
             if (i > 0 && i % 10000 == 0) {
-                store.flush();
+                store.flushForTesting();
             }
         }
-        store.flush();
+        store.flushForTesting();
 
         assertEquals(store.keyCount(), numLabels);
         assertEquals(store.labelCount(), numLabels);
@@ -141,7 +141,7 @@ public class TestRocksDbLabelsStoreBackupRestoreCompact {
         }
         assertEquals(store.keyCount(), numLabels/2);
 
-        store.flush();
+        store.flushForTesting();
 
         CompactStatus status = store.compact();
 

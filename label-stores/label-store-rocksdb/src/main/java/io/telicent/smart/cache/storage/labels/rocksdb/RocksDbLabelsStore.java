@@ -30,10 +30,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.time.Instant;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static org.rocksdb.RocksDB.DEFAULT_COLUMN_FAMILY;
 
@@ -45,8 +42,7 @@ import static org.rocksdb.RocksDB.DEFAULT_COLUMN_FAMILY;
  * transactionally to ensure thread safety.
  * </p>
  */
-public class RocksDbLabelsStore extends AbstractRocksDBStorage implements LabelsStore, BackupRestoreCapable,
-        CompactCapable {
+public class RocksDbLabelsStore extends AbstractRocksDBStorage implements LabelsStore {
 
     // Map labels to IDs
     protected static final byte[] LABELS_TO_IDS_CF = "labels_to_ids".getBytes(StandardCharsets.UTF_8);
@@ -58,7 +54,6 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
     protected static final byte[] KEYS_TO_LABELS_CF = "keys_to_labels".getBytes(StandardCharsets.UTF_8);
     // Next Label ID counter key
     protected static final byte[] ID_COUNTER_KEY = "next_label_id".getBytes(StandardCharsets.UTF_8);
-    private static final Logger LOGGER = LoggerFactory.getLogger(RocksDbLabelsStore.class);
 
     /**
      * Creates a new RocksDB labels store
@@ -338,191 +333,16 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
         }
     }
 
-    @Override
-    public BackupStatus backup(BackupConfig config) throws BackupException {
-        ensureNotClosed();
-        if (config.getBackupLocation() == null) {
-            throw new BackupException("Backup directory must be specified for RocksDB backups");
-        }
-        Instant startTime = Instant.now();
-        LOGGER.info("Starting backup...");
-        try {
-            File backupDir = new File(config.getBackupLocation());
-            Files.createDirectories(backupDir.toPath());
-
-            try (BackupEngineOptions backupOptions = new BackupEngineOptions(backupDir.getAbsolutePath());
-                 BackupEngine backupEngine = BackupEngine.open(Env.getDefault(), backupOptions)) {
-
-                backupEngine.createNewBackup(getTransactionDB(), true);
-
-                List<BackupInfo> backupInfos = backupEngine.getBackupInfo();
-                BackupInfo latestBackup = backupInfos.getLast();
-
-                Instant endTime = Instant.now();
-                LOGGER.info("Backup {} created successfully at {}", latestBackup.backupId(), endTime);
-
-                return BackupStatus.builder()
-                                   .success(true)
-                                   .backupId(String.valueOf(latestBackup.backupId()))
-                                   .bytesBackedUp(latestBackup.size())
-                                   .startTime(startTime)
-                                   .endTime(endTime)
-                                   .build();
-            }
-        } catch (RocksDBException | IOException e) {
-            throw new BackupException("Failed to create backup: " + e.getMessage(), e);
-        }
-    }
-
-    @Override
-    public RestoreStatus restore(RestoreConfig config) throws RestoreException {
-        if (config.getBackupLocation() == null) {
-            throw new RestoreException("Backup directory must be specified for RocksDB restores");
-        }
-
-        this.restoring = true;
-        LOGGER.info("Starting restore of {}", config.getBackupLocation());
-        try {
-            closeInternal();
-            File backupDir = new File(config.getBackupLocation());
-            if (!backupDir.exists()) {
-                throw new RestoreException("Backup directory " + config.getBackupLocation() + " does not exist");
-            }
-            try (BackupEngineOptions backupOptions = new BackupEngineOptions(backupDir.getAbsolutePath());
-                 BackupEngine backupEngine = BackupEngine.open(Env.getDefault(), backupOptions);
-                 RestoreOptions restoreOptions = new RestoreOptions(false)) {
-
-                if (config.getBackupId() != null) {
-                    int backupId = Integer.parseInt(config.getBackupId());
-                    backupEngine.restoreDbFromBackup(
-                            backupId,
-                            dbDir.getAbsolutePath(),
-                            dbDir.getAbsolutePath(),
-                            restoreOptions
-                    );
-                } else {
-                    backupEngine.restoreDbFromLatestBackup(
-                            dbDir.getAbsolutePath(),
-                            dbDir.getAbsolutePath(),
-                            restoreOptions
-                    );
-                }
-
-                List<BackupInfo> backupInfos = backupEngine.getBackupInfo();
-                BackupInfo restoredBackup = config.getBackupId() != null
-                                           ? backupInfos.stream()
-                                                        .filter(b -> String.valueOf(b.backupId()).equals(config.getBackupId()))
-                                                        .findFirst()
-                                                        .orElseThrow(() -> new RestoreException("Backup not found: " + config.getBackupId()))
-                                           : backupInfos.getLast();
-
-                openInternal();
-
-                LOGGER.info("Restored {} from backup {}", dbDir.getPath(), restoredBackup.backupId());
-                return RestoreStatus.success(
-                        String.valueOf(restoredBackup.backupId()),
-                        restoredBackup.size()
-                );
-            }
-        } catch (RocksDBException | RuntimeException e) {
-            try {
-                openInternal();
-                this.closed = false;
-            } catch (Throwable reopenError) {
-                LOGGER.error("Failed to reopen store after failed restore", reopenError);
-                this.closed = true;
-            }
-            throw new RestoreException("Failed to restore from backup: " + e.getMessage(), e);
-
-        } finally {
-            this.restoring = false;
-        }
-    }
-
-    @Override
-    public CompactStatus compact() throws CompactException {
-        ensureNotClosed();
-        try {
-            Instant startTime = Instant.now();
-            LOGGER.info("Starting compact operation...");
-            long sizeBefore = estimateSize();
-            try (FlushOptions flushOptions = new FlushOptions().setWaitForFlush(true)) {
-                getTransactionDB().flush(flushOptions);
-            }
-            for (ColumnFamilyHandle handle : getAllColumnFamilyHandles()) {
-                getTransactionDB().compactRange(handle);
-                LOGGER.info("Compaction of ColumnFamily {} has been completed.", handle);
-            }
-            flush();
-            Instant endTime = Instant.now();
-            long sizeAfter = estimateSize();
-            LOGGER.info("Compaction finished at {}, reclaimed {} bytes.", endTime, sizeBefore - sizeAfter);
-            return new CompactStatus(sizeBefore, sizeAfter, sizeBefore - sizeAfter, startTime, endTime);
-        } catch (RocksDBException e) {
-            throw new CompactException("Failed to compact database: " + e.getMessage(), e);
-        }
-    }
-
-    @Override
-    public List<BackupDetails> listBackups(String backupDir) throws BackupException {
-        try (BackupEngineOptions backupOptions = new BackupEngineOptions(backupDir);
-             BackupEngine backupEngine = BackupEngine.open(Env.getDefault(), backupOptions)) {
-
-            return backupEngine.getBackupInfo().stream()
-                               .map(rocksBackup -> new io.telicent.smart.cache.storage.BackupDetails(
-                                       null,
-                                       String.valueOf(rocksBackup.backupId()),
-                                       null,
-                                       Instant.ofEpochSecond(rocksBackup.timestamp()),
-                                       rocksBackup.size()
-                               ))
-                               .collect(Collectors.toList());
-
-        } catch (RocksDBException e) {
-            throw new BackupException("Failed to list backups: " + e.getMessage(), e);
-        }
-    }
-
-    @Override
-    public void deleteBackup(String backupDir, String backupId) throws BackupException {
-        try (BackupEngineOptions backupOptions = new BackupEngineOptions(backupDir);
-             BackupEngine backupEngine = BackupEngine.open(Env.getDefault(), backupOptions)) {
-
-            int id = Integer.parseInt(backupId);
-            backupEngine.deleteBackup(id);
-            LOGGER.info("Deleted backup {}", id);
-
-        } catch (RocksDBException | NumberFormatException e) {
-            throw new BackupException("Failed to delete backup " + backupId + ": " + e.getMessage(), e);
-        }
-    }
-
     /**
-     * Helper method to estimate database size
+     * Flushes the column families to disk explicitly blocking until that has occurred
+     * <p>
+     * This package private method is intended only for testing
+     * </p>
+     *
+     * @throws RocksDBException Thrown if the column families cannot be flushed for any reason
      */
-    public long estimateSize() throws RocksDBException {
-        long totalSize = 0;
-
-        for (ColumnFamilyHandle handle : getAllColumnFamilyHandles()) {
-            String sizeStr = getTransactionDB().getProperty(handle, "rocksdb.total-sst-files-size");
-            if (sizeStr != null && !sizeStr.isEmpty()) {
-                long size = Long.parseLong(sizeStr);
-                totalSize += size;
-                LOGGER.debug("ColumnFamily {} size: {}", new String(handle.getName()), size);
-            }
-        }
-        return totalSize;
-    }
-
-    protected Collection<ColumnFamilyHandle> getAllColumnFamilyHandles() {
-        return getColumnFamilyHandles().values();
-    }
-
-    void flush() throws RocksDBException {
-        try (FlushOptions flushOptions = new FlushOptions().setWaitForFlush(true)) {
-            List<ColumnFamilyHandle> handles = new ArrayList<>(getAllColumnFamilyHandles());
-            getTransactionDB().flush(flushOptions, handles);
-        }
+    void flushForTesting() throws RocksDBException {
+        this.flush();
     }
 
 }
