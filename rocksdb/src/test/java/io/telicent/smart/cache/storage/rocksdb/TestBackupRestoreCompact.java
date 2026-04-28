@@ -16,6 +16,7 @@
 package io.telicent.smart.cache.storage.rocksdb;
 
 import io.telicent.smart.cache.storage.*;
+import org.apache.commons.io.FileUtils;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -50,15 +51,7 @@ public class TestBackupRestoreCompact {
         if (storage != null && !storage.isClosed()) {
             storage.close();
         }
-        Files.walk(tempDir.toPath())
-             .sorted(Comparator.reverseOrder())
-             .forEach(path -> {
-                 try {
-                     Files.delete(path);
-                 } catch (Exception e) {
-                     // ignore
-                 }
-             });
+        FileUtils.deleteDirectory(tempDir);
     }
 
     @Test
@@ -66,7 +59,7 @@ public class TestBackupRestoreCompact {
         // Given
         storage.put("key1".getBytes(), "value1".getBytes());
         storage.put("key2".getBytes(), "value2".getBytes());
-        assertEquals(2, storage.count());
+        assertEquals(storage.count(), 2);
 
         BackupConfig backupConfig = BackupConfig.builder()
                                                 .name("test-backup")
@@ -82,7 +75,7 @@ public class TestBackupRestoreCompact {
 
         // Given
         storage.put("key3".getBytes(), "value3".getBytes());
-        assertEquals(3, storage.count());
+        assertEquals(storage.count(), 3);
         assertEquals("value3".getBytes(), storage.get("key3".getBytes()));
 
         RestoreConfig restoreConfig = RestoreConfig.builder()
@@ -98,7 +91,7 @@ public class TestBackupRestoreCompact {
         assertEquals("value1".getBytes(), storage.get("key1".getBytes()));
         assertEquals("value2".getBytes(), storage.get("key2".getBytes()));
         assertNull(storage.get("key3".getBytes()), "key3 should not exist after restore");
-        assertEquals(2, storage.count(), "Should have 2 keys after restore");
+        assertEquals(storage.count(), 2, "Should have 2 keys after restore");
 
         assertEquals(new String(storage.get("key1".getBytes())), "value1");
         assertEquals(new String(storage.get("key2".getBytes())), "value2");
@@ -111,12 +104,12 @@ public class TestBackupRestoreCompact {
             storage.put(("key" + i).getBytes(), new byte[1024]);
         }
         long countBefore = storage.count();
-        assertEquals(1000, countBefore);
+        assertEquals(countBefore, 1000);
 
         for (int i = 0; i < 500; i++) {
             storage.delete(("key" + i).getBytes());
         }
-        assertEquals(500, storage.count());
+        assertEquals(storage.count(), 500);
 
         // When
         CompactStatus status = storage.compact();
