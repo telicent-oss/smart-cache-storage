@@ -32,6 +32,9 @@ import static io.telicent.smart.cache.storage.rocksdb.AbstractRocksDBStorage.lon
  */
 public class RocksDBCounter {
 
+    /**
+     * Counters are always initialised to 1
+     */
     public static final long INITIAL_ID = 1L;
 
     private final byte[] key;
@@ -47,7 +50,8 @@ public class RocksDBCounter {
      * @param key      Key for the counter
      * @throws RocksDBException Thrown if the counter value cannot be {@link #sync()}'d from the database
      */
-    public RocksDBCounter(Supplier<TransactionDB> dbSupplier, Supplier<ColumnFamilyHandle> cfHandleSupplier, String key) throws RocksDBException {
+    public RocksDBCounter(Supplier<TransactionDB> dbSupplier, Supplier<ColumnFamilyHandle> cfHandleSupplier,
+                          String key) throws RocksDBException {
         this.dbSupplier = Objects.requireNonNull(dbSupplier, "dbSupplier cannot be null");
         this.cfHandleSupplier = Objects.requireNonNull(cfHandleSupplier, "cfHandleSupplier cannot be null");
         if (StringUtils.isBlank(key)) {

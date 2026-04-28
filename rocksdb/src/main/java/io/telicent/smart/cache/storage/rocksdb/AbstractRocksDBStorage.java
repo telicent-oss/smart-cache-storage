@@ -534,10 +534,18 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
             throw new RestoreException("Backup directory must be specified for RocksDB restores");
         }
 
-        this.restoring = true;
-        LOGGER.info("Starting restore of {}", config.getBackupLocation());
         try {
+            // Close the storage first, this needs to happen before we set the restoring flag as otherwise logic in
+            // closeInternal() will fail when it tries to persist the counters.  While this error is generally harmless
+            // it does pollute the logs, and there is a failure scenario where the restore fails that leads to out of
+            // date counters.
+            // Since upon restore failure we try to reopen the storage as-is at which point the counter values would be
+            // wrong if we didn't allow them to be persisted prior to attempting the restore
             closeInternal();
+
+            this.restoring = true;
+            LOGGER.info("Starting restore of {}", config.getBackupLocation());
+
             File backupDir = new File(config.getBackupLocation());
             if (!backupDir.exists()) {
                 throw new RestoreException("Backup directory " + config.getBackupLocation() + " does not exist");
@@ -573,6 +581,16 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
                                             : backupInfos.getLast();
 
                 openInternal();
+
+                // We have to resynchronise any counters after a restore operation as their in-memory values wouldn't be
+                // in-sync with their backup values
+                LOGGER.info("Resynchronising counters after restore...");
+                for (Map.Entry<String, RocksDBCounter> counter : this.counters.entrySet()) {
+                    long before = counter.getValue().get();
+                    counter.getValue().sync();
+                    LOGGER.info("Counter {} restored value from {} to {}", counter.getKey(), before,
+                                counter.getValue().get());
+                }
 
                 LOGGER.info("Restored {} from backup {}", dbDir.getPath(), restoredBackup.backupId());
                 return RestoreStatus.success(
