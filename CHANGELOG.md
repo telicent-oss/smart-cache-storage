@@ -1,5 +1,11 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.11.1
+
+- RocksDB improvements:
+    - Fixed two backup/restore edge case bugs related to use of `RocksDBCounter` that could result in out of sync
+      counter values and spurious warnings in the logs
+
 # 0.11.0
 
 - Core API improvements:
