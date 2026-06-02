@@ -40,7 +40,7 @@ public class Order {
     private String orderId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "billingAdressId")
+    @JoinColumn(name = "billingAddressId")
     private Address billingAddress;
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -1,0 +1,53 @@
+<!--
+
+    Copyright (C) Telicent Ltd
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<persistence xmlns="http://java.sun.com/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://java.sun.com/xml/ns/persistence http://java.sun.com/xml/ns/persistence/persistence_2_0.xsd"
+             version="2.0">
+
+    <persistence-unit name="hibernate-distribution-lifecycle-store" transaction-type="RESOURCE_LOCAL">
+        <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+
+        <!-- Our Entity Classes -->
+        <class>io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model.StoredLifecycleAction</class>
+        <class>io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model.StoredDistributionState</class>
+        <class>io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model.StoredApplicationState</class>
+
+        <properties>
+            <!--
+            NB - No database connection properties are supplied in this persistence unit, a consumer of this API is
+                 expected to supply the relevant properties when they create an entity manager
+            -->
+            
+            <!-- Hikari Connection Pooling -->
+            <property name="hibernate.hikari.maxLifetime" value="900000"/> <!-- 15 minutes -->
+            <property name="hibernate.hikari.keepaliveTime" value="300000"/> <!-- 5 minutes -->
+
+            <!-- Don't automatically create the schema -->
+            <property name="jakarta.persistence.schema-generation.database.action" value="create"/>
+
+            <!-- Echo all executed SQL to console -->
+            <!-- Uncomment when debugging if you're changing the model or adding new named queries -->
+            <!--<property name="hibernate.show_sql" value="true"/>
+            <property name="hibernate.format_sql" value="true"/>
+            <property name="hibernate.highlight_sql" value="true"/>-->
+        </properties>
+
+    </persistence-unit>
+
+</persistence>
