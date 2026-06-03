@@ -1,3 +1,18 @@
+/**
+ * Copyright (C) Telicent Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.telicent.smart.cache.distribution.lifecycle.store.hibernate;
 
 import io.telicent.smart.cache.distribution.lifecycle.ApplicationState;
@@ -13,6 +28,8 @@ import io.telicent.smart.cache.storage.hibernate.AbstractHibernateStorage;
 import io.telicent.smart.cache.storage.hibernate.TransactionContext;
 import io.telicent.smart.cache.storage.hibernate.configuration.HibernateConfiguration;
 import io.telicent.smart.cache.storage.hibernate.configuration.JpaConfiguration;
+import org.apache.commons.lang3.StringUtils;
+import org.flywaydb.core.Flyway;
 import org.hibernate.KeyType;
 
 import java.util.*;
@@ -39,7 +56,20 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
     }
 
     @Override
+    protected Flyway configureFlyway(Properties dbProperties) {
+        return Flyway.configure()
+                     .dataSource(dbProperties.getProperty(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_URL),
+                                 dbProperties.getProperty(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_USER),
+                                 dbProperties.getProperty(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_PASSWORD))
+                     .baselineVersion("0")
+                     .baselineOnMigrate(true)
+                     .load();
+    }
+
+    @Override
     public void add(LifecycleAction action) {
+        Objects.requireNonNull(action, "Action cannot be null");
+
         try (TransactionContext context = this.begin()) {
             // Ensure the action is created in the store if not yet present
             StoredLifecycleAction stored =
@@ -83,6 +113,11 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
 
     @Override
     public void add(String application, LifecycleAcknowledgement ack) {
+        Objects.requireNonNull(ack, "Acknowledgement cannot be null");
+        if (StringUtils.isBlank(application)) {
+            throw new IllegalArgumentException("Application ID cannot be null/blank");
+        }
+
         try (TransactionContext context = this.begin()) {
             StoredLifecycleAction action =
                     context.getSession().find(StoredLifecycleAction.class, ack.getEventId(), KeyType.NATURAL);
@@ -92,13 +127,12 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
                         "Lifecycle Action Event " + ack.getEventId() + " is not known to this state store so cannot track application state against this event");
             }
 
-            StoredApplicationState stored =
-                    getOrCreateByNamedQuery(context, StoredApplicationState.class, "findAppStateForEvent",
-                                            Map.of("eventId", ack.getEventId(), "application", application), () -> {
-                                StoredApplicationState newState = new StoredApplicationState();
-                                newState.setId(new AppStateId(ack.getEventId(), application));
-                                return newState;
-                            });
+            StoredApplicationState stored = getOrCreateById(context, new AppStateId(ack.getEventId(), application),
+                                                            StoredApplicationState.class, () -> {
+                        StoredApplicationState newState = new StoredApplicationState();
+                        newState.setId(new AppStateId(ack.getEventId(), application));
+                        return newState;
+                    });
             ApplicationState target = getTargetState(ack, stored.getState());
 
             if (stored.getState() != target) {
@@ -135,6 +169,10 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
 
     @Override
     public DistributionLifecycleState getLifecycleState(String distributionId) {
+        if (StringUtils.isBlank(distributionId)) {
+            throw new IllegalArgumentException("Distribution ID cannot be null/blank");
+        }
+
         try (TransactionContext context = this.begin()) {
             StoredDistributionState stored =
                     context.getSession().find(StoredDistributionState.class, distributionId, KeyType.NATURAL);
@@ -144,25 +182,33 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
 
     @Override
     public Map<String, ApplicationState> getApplicationStates(UUID eventId) {
+        if (eventId == null) {
+            throw new IllegalArgumentException("Event ID cannot be null");
+        }
+
         try (TransactionContext context = this.begin()) {
             return this.loadByNamedQuery(context, StoredApplicationState.class, "findForEvent",
                                          Map.of("eventId", eventId))
                        .stream()
-                       .collect(Collectors.toMap(s -> s.getId().getApplication(),
-                                                 StoredApplicationState::getState));
+                       .collect(Collectors.toMap(s -> s.getId().getApplication(), StoredApplicationState::getState));
         }
     }
 
     @Override
     public ApplicationState getApplicationState(UUID eventId, String application) {
+        if (eventId == null) {
+            throw new IllegalArgumentException("Event ID cannot be null");
+        } else if (StringUtils.isBlank(application)) {
+            throw new IllegalArgumentException("Application ID cannot be null/blank");
+        }
+
         try (TransactionContext context = this.begin()) {
-            List<StoredApplicationState> stored =
-                    this.loadByNamedQuery(context, StoredApplicationState.class, "findAppStateForEvent",
-                                          Map.of("eventId", eventId, "application", application));
-            if (stored.isEmpty()) {
+            StoredApplicationState stored =
+                    context.getSession().find(StoredApplicationState.class, new AppStateId(eventId, application));
+            if (stored == null) {
                 return null;
             } else {
-                return stored.getFirst().getState();
+                return stored.getState();
             }
         }
     }

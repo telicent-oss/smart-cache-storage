@@ -38,8 +38,8 @@
             <property name="hibernate.hikari.maxLifetime" value="900000"/> <!-- 15 minutes -->
             <property name="hibernate.hikari.keepaliveTime" value="300000"/> <!-- 5 minutes -->
 
-            <!-- Don't automatically create the schema -->
-            <property name="jakarta.persistence.schema-generation.database.action" value="create"/>
+            <!-- Don't automatically create the schema we use Flyway to manage that -->
+            <property name="jakarta.persistence.schema-generation.database.action" value="none"/>
 
             <!-- Echo all executed SQL to console -->
             <!-- Uncomment when debugging if you're changing the model or adding new named queries -->

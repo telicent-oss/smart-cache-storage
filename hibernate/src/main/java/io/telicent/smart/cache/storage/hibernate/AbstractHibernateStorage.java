@@ -28,6 +28,7 @@ import jakarta.persistence.criteria.Root;
 import lombok.ToString;
 import org.apache.commons.collections4.MapUtils;
 import org.flywaydb.core.Flyway;
+import org.hibernate.KeyType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,6 +129,33 @@ public abstract class AbstractHibernateStorage extends AbstractStorage {
     }
 
     /**
+     * Gets an entity by its ID, creating and persisting a new instance if necessary
+     * <p>
+     * The {@link jakarta.persistence.Entity} annotated class <strong>MUST</strong> have one, and only one, field
+     * annotated with the Hibernate {@link org.hibernate.annotations.NaturalId} annotation.
+     * </p>
+     *
+     * @param transaction Transaction Context
+     * @param id          ID
+     * @param entityClass Entity Class
+     * @param creator     Supplier to create a new entity instance if the requested instance does not yet exist
+     * @param <T>         Entity type
+     * @return Entity instance, guaranteed to be non-null
+     */
+    protected <T> T getOrCreateById(TransactionContext transaction, Object id, Class<T> entityClass,
+                                           Supplier<T> creator) {
+        ensureNotClosed();
+        T instance = transaction.getSession().find(entityClass, id);
+        if (instance == null) {
+            T newInstance = creator.get();
+            transaction.getEntityManager().persist(newInstance);
+            return newInstance;
+        } else {
+            return instance;
+        }
+    }
+
+    /**
      * Gets an entity by its natural ID, creating and persisting a new instance if necessary
      * <p>
      * The {@link jakarta.persistence.Entity} annotated class <strong>MUST</strong> have one, and only one, field
@@ -144,13 +172,13 @@ public abstract class AbstractHibernateStorage extends AbstractStorage {
     protected <T> T getOrCreateByNaturalId(TransactionContext transaction, Object id, Class<T> entityClass,
                                            Supplier<T> creator) {
         ensureNotClosed();
-        Optional<T> instance = transaction.getSession().bySimpleNaturalId(entityClass).loadOptional(id);
-        if (instance.isEmpty()) {
+        T instance = transaction.getSession().find(entityClass, id, KeyType.NATURAL);
+        if (instance == null) {
             T newInstance = creator.get();
             transaction.getEntityManager().persist(newInstance);
             return newInstance;
         } else {
-            return instance.get();
+            return instance;
         }
     }
 
@@ -190,7 +218,7 @@ public abstract class AbstractHibernateStorage extends AbstractStorage {
         } else if (results.size() > 1) {
             throw new IllegalStateException("Named Query " + queryName + " has more than one result");
         } else {
-            return results.get(0);
+            return results.getFirst();
         }
     }
 
@@ -234,8 +262,7 @@ public abstract class AbstractHibernateStorage extends AbstractStorage {
     protected <TStored, T> T loadByNaturalId(TransactionContext transaction, Object id, Class<TStored> entityClass,
                                              Function<TStored, T> loader) {
         ensureNotClosed();
-        // And that the given notification exists
-        TStored instance = transaction.getSession().bySimpleNaturalId(entityClass).loadOptional(id).orElse(null);
+        TStored instance = transaction.getSession().find(entityClass, id, KeyType.NATURAL);
         if (instance == null) {
             return null;
         }
