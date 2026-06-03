@@ -1,5 +1,17 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.11.3
+
+- RocksDB improvements:
+    - Minor fixes to logging messages
+- Build improvements:
+    - Upgraded Flyway to 12.7.0
+    - Upgraded Hibernate to 7.4.0.Final
+    - Upgraded Jackson to 3.1.4
+    - Upgraded MongoDB to 5.8.0
+    - Upgraded Smart Caches Core to 0.40.0
+    - Various build and test dependencies updated to latest available
+
 # 0.11.2
 - Build improvements:
   - updating dependencies

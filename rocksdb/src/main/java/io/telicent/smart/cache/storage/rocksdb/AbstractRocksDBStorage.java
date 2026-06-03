@@ -625,12 +625,13 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
             long sizeBefore = estimateSize();
             for (ColumnFamilyHandle handle : getAllColumnFamilyHandles()) {
                 getTransactionDB().compactRange(handle);
-                LOGGER.info("Compaction of ColumnFamily {} has been completed.", handle);
+                LOGGER.info("Compaction of ColumnFamily {} has been completed.",
+                            new String(handle.getName(), StandardCharsets.UTF_8));
             }
             flush();
             Instant endTime = Instant.now();
             long sizeAfter = estimateSize();
-            LOGGER.info("Compaction finished at {}, reclaimed {} bytes.", endTime, sizeBefore - sizeAfter);
+            LOGGER.info("Compaction finished, reclaimed {} bytes.", sizeBefore - sizeAfter);
             return new CompactStatus(sizeBefore, sizeAfter, sizeBefore - sizeAfter, startTime, endTime);
         } catch (RocksDBException e) {
             throw new CompactException("Failed to compact database: " + e.getMessage(), e);
@@ -679,10 +680,10 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
 
         for (ColumnFamilyHandle handle : getAllColumnFamilyHandles()) {
             String sizeStr = getTransactionDB().getProperty(handle, "rocksdb.total-sst-files-size");
-            if (sizeStr != null && !sizeStr.isEmpty()) {
+            if (StringUtils.isNotBlank(sizeStr)) {
                 long size = Long.parseLong(sizeStr);
                 totalSize += size;
-                LOGGER.debug("ColumnFamily {} size: {}", new String(handle.getName()), size);
+                LOGGER.debug("ColumnFamily {} size: {}", new String(handle.getName(), StandardCharsets.UTF_8), size);
             }
         }
         return totalSize;
