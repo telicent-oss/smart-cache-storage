@@ -212,4 +212,11 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
             }
         }
     }
+
+    @Override
+    public void flush() {
+        // Flush is a no-op because any changes to the state store are immediately persistent to the underlying database
+        // However we do need to honour API contract of not permitting any operations after a close()
+        ensureNotClosed();
+    }
 }

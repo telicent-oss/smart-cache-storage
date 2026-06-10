@@ -51,4 +51,8 @@ public class TestHibernateDistributionLifecycleStoreH2 extends AbstractDistribut
         return false;
     }
 
+    @Override
+    public boolean isImmediatelyPersistent() {
+        return true;
+    }
 }

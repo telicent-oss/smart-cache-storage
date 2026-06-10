@@ -10,7 +10,7 @@
     <parent>
         <groupId>io.telicent.smart-caches</groupId>
         <artifactId>parent</artifactId>
-        <version>0.40.0</version>
+        <version>0.40.1</version>
     </parent>
     <description>Libraries to simplify using common storage layers across Smart Caches</description>
 
@@ -84,7 +84,7 @@
         <dependency.mongojack>6.0.0</dependency.mongojack>
         <dependency.postgres>42.7.11</dependency.postgres>
         <dependency.rocksdb>10.10.1.1</dependency.rocksdb>
-        <dependency.smart-caches>0.40.1-SNAPSHOT</dependency.smart-caches>
+        <dependency.smart-caches>0.40.1</dependency.smart-caches>
 
     </properties>
 

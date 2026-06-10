@@ -70,4 +70,9 @@ public class DockerTestHibernateDistributionLifecycleStorePostgres extends Abstr
     public boolean isApplicationScoped() {
         return false;
     }
+
+    @Override
+    public boolean isImmediatelyPersistent() {
+        return true;
+    }
 }

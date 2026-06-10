@@ -21,8 +21,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.UUID;
-
 @Table(name = "LIFECYCLE_APPLICATION_STATES", uniqueConstraints = {
         @UniqueConstraint(name = "eventAndAppConstraint", columnNames = {
                 "eventId", "application"

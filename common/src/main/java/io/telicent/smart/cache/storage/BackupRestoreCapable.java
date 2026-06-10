@@ -16,7 +16,6 @@
 package io.telicent.smart.cache.storage;
 
 
-import java.io.File;
 import java.util.List;
 
 /**
