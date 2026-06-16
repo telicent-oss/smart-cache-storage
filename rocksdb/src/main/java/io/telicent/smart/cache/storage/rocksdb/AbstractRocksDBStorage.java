@@ -54,6 +54,10 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
         CompactCapable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractRocksDBStorage.class);
+    protected static final int KILOBYTE = 1024;
+    protected static final int GIGABYTE = KILOBYTE * KILOBYTE * KILOBYTE;
+    protected static final int MEGABYTE = KILOBYTE * KILOBYTE;
+
     private TransactionDB db;
     private Options options;
     private TransactionDBOptions transactionOptions;
@@ -169,16 +173,29 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
         LOGGER.debug("Configuring RocksDB options from defaults to recommended:");
         LOGGER.debug("maxBackgroundJobs {} to {}", options.maxBackgroundJobs(), 6);
         options.setMaxBackgroundJobs(6);
-        LOGGER.debug("bytesPerSync {} to {}", options.bytesPerSync(), 1048576);
-        options.setBytesPerSync(1048576);
+        LOGGER.debug("bytesPerSync {} to {}", options.bytesPerSync(), MEGABYTE);
+        options.setBytesPerSync(MEGABYTE);
         LOGGER.debug("compactionPriority {} to {}", options.compactionPriority(),
                      CompactionPriority.MinOverlappingRatio);
         options.setCompactionPriority(CompactionPriority.MinOverlappingRatio);
 
+        // Also limit the max WAL size to 1GB
+        // Otherwise RocksDB defaults this to (#ColumnFamilies * WriteBufferSize * MaxWriteBuffers) * 4
+        // Even for the default WriteBufferSize of 64MB and default MaxWriteBuffers of 2 it doesn't take many column
+        // families for this to become a large number e.g.
+        // (9 * 64 * 2) * 4 = 4608 MB which is ~4.5GB
+        // While this represents on-disk space usage we prefer to limit this to stop storage amplification becoming a
+        // problem
+        LOGGER.debug("maxTotalWalSize to {}", GIGABYTE);
+        options.setMaxTotalWalSize(GIGABYTE);
+
         // Table level configuration
         var tableOptions = new BlockBasedTableConfig();
-        LOGGER.debug("blockSize {} to {}", tableOptions.blockSize(), 16 * 1024);
-        tableOptions.setBlockSize(16 * 1024);
+        LOGGER.debug("blockCache to {} (per column family)", 16 * MEGABYTE);
+        var blockCache = new LRUCache(16 * MEGABYTE); // 16MB
+        tableOptions.setBlockCache(blockCache);
+        LOGGER.debug("blockSize {} to {}", tableOptions.blockSize(), 16 * KILOBYTE);
+        tableOptions.setBlockSize(16 * KILOBYTE); // 16KB
         LOGGER.debug("cacheIndexAndFilterBlocks {} to {}", tableOptions.cacheIndexAndFilterBlocks(), true);
         tableOptions.setCacheIndexAndFilterBlocks(true);
         LOGGER.debug("pinL0FilterAndIndexBlocksInCache {} to {}", tableOptions.pinL0FilterAndIndexBlocksInCache(),
