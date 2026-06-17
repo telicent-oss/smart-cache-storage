@@ -45,6 +45,19 @@ public class NestedTransactionContext extends ShortLivedTransactionContext {
     }
 
     /**
+     * Creates a new nested transaction context.
+     *
+     * @param db           Transactional Rocks DB
+     * @param readOptions  Read options
+     * @param writeOptions Write options
+     * @param ownsOptions  Whether this context owns the supplied options
+     */
+    public NestedTransactionContext(TransactionDB db, ReadOptions readOptions, WriteOptions writeOptions,
+                                    boolean ownsOptions) {
+        super(db, readOptions, writeOptions, ownsOptions);
+    }
+
+    /**
      * Increments the level of nesting
      *
      * @return Self
