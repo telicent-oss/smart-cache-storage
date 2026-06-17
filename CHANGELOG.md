@@ -14,6 +14,8 @@
     - Option to create read-only transactions with lower memory footprints
 - Label Store improvements:
     - Some RocksDB operations use read-only transactions when appropriate
+- Build improvements:
+    - Upgraded Smart Caches Core to 0.40.2
 
 # 0.11.3
 
