@@ -15,9 +15,11 @@
  */
 package io.telicent.smart.cache.storage.rocksdb;
 
+import org.rocksdb.RocksDBException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 public class TestReadOnlyTransactions extends AbstractRocksDBTests {
@@ -94,6 +96,26 @@ public class TestReadOnlyTransactions extends AbstractRocksDBTests {
                     // Then
                     Assert.assertEquals(read.get(external.getDefaultHandle(), KEY), VALUE);
                 }
+            }
+        }
+    }
+
+    @Test(expectedExceptions = IllegalStateException.class, expectedExceptionsMessageRegExp = ".*do not permit writes")
+    public void givenReadOnlyTransaction_whenAttemptingWrite_thenIllegalState() throws RocksDBException, IOException {
+        // Given
+        try (External external = new External(this.dbDir)) {
+            try (TransactionContext transaction = external.startReadOnly()) {
+                transaction.put(external.getDefaultHandle(), KEY, VALUE);
+            }
+        }
+    }
+
+    @Test(expectedExceptions = IllegalStateException.class, expectedExceptionsMessageRegExp = ".*do not permit writes")
+    public void givenReadOnlyTransaction_whenAttemptingDelete_thenIllegalState() throws RocksDBException, IOException {
+        // Given
+        try (External external = new External(this.dbDir)) {
+            try (TransactionContext transaction = external.startReadOnly()) {
+                transaction.delete(external.getDefaultHandle(), KEY);
             }
         }
     }

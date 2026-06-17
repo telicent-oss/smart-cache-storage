@@ -30,7 +30,7 @@ public class ShortLivedTransactionContext implements TransactionContext {
 
     private final WriteOptions writeOptions;
     private final ReadOptions readOptions;
-    private final boolean ownsOptions;
+    private final boolean ownsOptions, readOnly;
     private Transaction rocksTransaction;
     private final MetricsHolder metrics;
 
@@ -76,6 +76,7 @@ public class ShortLivedTransactionContext implements TransactionContext {
         this.ownsOptions = ownsOptions;
         this.metrics = Objects.requireNonNull(metrics, "metrics cannot be null");
         this.rocksTransaction = db.beginTransaction(this.writeOptions);
+        this.readOnly = !withSnapshot;
         if (withSnapshot) {
             this.rocksTransaction.setSnapshot();
         }
@@ -84,6 +85,12 @@ public class ShortLivedTransactionContext implements TransactionContext {
     private void ensureNotClosed() {
         if (this.rocksTransaction == null) {
             throw new IllegalStateException("Transaction already closed");
+        }
+    }
+
+    private void ensureWriteTransaction() {
+        if (this.readOnly) {
+            throw new IllegalStateException("Read only transactions do not permit writes");
         }
     }
 
@@ -96,6 +103,7 @@ public class ShortLivedTransactionContext implements TransactionContext {
     @Override
     public void put(ColumnFamilyHandle cfHandle, byte[] key, byte[] value) throws RocksDBException {
         ensureNotClosed();
+        ensureWriteTransaction();
         this.rocksTransaction.put(cfHandle, key, value);
     }
 
@@ -114,7 +122,11 @@ public class ShortLivedTransactionContext implements TransactionContext {
     @Override
     public void commit() throws RocksDBException {
         if (this.rocksTransaction != null) {
-            this.metrics.incrementWriteTransactions();
+            if (this.readOnly) {
+                this.metrics.incrementReadOnlyTransactions();
+            } else {
+                this.metrics.incrementWriteTransactions();
+            }
             this.rocksTransaction.commit();
             this.rocksTransaction.close();
             this.rocksTransaction = null;
@@ -127,6 +139,8 @@ public class ShortLivedTransactionContext implements TransactionContext {
     public void close() {
         try {
             if (this.rocksTransaction != null) {
+                // If the transaction was closed without committing we consider it a read-only transaction even if
+                // writes might have been made but are now being discarded
                 this.metrics.incrementReadOnlyTransactions();
                 this.rocksTransaction.rollback();
                 this.rocksTransaction.close();
@@ -196,6 +210,7 @@ public class ShortLivedTransactionContext implements TransactionContext {
     @Override
     public void delete(ColumnFamilyHandle handle, byte[] key) throws RocksDBException {
         ensureNotClosed();
+        ensureWriteTransaction();
         this.rocksTransaction.delete(handle, key);
     }
 

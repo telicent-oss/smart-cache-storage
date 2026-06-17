@@ -169,4 +169,21 @@ public class TestMetrics extends AbstractRocksDBTests {
         }
 
     }
+
+    @Test
+    public void givenRocksStorage_whenReadOnlyTransactionCommited_thenReadOnlyTransactionCounterUpdated() throws
+            RocksDBException, IOException {
+        // Given
+        try (External external = new External(this.dbDir)) {
+            // When
+            try (TransactionContext transaction = external.startReadOnly()) {
+                transaction.commit();
+            }
+
+            // Then
+            Assert.assertEquals(
+                    MetricTestUtils.getReportedMetric(MetricNames.READONLY_TRANSACTIONS, expectedAttributes())
+                                   .longValue(), 1L);
+        }
+    }
 }

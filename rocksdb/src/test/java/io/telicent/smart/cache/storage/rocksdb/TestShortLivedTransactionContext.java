@@ -301,11 +301,12 @@ public class TestShortLivedTransactionContext {
         TransactionDB db = mock(TransactionDB.class);
         Transaction transaction = mock(Transaction.class);
         when(db.beginTransaction(any())).thenReturn(transaction);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         ReadOptions readOptions = mock(ReadOptions.class);
         WriteOptions writeOptions = mock(WriteOptions.class);
         ColumnFamilyHandle handle = mock(ColumnFamilyHandle.class);
 
-        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions)) {
+        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions, metrics)) {
             // When
             context.close();
 
