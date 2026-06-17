@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>io.telicent.smart-caches.storage</groupId>
@@ -22,6 +23,18 @@
             <groupId>io.telicent.smart-caches.storage</groupId>
             <artifactId>common</artifactId>
             <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.telicent.smart-caches</groupId>
+            <artifactId>observability-core</artifactId>
+            <version>${dependency.smart-caches}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.opentelemetry.semconv</groupId>
+            <artifactId>opentelemetry-semconv</artifactId>
+            <version>${dependency.otel-semconv}</version>
         </dependency>
 
         <dependency>
@@ -60,6 +73,20 @@
             <version>${dependency.awaitility}</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>io.telicent.smart-caches</groupId>
+            <artifactId>observability-core</artifactId>
+            <version>${dependency.smart-caches}</version>
+            <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-sdk</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -72,7 +99,9 @@
                     <includes>
                         <include>**/Test*.java</include>
                     </includes>
-                    <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar} -XX:+EnableDynamicAgentLoading -Xshare:off</argLine>
+                    <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar} -XX:+EnableDynamicAgentLoading
+                        -Xshare:off
+                    </argLine>
                 </configuration>
             </plugin>
             <plugin>

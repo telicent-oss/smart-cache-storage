@@ -79,11 +79,12 @@
         <dependency.jackson3>3.2.0</dependency.jackson3>
         <dependency.jetty>12.1.10</dependency.jetty>
         <dependency.jmh>1.37</dependency.jmh>
+        <dependency.otel-semconv>1.42.0</dependency.otel-semconv>
         <dependency.mongodb>5.8.0</dependency.mongodb>
         <dependency.mongojack>6.0.0</dependency.mongojack>
         <dependency.postgres>42.7.11</dependency.postgres>
         <dependency.rocksdb>10.10.1.1</dependency.rocksdb>
-        <dependency.smart-caches>0.40.1</dependency.smart-caches>
+        <dependency.smart-caches>0.40.2-SNAPSHOT</dependency.smart-caches>
 
     </properties>
 

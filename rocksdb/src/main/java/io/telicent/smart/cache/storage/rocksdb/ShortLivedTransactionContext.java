@@ -15,6 +15,7 @@
  */
 package io.telicent.smart.cache.storage.rocksdb;
 
+import io.telicent.smart.cache.storage.rocksdb.metrics.MetricsHolder;
 import org.rocksdb.*;
 
 import java.util.List;
@@ -31,6 +32,7 @@ public class ShortLivedTransactionContext implements TransactionContext {
     private final ReadOptions readOptions;
     private final boolean ownsOptions;
     private Transaction rocksTransaction;
+    private final MetricsHolder metrics;
 
     /**
      * Creates a new short-lived transaction context that <strong>owns</strong> the supplied options,
@@ -40,8 +42,8 @@ public class ShortLivedTransactionContext implements TransactionContext {
      * @param readOptions  Read options
      * @param writeOptions Write options
      */
-    public ShortLivedTransactionContext(TransactionDB db, ReadOptions readOptions, WriteOptions writeOptions) {
-        this(db, readOptions, writeOptions, true);
+    public ShortLivedTransactionContext(TransactionDB db, ReadOptions readOptions, WriteOptions writeOptions, MetricsHolder metrics) {
+        this(db, readOptions, writeOptions, true, metrics);
     }
 
     /**
@@ -53,8 +55,8 @@ public class ShortLivedTransactionContext implements TransactionContext {
      * @param ownsOptions  Whether this context owns the supplied options.
      */
     public ShortLivedTransactionContext(TransactionDB db, ReadOptions readOptions, WriteOptions writeOptions,
-                                        boolean ownsOptions) {
-        this(db, readOptions, writeOptions, ownsOptions, true);
+                                        boolean ownsOptions, MetricsHolder metrics) {
+        this(db, readOptions, writeOptions, ownsOptions, true, metrics);
     }
 
     /**
@@ -67,11 +69,12 @@ public class ShortLivedTransactionContext implements TransactionContext {
      * @param withSnapshot Snapshots are only required for write transactions to enable conflict detection
      */
     public ShortLivedTransactionContext(TransactionDB db, ReadOptions readOptions, WriteOptions writeOptions,
-                                        boolean ownsOptions, boolean withSnapshot) {
+                                        boolean ownsOptions, boolean withSnapshot, MetricsHolder metrics) {
         Objects.requireNonNull(db, "db cannot be null");
         this.readOptions = Objects.requireNonNull(readOptions, "readOptions cannot be null");
         this.writeOptions = Objects.requireNonNull(writeOptions, "writeOptions cannot be null");
         this.ownsOptions = ownsOptions;
+        this.metrics = Objects.requireNonNull(metrics, "metrics cannot be null");
         this.rocksTransaction = db.beginTransaction(this.writeOptions);
         if (withSnapshot) {
             this.rocksTransaction.setSnapshot();
@@ -111,20 +114,24 @@ public class ShortLivedTransactionContext implements TransactionContext {
     @Override
     public void commit() throws RocksDBException {
         if (this.rocksTransaction != null) {
+            this.metrics.incrementWriteTransactions();
             this.rocksTransaction.commit();
             this.rocksTransaction.close();
             this.rocksTransaction = null;
             closeOwnedOptions();
+            this.metrics.decrementActiveTransactions();
         }
-     }
+    }
 
     @Override
     public void close() {
         try {
             if (this.rocksTransaction != null) {
+                this.metrics.incrementReadOnlyTransactions();
                 this.rocksTransaction.rollback();
                 this.rocksTransaction.close();
                 this.rocksTransaction = null;
+                this.metrics.decrementActiveTransactions();
             }
         } catch (RocksDBException e) {
             throw new RuntimeException("Failed to rollback RocksDB transaction", e);

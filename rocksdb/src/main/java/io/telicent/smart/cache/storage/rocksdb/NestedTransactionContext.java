@@ -15,6 +15,7 @@
  */
 package io.telicent.smart.cache.storage.rocksdb;
 
+import io.telicent.smart.cache.storage.rocksdb.metrics.MetricsHolder;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.TransactionDB;
@@ -38,10 +39,11 @@ public class NestedTransactionContext extends ShortLivedTransactionContext {
      * @param db           Transactional Rocks DB
      * @param readOptions  Read options
      * @param writeOptions Write options
+     * @param metrics Metrics
      */
     public NestedTransactionContext(TransactionDB db, ReadOptions readOptions,
-                                    WriteOptions writeOptions) {
-        super(db, readOptions, writeOptions);
+                                    WriteOptions writeOptions, MetricsHolder metrics) {
+        super(db, readOptions, writeOptions, metrics);
     }
 
     /**
@@ -53,8 +55,8 @@ public class NestedTransactionContext extends ShortLivedTransactionContext {
      * @param ownsOptions  Whether this context owns the supplied options
      */
     public NestedTransactionContext(TransactionDB db, ReadOptions readOptions, WriteOptions writeOptions,
-                                    boolean ownsOptions) {
-        super(db, readOptions, writeOptions, ownsOptions);
+                                    boolean ownsOptions, MetricsHolder metrics) {
+        super(db, readOptions, writeOptions, ownsOptions, metrics);
     }
 
     /**

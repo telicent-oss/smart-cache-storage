@@ -1,5 +1,15 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.12.0
+
+- RocksDB improvements:
+    - Standardised open code for constructor vs reopen after a `restore()`
+    - Enabled OpenTelemetry metrics for RocksDB storage including:
+        - Counters for transactions
+        - Gauges for memory usage
+        - Counters for RocksDB internal statistics
+    - Fixed JNI memory leak relating to use of read and write options
+
 # 0.11.3
 
 - RocksDB improvements:
