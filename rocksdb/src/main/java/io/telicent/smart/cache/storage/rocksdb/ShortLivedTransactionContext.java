@@ -188,6 +188,7 @@ public class ShortLivedTransactionContext implements TransactionContext {
 
     @Override
     public void delete(ColumnFamilyHandle handle, byte[] key) throws RocksDBException {
+        ensureNotClosed();
         this.rocksTransaction.delete(handle, key);
     }
 

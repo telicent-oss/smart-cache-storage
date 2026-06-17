@@ -277,4 +277,23 @@ public class TestShortLivedTransactionContext {
             verify(transaction, never()).setSnapshot();
         }
     }
+
+    @Test(expectedExceptions = IllegalStateException.class)
+    public void givenClosedContext_whenDeleting_thenIllegalState() throws RocksDBException {
+        // Given
+        TransactionDB db = mock(TransactionDB.class);
+        Transaction transaction = mock(Transaction.class);
+        when(db.beginTransaction(any())).thenReturn(transaction);
+        ReadOptions readOptions = mock(ReadOptions.class);
+        WriteOptions writeOptions = mock(WriteOptions.class);
+        ColumnFamilyHandle handle = mock(ColumnFamilyHandle.class);
+
+        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions)) {
+            // When
+            context.close();
+
+            // Then - delete after close must be rejected like the other operations
+            context.delete(handle, "key".getBytes());
+        }
+    }
 }
