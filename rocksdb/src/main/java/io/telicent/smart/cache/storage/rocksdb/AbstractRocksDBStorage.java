@@ -1,14 +1,17 @@
 /**
  * Copyright (C) Telicent Ltd
- * <p>
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * <p>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.telicent.smart.cache.storage.rocksdb;
 
@@ -116,7 +119,20 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
         this.columnFamilyHandles = new HashMap<>();
         this.counters = new HashMap<>();
 
-        this.openInternal();
+        try {
+            this.openInternal();
+        } catch (RuntimeException e) {
+            // NB - Because openInternal() needs to not throw checked exceptions (due to how it's also used in
+            //      restore()) it potentially rewraps the actual Rocks error in a RuntimeException, since our
+            //      constructor does declare checked exceptions we can unwrap those
+            if (e.getCause() instanceof RocksDBException rocksError) {
+                throw rocksError;
+            } else if (e.getCause() instanceof IOException ioError) {
+                throw ioError;
+            } else {
+                throw e;
+            }
+        }
     }
 
     /**
@@ -628,17 +644,6 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
                                             backupInfos.getLast();
 
                 openInternal();
-
-                // We have to resynchronise any counters after a restore operation as their in-memory values wouldn't be
-                // in-sync with their backup values
-                // Should no longer be required now openInternal() behaviour matches ctor() behaviour
-                /*LOGGER.info("Resynchronising counters after restore...");
-                for (Map.Entry<String, RocksDBCounter> counter : this.counters.entrySet()) {
-                    long before = counter.getValue().get();
-                    counter.getValue().sync();
-                    LOGGER.info("Counter {} restored value from {} to {}", counter.getKey(), before,
-                                counter.getValue().get());
-                }*/
 
                 LOGGER.info("Restored {} from backup {}", dbDir.getPath(), restoredBackup.backupId());
                 return RestoreStatus.success(String.valueOf(restoredBackup.backupId()), restoredBackup.size());

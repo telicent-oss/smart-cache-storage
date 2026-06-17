@@ -4,11 +4,16 @@
 
 - RocksDB improvements:
     - Standardised open code for constructor vs reopen after a `restore()`
+    - Improved `createDefaultOptions()` to set some additional memory usage related settings to help reduce total memory
+      and disk usage
     - Enabled OpenTelemetry metrics for RocksDB storage including:
         - Counters for transactions
         - Gauges for memory usage
         - Counters for RocksDB internal statistics
     - Fixed JNI memory leak relating to use of read and write options
+    - Option to create read-only transactions with lower memory footprints
+- Label Store improvements:
+    - Some RocksDB operations use read-only transactions when appropriate
 
 # 0.11.3
 

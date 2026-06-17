@@ -206,10 +206,11 @@ public class TestShortLivedTransactionContext {
         TransactionDB db = mock(TransactionDB.class);
         Transaction transaction = mock(Transaction.class);
         when(db.beginTransaction(any())).thenReturn(transaction);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         ReadOptions readOptions = mock(ReadOptions.class);
         WriteOptions writeOptions = mock(WriteOptions.class);
-        // The 3-arg constructor owns the options
-        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions)) {
+        // This constructor owns the options
+        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions, metrics)) {
             // When
             context.commit();
 
@@ -225,9 +226,10 @@ public class TestShortLivedTransactionContext {
         TransactionDB db = mock(TransactionDB.class);
         Transaction transaction = mock(Transaction.class);
         when(db.beginTransaction(any())).thenReturn(transaction);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         ReadOptions readOptions = mock(ReadOptions.class);
         WriteOptions writeOptions = mock(WriteOptions.class);
-        ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions);
+        ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions, metrics);
 
         // When
         context.close();
@@ -243,11 +245,12 @@ public class TestShortLivedTransactionContext {
         TransactionDB db = mock(TransactionDB.class);
         Transaction transaction = mock(Transaction.class);
         when(db.beginTransaction(any())).thenReturn(transaction);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         ReadOptions readOptions = mock(ReadOptions.class);
         WriteOptions writeOptions = mock(WriteOptions.class);
         // ownsOptions = false => the options are shared/owned by the caller and must never be closed by the context
         try (ShortLivedTransactionContext context =
-                     new ShortLivedTransactionContext(db, readOptions, writeOptions, false)) {
+                     new ShortLivedTransactionContext(db, readOptions, writeOptions, false, metrics)) {
             // When
             context.commit();
         }
@@ -263,11 +266,12 @@ public class TestShortLivedTransactionContext {
         TransactionDB db = mock(TransactionDB.class);
         Transaction transaction = mock(Transaction.class);
         when(db.beginTransaction(any())).thenReturn(transaction);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         ReadOptions readOptions = mock(ReadOptions.class);
         WriteOptions writeOptions = mock(WriteOptions.class);
 
         // When (constructors default to taking a snapshot)
-        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions)) {
+        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions, metrics)) {
             // Then
             verify(transaction, times(1)).setSnapshot();
         }
@@ -279,12 +283,13 @@ public class TestShortLivedTransactionContext {
         TransactionDB db = mock(TransactionDB.class);
         Transaction transaction = mock(Transaction.class);
         when(db.beginTransaction(any())).thenReturn(transaction);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         ReadOptions readOptions = mock(ReadOptions.class);
         WriteOptions writeOptions = mock(WriteOptions.class);
 
         // When (withSnapshot = false)
         try (ShortLivedTransactionContext context =
-                     new ShortLivedTransactionContext(db, readOptions, writeOptions, false, false)) {
+                     new ShortLivedTransactionContext(db, readOptions, writeOptions, false, false, metrics)) {
             // Then - read-only transactions must not pin a snapshot
             verify(transaction, never()).setSnapshot();
         }

@@ -47,8 +47,8 @@ public final class MetricsHolder implements AutoCloseable {
     private static final String CURRENT_SIZE_ALL_MEM_TABLES_PROPERTY = "rocksdb.cur-size-all-mem-tables";
 
     private final Attributes dbAttributes;
-    private final TransactionDB db;
-    private final Statistics stats;
+    private TransactionDB db;
+    private Statistics stats;
     private boolean closed = false;
     private final LongCounter transactions, readOnlyTransactions, writeTransactions;
     private final AtomicLong active = new AtomicLong(0);
@@ -76,30 +76,61 @@ public final class MetricsHolder implements AutoCloseable {
         this.activeTransactions = meter.gaugeBuilder(ACTIVE_TRANSACTIONS)
                                        .setDescription(ACTIVE_TRANSACTIONS_DESCRIPTION)
                                        .ofLongs()
-                                       .buildWithCallback(m -> m.record(this.active.get(), this.dbAttributes));
-        this.readOnlyTransactions =
-                meter.counterBuilder(READONLY_TRANSACTIONS).setDescription(READONLY_TRANSACTIONS_DESCRIPTION).build();
-        this.writeTransactions = meter.counterBuilder(WRITE_TRANSACTIONS).build();
+                                       .buildWithCallback(m -> {
+                                           if (!this.closed) {
+                                               m.record(this.active.get(), this.dbAttributes);
+                                           }
+                                       });
+        this.readOnlyTransactions = meter.counterBuilder(READONLY_TRANSACTIONS).
 
-        this.blockCacheUsage =
-                meter.gaugeBuilder(BLOCK_CACHE_MEMORY_USAGE).setUnit("bytes").ofLongs().buildWithCallback(m -> {
-                    observeRocksDbProperty(m, BLOCK_CACHE_USAGE_PROPERTY);
-                });
-        this.blockCachePinnedUsage = meter.gaugeBuilder(BLOCK_CACHE_PINNED_MEMORY_USAGE)
-                                          .setUnit("bytes")
-                                          .ofLongs()
-                                          .buildWithCallback(
-                                                  m -> observeRocksDbProperty(m, BLOCK_CACHE_PINNED_USAGE_PROPERTY));
-        this.tableReadersUsage = meter.gaugeBuilder(TABLE_READERS_MEMORY_USAGE)
-                                      .setUnit("bytes")
-                                      .ofLongs()
-                                      .buildWithCallback(
-                                              m -> observeRocksDbProperty(m, ESTIMATE_TABLE_READERS_MEM_PROPERTY));
-        this.memtablesUsage = meter.gaugeBuilder(MEMTABLES_MEMORY_USAGE)
-                                   .setUnit("bytes")
-                                   .ofLongs()
-                                   .buildWithCallback(
-                                           m -> observeRocksDbProperty(m, CURRENT_SIZE_ALL_MEM_TABLES_PROPERTY));
+                setDescription(READONLY_TRANSACTIONS_DESCRIPTION).
+
+                                                 build();
+        this.writeTransactions = meter.counterBuilder(WRITE_TRANSACTIONS).
+
+                build();
+
+        this.blockCacheUsage = meter.gaugeBuilder(BLOCK_CACHE_MEMORY_USAGE).
+
+                setUnit("bytes").
+
+                                            ofLongs().
+
+                                            buildWithCallback(m ->
+
+                                                              {
+                                                                  observeRocksDbProperty(m, BLOCK_CACHE_USAGE_PROPERTY);
+                                                              });
+        this.blockCachePinnedUsage = meter.gaugeBuilder(BLOCK_CACHE_PINNED_MEMORY_USAGE).
+
+                setUnit("bytes").
+
+                                                  ofLongs().
+
+                                                  buildWithCallback(m ->
+
+                                                                            observeRocksDbProperty(m,
+                                                                                                   BLOCK_CACHE_PINNED_USAGE_PROPERTY));
+        this.tableReadersUsage = meter.gaugeBuilder(TABLE_READERS_MEMORY_USAGE).
+
+                setUnit("bytes").
+
+                                              ofLongs().
+
+                                              buildWithCallback(m ->
+
+                                                                        observeRocksDbProperty(m,
+                                                                                               ESTIMATE_TABLE_READERS_MEM_PROPERTY));
+        this.memtablesUsage = meter.gaugeBuilder(MEMTABLES_MEMORY_USAGE).
+
+                setUnit("bytes").
+
+                                           ofLongs().
+
+                                           buildWithCallback(m ->
+
+                                                                     observeRocksDbProperty(m,
+                                                                                            CURRENT_SIZE_ALL_MEM_TABLES_PROPERTY));
 
 
         // Create observables for each interesting RocksDB ticker that will expose those statistics out to OpenTelemetry
@@ -133,38 +164,39 @@ public final class MetricsHolder implements AutoCloseable {
     }
 
     public void incrementTransactions() {
-        if (this.closed) {
-            return;
+        if (!this.closed) {
+            this.transactions.add(1, this.dbAttributes);
         }
-        this.transactions.add(1, this.dbAttributes);
     }
 
     public void incrementActiveTransactions() {
-        if (this.closed) {
-            return;
+        if (!this.closed) {
+            this.active.incrementAndGet();
         }
-        this.active.incrementAndGet();
     }
 
     public void decrementActiveTransactions() {
-        if (this.closed) {
-            return;
+        if (!this.closed) {
+            this.active.decrementAndGet();
         }
-        this.active.decrementAndGet();
     }
 
     public void incrementReadOnlyTransactions() {
-        this.readOnlyTransactions.add(1, this.dbAttributes);
+        if (!this.closed) {
+            this.readOnlyTransactions.add(1, this.dbAttributes);
+        }
     }
 
     public void incrementWriteTransactions() {
-        this.writeTransactions.add(1, this.dbAttributes);
+        if (!this.closed) {
+            this.writeTransactions.add(1, this.dbAttributes);
+        }
     }
 
     @Override
     public void close() {
         boolean wasOpen = !this.closed;
-        this.closed = true;
+        setClosedFlag();
         if (wasOpen) {
             // Close all our observables so they stop trying to invoke their callbacks and report metrics for closed
             // storage
@@ -177,6 +209,24 @@ public final class MetricsHolder implements AutoCloseable {
             for (ObservableLongCounter tickerCounter : this.statsTickers) {
                 tickerCounter.close();
             }
+
+            // Also set our references to null
+            // Note we don't close() these because its the AbstractRocksStorage that owns these and not the
+            // MetricsHolder.  However, the fact we've been close()'d implies these references are likely to no longer
+            // be valid so we should avoid holding them any longer
+            this.db = null;
+            this.stats = null;
         }
+    }
+
+    /**
+     * Sets the closed flag to {@code true}
+     * <p>
+     * Package private visibility only for unit testing that once the holder is closed any observables stop collecting
+     * stats.
+     * </p>
+     */
+    void setClosedFlag() {
+        this.closed = true;
     }
 }

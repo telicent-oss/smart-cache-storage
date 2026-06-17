@@ -192,7 +192,7 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
 
         byte[] idBytes = longToBytes(id);
         ColumnFamilyHandle idToLabelHandle = getHandle(IDS_TO_LABELS_CF);
-        try (TransactionContext transaction = this.begin()) {
+        try (TransactionContext transaction = this.beginReadOnly()) {
             return transaction.get(idToLabelHandle, idBytes);
         } catch (RocksDBException e) {
             throw new RuntimeException("Error accessing RocksDB", e);
@@ -224,7 +224,7 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
             return Map.of();
         }
 
-        try (TransactionContext transaction = this.begin()) {
+        try (TransactionContext transaction = this.beginReadOnly()) {
             // 1) Bulk lookup any known labels
             List<byte[]> results = transaction.multiGetAsList(cfHandles, keys);
 
@@ -245,7 +245,7 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
     @Override
     public long labelCount() {
         this.ensureNotClosed();
-        try (TransactionContext transaction = this.begin()) {
+        try (TransactionContext transaction = this.beginReadOnly()) {
             return transaction.count(this.getHandle(LABELS_TO_IDS_CF));
         }
     }
@@ -323,7 +323,7 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
     @Override
     public long keyCount() {
         this.ensureNotClosed();
-        try (TransactionContext transaction = this.begin()) {
+        try (TransactionContext transaction = this.beginReadOnly()) {
             return transaction.count(this.getHandle(KEYS_TO_LABELS_CF));
         }
     }
