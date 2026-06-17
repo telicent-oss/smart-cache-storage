@@ -244,4 +244,37 @@ public class TestShortLivedTransactionContext {
         verify(readOptions, never()).close();
         verify(writeOptions, never()).close();
     }
+
+    @Test
+    public void givenSnapshotRequested_whenCreated_thenSnapshotTaken() {
+        // Given
+        TransactionDB db = mock(TransactionDB.class);
+        Transaction transaction = mock(Transaction.class);
+        when(db.beginTransaction(any())).thenReturn(transaction);
+        ReadOptions readOptions = mock(ReadOptions.class);
+        WriteOptions writeOptions = mock(WriteOptions.class);
+
+        // When (constructors default to taking a snapshot)
+        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions)) {
+            // Then
+            verify(transaction, times(1)).setSnapshot();
+        }
+    }
+
+    @Test
+    public void givenNoSnapshotRequested_whenCreated_thenSnapshotNotTaken() {
+        // Given
+        TransactionDB db = mock(TransactionDB.class);
+        Transaction transaction = mock(Transaction.class);
+        when(db.beginTransaction(any())).thenReturn(transaction);
+        ReadOptions readOptions = mock(ReadOptions.class);
+        WriteOptions writeOptions = mock(WriteOptions.class);
+
+        // When (withSnapshot = false)
+        try (ShortLivedTransactionContext context =
+                     new ShortLivedTransactionContext(db, readOptions, writeOptions, false, false)) {
+            // Then - read-only transactions must not pin a snapshot
+            verify(transaction, never()).setSnapshot();
+        }
+    }
 }

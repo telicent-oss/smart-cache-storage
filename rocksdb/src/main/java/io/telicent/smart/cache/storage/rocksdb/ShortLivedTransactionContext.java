@@ -45,7 +45,7 @@ public class ShortLivedTransactionContext implements TransactionContext {
     }
 
     /**
-     * Creates a new short-lived transaction context.
+     * Creates a new short-lived transaction context that takes a snapshot.
      *
      * @param db           Transactional Rocks DB
      * @param readOptions  Read options
@@ -54,12 +54,28 @@ public class ShortLivedTransactionContext implements TransactionContext {
      */
     public ShortLivedTransactionContext(TransactionDB db, ReadOptions readOptions, WriteOptions writeOptions,
                                         boolean ownsOptions) {
+        this(db, readOptions, writeOptions, ownsOptions, true);
+    }
+
+    /**
+     * Creates a new short-lived transaction context.
+     *
+     * @param db           Transactional Rocks DB
+     * @param readOptions  Read options
+     * @param writeOptions Write options
+     * @param ownsOptions  Whether this context owns the supplied options.
+     * @param withSnapshot Snapshots are only required for write transactions to enable conflict detection
+     */
+    public ShortLivedTransactionContext(TransactionDB db, ReadOptions readOptions, WriteOptions writeOptions,
+                                        boolean ownsOptions, boolean withSnapshot) {
         Objects.requireNonNull(db, "db cannot be null");
         this.readOptions = Objects.requireNonNull(readOptions, "readOptions cannot be null");
         this.writeOptions = Objects.requireNonNull(writeOptions, "writeOptions cannot be null");
         this.ownsOptions = ownsOptions;
         this.rocksTransaction = db.beginTransaction(this.writeOptions);
-        this.rocksTransaction.setSnapshot();
+        if (withSnapshot) {
+            this.rocksTransaction.setSnapshot();
+        }
     }
 
     private void ensureNotClosed() {
