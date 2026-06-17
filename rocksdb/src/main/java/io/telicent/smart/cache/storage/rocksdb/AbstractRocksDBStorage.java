@@ -490,6 +490,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
         }
         // Standalone read - no snapshot required, reuse the shared options
         this.metrics.incrementTransactions();
+        this.metrics.incrementActiveTransactions();
         return new ShortLivedTransactionContext(this.db, this.sharedReadOptions, this.sharedWriteOptions, false, false,
                                                 this.metrics);
     }
