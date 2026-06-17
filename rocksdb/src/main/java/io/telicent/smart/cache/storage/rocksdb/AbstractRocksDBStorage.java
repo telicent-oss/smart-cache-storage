@@ -407,6 +407,22 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
     }
 
     /**
+     * Begins a new read-only transaction with default read and write options
+     *
+     * @return New read-only transaction
+     */
+    protected final TransactionContext beginReadOnly() {
+        ensureNotClosed();
+        NestedTransactionContext context = this.nestedTransactions.get();
+        if (context != null && context.isActive()) {
+            // Join the active transaction so any uncommitted writes remain visible to this read
+            return context.increment();
+        }
+        // Standalone read - no snapshot required, reuse the shared options
+        return new ShortLivedTransactionContext(this.db, this.sharedReadOptions, this.sharedWriteOptions, false, false);
+    }
+
+    /**
      * Begins a new transaction that may be nested, or increments the nested of the pre-existing nested transaction
      *
      * @return Nested transaction
