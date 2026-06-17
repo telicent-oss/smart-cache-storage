@@ -57,6 +57,8 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
     private TransactionDB db;
     private Options options;
     private TransactionDBOptions transactionOptions;
+    private ReadOptions sharedReadOptions;
+    private WriteOptions sharedWriteOptions;
     private final Map<String, ColumnFamilyHandle> columnFamilyHandles;
     private final Map<String, RocksDBCounter> counters;
     private final ThreadLocal<NestedTransactionContext> nestedTransactions = ThreadLocal.withInitial(() -> null);
@@ -127,7 +129,11 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
             this.columnFamilyHandles.put(name, cfHandles.get(i));
         }
 
-        // 4. Prepare any counters we need
+        // 4. Prepare the shared read/write options reused across transactions
+        this.sharedReadOptions = defaultReadOptions();
+        this.sharedWriteOptions = defaultWriteOptions();
+
+        // 5. Prepare any counters we need
         this.counters = this.prepareCounters();
         if (!this.counters.isEmpty()) {
             LOGGER.info("Prepared {} counters ({})", this.counters.size(),
@@ -279,6 +285,8 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
             db.close();
             options.close();
             transactionOptions.close();
+            this.sharedReadOptions.close();
+            this.sharedWriteOptions.close();
         } catch (Throwable e) {
             throw new RuntimeException("Failed to close RocksDB resources", e);
         }
@@ -288,6 +296,8 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
         try {
             this.options = createDefaultOptions();
             this.transactionOptions = createDefaultTransactionOptions();
+            this.sharedReadOptions = defaultReadOptions();
+            this.sharedWriteOptions = defaultWriteOptions();
 
             columnFamilyHandles.clear();
 
@@ -388,29 +398,12 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
      * @return New transaction
      */
     protected final TransactionContext begin() {
-        return this.begin(defaultReadOptions(), defaultWriteOptions());
-    }
-
-    /**
-     * Begins a new transaction with the given read and write options
-     * <p>
-     * If this is called within the context of a pre-existing nested transaction (created by a call to
-     * {@link #beginNested()}) then the returned transaction will be a nested transaction that shares the longer running
-     * transaction context.
-     * </p>
-     *
-     * @param readOptions  Read options
-     * @param writeOptions Write options
-     * @return New transaction
-     */
-    protected final TransactionContext begin(ReadOptions readOptions, WriteOptions writeOptions) {
         ensureNotClosed();
         NestedTransactionContext context = this.nestedTransactions.get();
         if (context != null && context.isActive()) {
             return context.increment();
-        } else {
-            return new ShortLivedTransactionContext(this.db, readOptions, writeOptions);
         }
+        return new ShortLivedTransactionContext(this.db, this.sharedReadOptions, this.sharedWriteOptions, false);
     }
 
     /**
@@ -419,23 +412,12 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
      * @return Nested transaction
      */
     protected final TransactionContext beginNested() {
-        return this.beginNested(defaultReadOptions(), defaultWriteOptions());
-    }
-
-    /**
-     * Begins a new transaction that may be nested, or increments the nested of the existing nested transaction, the
-     * read and write options are only honoured if this is the top level transaction
-     *
-     * @param readOptions  Read options
-     * @param writeOptions Write options
-     * @return Nested transaction
-     */
-    protected final TransactionContext beginNested(ReadOptions readOptions, WriteOptions writeOptions) {
         ensureNotClosed();
         NestedTransactionContext context = this.nestedTransactions.get();
         if (context == null || !context.isActive()) {
-            // No prior nested transaction, or previous one has been closed, create a fresh one
-            context = new NestedTransactionContext(this.db, readOptions, writeOptions);
+            // No prior nested transaction, or previous one has been closed, create a fresh one reusing the shared
+            // options rather than allocating fresh native option objects
+            context = new NestedTransactionContext(this.db, this.sharedReadOptions, this.sharedWriteOptions, false);
             this.nestedTransactions.set(context);
             return context;
         } else {

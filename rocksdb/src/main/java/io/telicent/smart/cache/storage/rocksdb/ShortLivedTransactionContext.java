@@ -29,12 +29,35 @@ public class ShortLivedTransactionContext implements TransactionContext {
 
     private final WriteOptions writeOptions;
     private final ReadOptions readOptions;
+    private final boolean ownsOptions;
     private Transaction rocksTransaction;
 
+    /**
+     * Creates a new short-lived transaction context that <strong>owns</strong> the supplied options,
+     * and will close them when this context is committed/closed.
+     *
+     * @param db           Transactional Rocks DB
+     * @param readOptions  Read options
+     * @param writeOptions Write options
+     */
     public ShortLivedTransactionContext(TransactionDB db, ReadOptions readOptions, WriteOptions writeOptions) {
+        this(db, readOptions, writeOptions, true);
+    }
+
+    /**
+     * Creates a new short-lived transaction context.
+     *
+     * @param db           Transactional Rocks DB
+     * @param readOptions  Read options
+     * @param writeOptions Write options
+     * @param ownsOptions  Whether this context owns the supplied options.
+     */
+    public ShortLivedTransactionContext(TransactionDB db, ReadOptions readOptions, WriteOptions writeOptions,
+                                        boolean ownsOptions) {
         Objects.requireNonNull(db, "db cannot be null");
         this.readOptions = Objects.requireNonNull(readOptions, "readOptions cannot be null");
         this.writeOptions = Objects.requireNonNull(writeOptions, "writeOptions cannot be null");
+        this.ownsOptions = ownsOptions;
         this.rocksTransaction = db.beginTransaction(this.writeOptions);
         this.rocksTransaction.setSnapshot();
     }
@@ -75,6 +98,7 @@ public class ShortLivedTransactionContext implements TransactionContext {
             this.rocksTransaction.commit();
             this.rocksTransaction.close();
             this.rocksTransaction = null;
+            closeOwnedOptions();
         }
      }
 
@@ -89,6 +113,16 @@ public class ShortLivedTransactionContext implements TransactionContext {
         } catch (RocksDBException e) {
             throw new RuntimeException("Failed to rollback RocksDB transaction", e);
         } finally {
+            closeOwnedOptions();
+        }
+    }
+
+    /**
+     * Closes the read/write options if this context owns them. RocksDB native option objects are safe to
+     * close more than once so this method is idempotent.
+     */
+    private void closeOwnedOptions() {
+        if (this.ownsOptions) {
             this.readOptions.close();
             this.writeOptions.close();
         }

@@ -187,4 +187,61 @@ public class TestShortLivedTransactionContext {
             context.delete(handle, "key".getBytes());
         }
     }
+
+    @Test
+    public void givenOwnedOptions_whenCommitting_thenOptionsAreClosed() throws RocksDBException {
+        // Given
+        TransactionDB db = mock(TransactionDB.class);
+        Transaction transaction = mock(Transaction.class);
+        when(db.beginTransaction(any())).thenReturn(transaction);
+        ReadOptions readOptions = mock(ReadOptions.class);
+        WriteOptions writeOptions = mock(WriteOptions.class);
+        // The 3-arg constructor owns the options
+        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions)) {
+            // When
+            context.commit();
+
+            // Then - commit() itself must release the owned native options (leak-safety), not defer to close()
+            verify(readOptions, atLeastOnce()).close();
+            verify(writeOptions, atLeastOnce()).close();
+        }
+    }
+
+    @Test
+    public void givenOwnedOptions_whenClosingWithoutCommit_thenOptionsAreClosed() {
+        // Given
+        TransactionDB db = mock(TransactionDB.class);
+        Transaction transaction = mock(Transaction.class);
+        when(db.beginTransaction(any())).thenReturn(transaction);
+        ReadOptions readOptions = mock(ReadOptions.class);
+        WriteOptions writeOptions = mock(WriteOptions.class);
+        ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions);
+
+        // When
+        context.close();
+
+        // Then
+        verify(readOptions, atLeastOnce()).close();
+        verify(writeOptions, atLeastOnce()).close();
+    }
+
+    @Test
+    public void givenSharedOptions_whenCommittingAndClosing_thenOptionsAreNotClosed() throws RocksDBException {
+        // Given
+        TransactionDB db = mock(TransactionDB.class);
+        Transaction transaction = mock(Transaction.class);
+        when(db.beginTransaction(any())).thenReturn(transaction);
+        ReadOptions readOptions = mock(ReadOptions.class);
+        WriteOptions writeOptions = mock(WriteOptions.class);
+        // ownsOptions = false => the options are shared/owned by the caller and must never be closed by the context
+        try (ShortLivedTransactionContext context =
+                     new ShortLivedTransactionContext(db, readOptions, writeOptions, false)) {
+            // When
+            context.commit();
+        }
+
+        // Then
+        verify(readOptions, never()).close();
+        verify(writeOptions, never()).close();
+    }
 }
