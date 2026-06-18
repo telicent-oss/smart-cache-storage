@@ -102,31 +102,26 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
         // Load the native library
         RocksDB.loadLibrary();
 
-        // Prepare column family descriptors
-        ColumnFamilyOptions cfOptions = defaultColumnFamilyOptions();
-        List<ColumnFamilyDescriptor> cfDescriptors = prepareColumnFamilyDescriptors(cfOptions);
-        LOGGER.info("Prepared {} column family descriptors", cfDescriptors.size());
-        List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
-
-        // 2. Open RocksDB with Options
         this.options = createDefaultOptions();
         this.transactionOptions = createDefaultTransactionOptions();
         Files.createDirectories(dbDir.toPath());
-        DBOptions dbOptions = new DBOptions(this.options);
-        try {
+
+        List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
+        try (DBOptions dbOptions = new DBOptions(this.options);
+             ColumnFamilyOptions cfOptions = defaultColumnFamilyOptions()) {
+            List<ColumnFamilyDescriptor> cfDescriptors = prepareColumnFamilyDescriptors(cfOptions);
+            LOGGER.info("Prepared {} column family descriptors", cfDescriptors.size());
+
             this.db = TransactionDB.open(dbOptions, this.transactionOptions, dbDir.getAbsolutePath(), cfDescriptors,
                                          cfHandles);
             LOGGER.info("Successfully opened RocksDB database at {}", dbDir.getAbsolutePath());
-        } catch (RocksDBException e) {
-            cfDescriptors.forEach(cf -> cf.getOptions().close());
-            throw e;
-        }
 
-        // 3. Obtain our handles for each column family
-        this.columnFamilyHandles = new HashMap<>();
-        for (int i = 0; i < cfDescriptors.size(); i++) {
-            String name = new String(cfDescriptors.get(i).getName(), StandardCharsets.UTF_8);
-            this.columnFamilyHandles.put(name, cfHandles.get(i));
+            // 3. Obtain our handles for each column family
+            this.columnFamilyHandles = new HashMap<>();
+            for (int i = 0; i < cfDescriptors.size(); i++) {
+                String name = new String(cfDescriptors.get(i).getName(), StandardCharsets.UTF_8);
+                this.columnFamilyHandles.put(name, cfHandles.get(i));
+            }
         }
 
         // 4. Prepare the shared read/write options reused across transactions
