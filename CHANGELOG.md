@@ -1,5 +1,9 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.11.5
+- RocksDB improvements:
+    - Improve read-only transactions
+
 # 0.11.4
 - RocksDB improvements:
   - Addressing memory leaks
