@@ -1,30 +1,24 @@
 /**
  * Copyright (C) Telicent Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package io.telicent.smart.cache.storage.rocksdb;
 
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
-import io.opentelemetry.api.metrics.LongCounter;
-import io.opentelemetry.api.metrics.LongGauge;
-import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.semconv.DbAttributes;
-import io.telicent.smart.cache.observability.TelicentMetrics;
 import io.telicent.smart.cache.storage.*;
 import io.telicent.smart.cache.storage.rocksdb.metrics.MetricsHolder;
 import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.NonNull;
 import org.rocksdb.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,8 +31,6 @@ import java.nio.file.Files;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static io.telicent.smart.cache.storage.rocksdb.metrics.MetricNames.*;
 
 /**
  * Abstract implementation of RocksDB backed storage, see {@link #AbstractRocksDBStorage(File)} for customisation
@@ -69,6 +61,8 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
 
     private TransactionDB db;
     private Options options;
+    private Cache cache;
+    private BloomFilter bloomFilter;
     private TransactionDBOptions transactionOptions;
     private ReadOptions sharedReadOptions;
     private WriteOptions sharedWriteOptions;
@@ -203,9 +197,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
 
         // Table level configuration
         var tableOptions = new BlockBasedTableConfig();
-        LOGGER.debug("blockCache to {} (per column family)", 16 * MEGABYTE);
-        var blockCache = new LRUCache(16 * MEGABYTE); // 16MB
-        tableOptions.setBlockCache(blockCache);
+        tableOptions.setBlockCache(this.cache);
         LOGGER.debug("blockSize {} to {}", tableOptions.blockSize(), 16 * KILOBYTE);
         tableOptions.setBlockSize(16 * KILOBYTE); // 16KB
         LOGGER.debug("cacheIndexAndFilterBlocks {} to {}", tableOptions.cacheIndexAndFilterBlocks(), true);
@@ -213,14 +205,27 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
         LOGGER.debug("pinL0FilterAndIndexBlocksInCache {} to {}", tableOptions.pinL0FilterAndIndexBlocksInCache(),
                      true);
         tableOptions.setPinL0FilterAndIndexBlocksInCache(true);
-        var newFilterPolicy = new BloomFilter(10.0);
-        LOGGER.debug("filterPolicy {} to {}", tableOptions.filterPolicy(), newFilterPolicy);
-        tableOptions.setFilterPolicy(newFilterPolicy);
+        LOGGER.debug("filterPolicy {} to {}", tableOptions.filterPolicy(), this.bloomFilter);
+        tableOptions.setFilterPolicy(this.bloomFilter);
         LOGGER.debug("formatVersion {} to {}", tableOptions.formatVersion(), 5);
         tableOptions.setFormatVersion(5);
         options.setTableFormatConfig(tableOptions);
 
         return options;
+    }
+
+    /**
+     * Creates the default block cache
+     * <p>
+     * By default, this will be a 16MB LRU cache.  Derived classes can override this method if they wish to customise
+     * the block cache size or implementation.
+     * </p>
+     *
+     * @return Default block cache
+     */
+    protected Cache createDefaultBlockCache() {
+        LOGGER.debug("blockCache to {} (per column family)", 16 * MEGABYTE);
+        return new LRUCache(16 * MEGABYTE); // 16MB
     }
 
     /**
@@ -315,6 +320,8 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
             counters.clear();
             metrics.close();
             db.close();
+            cache.close();
+            bloomFilter.close();
             options.close();
             transactionOptions.close();
             this.sharedReadOptions.close();
@@ -339,8 +346,10 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
             LOGGER.info("Prepared {} column family descriptors", cfDescriptors.size());
             List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
 
-            // 2. Open RocksDB with Options and Statistics enabled
+            // 2. Open RocksDB with configured Options and Statistics enabled
             //    This excludes detailed statistics as per documentation those have performance penalties
+            this.cache = createDefaultBlockCache();
+            this.bloomFilter = createDefaultBloomFilter();
             this.options = createDefaultOptions();
             if (this.stats == null) {
                 // NB - We only create the stats object the first time we are opened, if we get reopened e.g. due to a
@@ -387,6 +396,15 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
         } catch (RocksDBException e) {
             throw new RuntimeException("Failed to open RocksDB", e);
         }
+    }
+
+    /**
+     * Creates the default Bloom Filter used to speed up lookups and iterators
+     *
+     * @return Default bloom filter using the RocksDB recommended 10 bits per key
+     */
+    protected BloomFilter createDefaultBloomFilter() {
+        return new BloomFilter(10.0);
     }
 
     /**
@@ -508,7 +526,8 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
             // options rather than allocating fresh native option objects
             this.metrics.incrementTransactions();
             this.metrics.incrementActiveTransactions();
-            context = new NestedTransactionContext(this.db, this.sharedReadOptions, this.sharedWriteOptions, false, this.metrics);
+            context = new NestedTransactionContext(this.db, this.sharedReadOptions, this.sharedWriteOptions, false,
+                                                   this.metrics);
             this.nestedTransactions.set(context);
             return context;
         } else {
