@@ -16,6 +16,13 @@
     - Some RocksDB operations use read-only transactions when appropriate
 - Build improvements:
     - Upgraded Smart Caches Core to 0.40.2
+    
+
+# 0.11.4
+
+- RocksDB improvements:
+  - Addressing memory leaks
+  - Performance improvements
 
 # 0.11.3
 

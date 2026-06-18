@@ -294,7 +294,7 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
             throw new NullPointerException("key cannot be null/empty");
         }
 
-        try (TransactionContext transaction = this.begin()) {
+        try (TransactionContext transaction = this.beginReadOnly()) {
             byte[] labelId = transaction.get(this.getHandle(KEYS_TO_LABELS_CF), key);
             return labelId != null ? bytesToLong(labelId) : null;
         } catch (RocksDBException e) {

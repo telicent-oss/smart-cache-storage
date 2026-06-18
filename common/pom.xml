@@ -4,7 +4,7 @@
     <parent>
         <groupId>io.telicent.smart-caches.storage</groupId>
         <artifactId>parent</artifactId>
-        <version>0.12.0-SNAPSHOT</version>
+        <version>0.11.5-SNAPSHOT</version>
     </parent>
     <artifactId>common</artifactId>
     <name>Telicent Smart Caches - Storage - Common Utilities</name>
@@ -40,6 +40,12 @@
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
