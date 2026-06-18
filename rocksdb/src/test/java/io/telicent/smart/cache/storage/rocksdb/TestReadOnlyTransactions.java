@@ -15,14 +15,17 @@
  */
 package io.telicent.smart.cache.storage.rocksdb;
 
+import org.rocksdb.RocksIterator;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class TestReadOnlyTransactions extends AbstractRocksDBTests {
 
     private static final byte[] KEY = "key".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] OTHER_KEY = "other-key".getBytes(StandardCharsets.UTF_8);
     private static final byte[] VALUE = "value".getBytes(StandardCharsets.UTF_8);
 
     @Test
@@ -32,6 +35,7 @@ public class TestReadOnlyTransactions extends AbstractRocksDBTests {
             // When
             try (TransactionContext read = external.startReadOnly()) {
                 // Then
+                Assert.assertTrue(read instanceof ReadOnlyTransactionContext);
                 Assert.assertNull(read.get(external.getDefaultHandle(), KEY));
             }
         }
@@ -49,6 +53,7 @@ public class TestReadOnlyTransactions extends AbstractRocksDBTests {
             // When
             try (TransactionContext read = external.startReadOnly()) {
                 // Then
+                Assert.assertTrue(read instanceof ReadOnlyTransactionContext);
                 Assert.assertEquals(read.get(external.getDefaultHandle(), KEY), VALUE);
             }
         }
@@ -65,6 +70,7 @@ public class TestReadOnlyTransactions extends AbstractRocksDBTests {
 
                 try (TransactionContext read = external.startReadOnly()) {
                     // Then - the uncommitted write is visible
+                    Assert.assertTrue(read instanceof NestedTransactionContext);
                     Assert.assertEquals(read.get(external.getDefaultHandle(), KEY), VALUE);
                 }
 
@@ -73,6 +79,7 @@ public class TestReadOnlyTransactions extends AbstractRocksDBTests {
 
             // And the value remains visible after commit via a fresh standalone read-only transaction
             try (TransactionContext read = external.startReadOnly()) {
+                Assert.assertTrue(read instanceof ReadOnlyTransactionContext);
                 Assert.assertEquals(read.get(external.getDefaultHandle(), KEY), VALUE);
             }
         }
@@ -94,6 +101,81 @@ public class TestReadOnlyTransactions extends AbstractRocksDBTests {
                     // Then
                     Assert.assertEquals(read.get(external.getDefaultHandle(), KEY), VALUE);
                 }
+            }
+        }
+    }
+
+    @Test
+    public void givenNoData_whenCheckingViaReadOnly_thenEmptyAndZeroCount() throws Exception {
+        // Given
+        try (External external = new External(this.dbDir)) {
+            // When and Then - exercises the empty branch of isEmpty()/count() on the direct read path
+            try (TransactionContext read = external.startReadOnly()) {
+                Assert.assertTrue(read.isEmpty(external.getDefaultHandle()));
+                Assert.assertEquals(read.count(external.getDefaultHandle()), 0L);
+            }
+        }
+    }
+
+    @Test
+    public void givenData_whenCountingViaReadOnly_thenAllEntriesCounted() throws Exception {
+        // Given
+        try (External external = new External(this.dbDir)) {
+            try (TransactionContext write = external.start()) {
+                write.put(external.getDefaultHandle(), KEY, VALUE);
+                write.put(external.getDefaultHandle(), OTHER_KEY, VALUE);
+                write.commit();
+            }
+
+            // When and Then - exercises the non-empty branch / iteration body of count() and isEmpty()
+            try (TransactionContext read = external.startReadOnly()) {
+                Assert.assertFalse(read.isEmpty(external.getDefaultHandle()));
+                Assert.assertEquals(read.count(external.getDefaultHandle()), 2L);
+            }
+        }
+    }
+
+    @Test
+    public void givenData_whenIteratingViaReadOnly_thenForEachAndIteratorVisitAllEntries() throws Exception {
+        // Given
+        try (External external = new External(this.dbDir)) {
+            try (TransactionContext write = external.start()) {
+                write.put(external.getDefaultHandle(), KEY, VALUE);
+                write.put(external.getDefaultHandle(), OTHER_KEY, VALUE);
+                write.commit();
+            }
+
+            // When - forEach visits every entry
+            try (TransactionContext read = external.startReadOnly()) {
+                AtomicInteger visited = new AtomicInteger();
+                read.forEach(external.getDefaultHandle(), kv -> visited.incrementAndGet());
+                // Then
+                Assert.assertEquals(visited.get(), 2);
+            }
+
+            // When - a raw iterator visits every entry
+            try (TransactionContext read = external.startReadOnly()) {
+                int counted = 0;
+                try (RocksIterator iterator = read.iterator(external.getDefaultHandle())) {
+                    iterator.seekToFirst();
+                    while (iterator.isValid()) {
+                        counted++;
+                        iterator.next();
+                    }
+                }
+                // Then
+                Assert.assertEquals(counted, 2);
+            }
+        }
+    }
+
+    @Test(expectedExceptions = UnsupportedOperationException.class)
+    public void givenReadOnlyTransaction_whenDeleting_thenUnsupported() throws Exception {
+        // Given
+        try (External external = new External(this.dbDir)) {
+            try (TransactionContext read = external.startReadOnly()) {
+                // When and Then
+                read.delete(external.getDefaultHandle(), KEY);
             }
         }
     }
