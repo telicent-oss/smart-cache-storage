@@ -21,7 +21,6 @@ import org.rocksdb.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
 
 import static io.telicent.smart.cache.storage.rocksdb.AbstractRocksDBStorage.bytesToLong;
 import static io.telicent.smart.cache.storage.rocksdb.AbstractRocksDBStorage.longToBytes;

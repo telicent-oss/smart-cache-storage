@@ -32,7 +32,6 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static io.telicent.smart.cache.storage.rocksdb.metrics.MetricNames.*;
-import static io.telicent.smart.cache.storage.rocksdb.metrics.MetricNames.ACTIVE_TRANSACTIONS_DESCRIPTION;
 
 /**
  * A helper class that holds all the OpenTelemetry metrics associated with an {@link AbstractRocksDBStorage} instance
