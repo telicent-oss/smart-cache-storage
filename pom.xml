@@ -4,7 +4,7 @@
 
     <groupId>io.telicent.smart-caches.storage</groupId>
     <artifactId>parent</artifactId>
-    <version>0.12.0-SNAPSHOT</version>
+    <version>0.11.5-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Telicent Smart Caches - Storage - Parent</name>
     <parent>
@@ -76,6 +76,7 @@
         <dependency.h2>2.4.240</dependency.h2>
         <dependency.hibernate>7.4.1.Final</dependency.hibernate>
         <dependency.hypersistence>3.15.3</dependency.hypersistence>
+        <dependency.jakarta-persistence>3.2.0</dependency.jakarta-persistence>
         <dependency.jackson3>3.2.0</dependency.jackson3>
         <dependency.jetty>12.1.10</dependency.jetty>
         <dependency.jmh>1.37</dependency.jmh>
@@ -104,6 +105,12 @@
             </dependency>
 
             <!-- Hibernate related dependencies -->
+            <dependency>
+                <groupId>jakarta.persistence</groupId>
+                <artifactId>jakarta.persistence-api</artifactId>
+                <version>${dependency.jakarta-persistence}</version>
+            </dependency>
+
             <dependency>
                 <groupId>com.fasterxml.jackson.module</groupId>
                 <artifactId>jackson-module-jakarta-xmlbind-annotations</artifactId>
@@ -185,6 +192,19 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-dependency-plugin</artifactId>
                     <version>${plugin.dependency}</version>
+                    <configuration>
+                        <ignoredUnusedDeclaredDependencies>
+                            <ignoredUnusedDeclaredDependency>org.postgresql:postgresql</ignoredUnusedDeclaredDependency>
+                            <ignoredUnusedDeclaredDependency>com.h2database:h2</ignoredUnusedDeclaredDependency>
+                            <ignoredUnusedDeclaredDependency>org.flywaydb:flyway-database-postgresql</ignoredUnusedDeclaredDependency>
+                            <ignoredUnusedDeclaredDependency>org.hibernate.orm:hibernate-hikaricp</ignoredUnusedDeclaredDependency>
+                            <ignoredUnusedDeclaredDependency>com.fasterxml.jackson.core:jackson-databind</ignoredUnusedDeclaredDependency>
+                            <ignoredUnusedDeclaredDependency>com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations</ignoredUnusedDeclaredDependency>
+                            <ignoredUnusedDeclaredDependency>tools.jackson.core:jackson-databind</ignoredUnusedDeclaredDependency>
+                            <ignoredUnusedDeclaredDependency>org.eclipse.jetty:jetty-server</ignoredUnusedDeclaredDependency>
+                            <ignoredUnusedDeclaredDependency>ch.qos.logback:logback-classic</ignoredUnusedDeclaredDependency>
+                        </ignoredUnusedDeclaredDependencies>
+                    </configuration>
                     <executions>
                         <execution>
                             <goals>
@@ -212,26 +232,31 @@
                 <artifactId>license-maven-plugin</artifactId>
                 <version>${plugin.license}</version>
                 <configuration>
-                    <header>${license.header.path}/header.txt</header>
                     <failIfMissing>true</failIfMissing>
                     <aggregate>false</aggregate>
                     <useDefaultMapping>true</useDefaultMapping>
                     <strictCheck>true</strictCheck>
-                    <excludes>
-                        <exclude>header.txt</exclude>
-                        <exclude>pom.xml</exclude>
-                        <exclude>**/pom.xml</exclude>
-                        <exclude>.github/**/*</exclude>
-                        <exclude>*-code-style.xml</exclude>
-                        <exclude>.editorconfig</exclude>
+                    <licenseSets>
+                        <licenseSet>
+                            <header>${license.header.path}/header.txt</header>
+                            <excludes>
+                                <exclude>header.txt</exclude>
+                                <exclude>pom.xml</exclude>
+                                <exclude>**/pom.xml</exclude>
+                                <exclude>.github/**/*</exclude>
+                                <exclude>*-code-style.xml</exclude>
+                                <exclude>.editorconfig</exclude>
+                                <exclude>NOTICE</exclude>
 
-                        <!-- Config -->
-                        <exclude>**/*.yml</exclude>
+                                <!-- Config -->
+                                <exclude>**/*.yml</exclude>
 
-			            <!-- Trivy Cache -->
-                        <exclude>.trivy/**</exclude>
-                        <exclude>*-trivy-*</exclude>
-                    </excludes>
+                                <!-- Trivy Cache -->
+                                <exclude>.trivy/**</exclude>
+                                <exclude>*-trivy-*</exclude>
+                            </excludes>
+                        </licenseSet>
+                    </licenseSets>
                 </configuration>
                 <executions>
                     <execution>

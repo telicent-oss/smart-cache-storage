@@ -24,7 +24,7 @@ import java.io.PrintStream;
 public class ClusterUtils {
     private static final PrintStream ORIGINAL_STDOUT = System.out;
 
-    public static boolean SYSOUT_LOGGING_ENABLED = true;
+    public static boolean SYSOUT_LOGGING_ENABLED = false;
 
     public static long logStart(String message) {
         if (!SYSOUT_LOGGING_ENABLED) {
