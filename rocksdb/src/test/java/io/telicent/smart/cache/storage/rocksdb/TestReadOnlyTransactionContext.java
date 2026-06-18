@@ -18,17 +18,50 @@ package io.telicent.smart.cache.storage.rocksdb;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.RocksIterator;
 import org.rocksdb.Transaction;
 import org.rocksdb.TransactionDB;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.testng.Assert.*;
 
 public class TestReadOnlyTransactionContext {
+
+    @DataProvider(name = "closedConsumers")
+    private Object[][] closedConsumers() {
+        ColumnFamilyHandle handle = mock(ColumnFamilyHandle.class);
+        return new Object[][] {
+                { consumer(context -> {
+                    try {
+                        context.get(handle, "key".getBytes());
+                    } catch (RocksDBException e) {
+                        fail("Unexpected RocksDBException", e);
+                    }
+                }) },
+                { consumer(context -> {
+                    try {
+                        context.multiGetAsList(List.of(handle), List.of("key".getBytes()));
+                    } catch (RocksDBException e) {
+                        fail("Unexpected RocksDBException", e);
+                    }
+                }) },
+                { consumer(context -> context.count(handle)) },
+                { consumer(context -> context.isEmpty(handle)) },
+                { consumer(context -> context.forEach(handle, kv -> {
+                })) },
+                { consumer(context -> context.iterator(handle)) }
+        };
+    }
+
+    private Consumer<ReadOnlyTransactionContext> consumer(Consumer<ReadOnlyTransactionContext> consumer) {
+        return consumer;
+    }
 
     @Test
     public void givenStandaloneReadOnlyContext_whenReading_thenDirectDbReadUsedWithoutTransactionAllocation() throws
@@ -76,6 +109,29 @@ public class TestReadOnlyTransactionContext {
     }
 
     @Test
+    public void givenStandaloneReadOnlyContext_whenIterating_thenDirectDbIteratorUsedWithoutTransactionAllocation() {
+        // Given
+        TransactionDB db = mock(TransactionDB.class);
+        Transaction transaction = mock(Transaction.class);
+        when(db.beginTransaction(any())).thenReturn(transaction);
+        ReadOptions readOptions = mock(ReadOptions.class);
+        ColumnFamilyHandle handle = mock(ColumnFamilyHandle.class);
+        RocksIterator iterator = mock(RocksIterator.class);
+        when(db.newIterator(handle, readOptions)).thenReturn(iterator);
+        when(iterator.isValid()).thenReturn(false);
+
+        // When
+        try (ReadOnlyTransactionContext context = new ReadOnlyTransactionContext(db, readOptions, false)) {
+            // Then
+            assertEquals(context.count(handle), 0L);
+            assertTrue(context.isEmpty(handle));
+            verify(db, never()).beginTransaction(any());
+            verify(db, atLeastOnce()).newIterator(handle, readOptions);
+            verify(iterator, atLeastOnce()).seekToFirst();
+        }
+    }
+
+    @Test
     public void givenOwnedReadOptions_whenCommittingOrClosing_thenOptionsClosed() {
         // Given
         TransactionDB db = mock(TransactionDB.class);
@@ -83,7 +139,9 @@ public class TestReadOnlyTransactionContext {
 
         // When
         try (ReadOnlyTransactionContext context = new ReadOnlyTransactionContext(db, readOptions)) {
+            assertTrue(context.isActive());
             context.commit();
+            assertFalse(context.isActive());
             context.close();
         }
 
@@ -105,15 +163,30 @@ public class TestReadOnlyTransactionContext {
     }
 
     @Test(expectedExceptions = UnsupportedOperationException.class)
-    public void givenReadOnlyContext_whenUsedAfterCommit_thenIllegalState() throws RocksDBException {
+    public void givenReadOnlyContext_whenDeleting_thenUnsupported() {
         // Given
         TransactionDB db = mock(TransactionDB.class);
         ReadOptions readOptions = mock(ReadOptions.class);
         ColumnFamilyHandle handle = mock(ColumnFamilyHandle.class);
 
         // When
+        try (ReadOnlyTransactionContext context = new ReadOnlyTransactionContext(db, readOptions, false)) {
+            context.delete(handle, "key".getBytes());
+        }
+    }
+
+    @Test(expectedExceptions = UnsupportedOperationException.class, dataProvider = "closedConsumers")
+    public void givenReadOnlyContext_whenUsedAfterCommit_thenUnsupported(
+            Consumer<ReadOnlyTransactionContext> consumer) {
+        // Given
+        TransactionDB db = mock(TransactionDB.class);
+        ReadOptions readOptions = mock(ReadOptions.class);
+
+        // When
         ReadOnlyTransactionContext context = new ReadOnlyTransactionContext(db, readOptions, false);
         context.commit();
-        context.get(handle, "key".getBytes());
+
+        // Then
+        consumer.accept(context);
     }
 }
