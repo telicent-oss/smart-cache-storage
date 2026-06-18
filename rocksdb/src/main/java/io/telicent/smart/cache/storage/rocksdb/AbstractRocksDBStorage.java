@@ -68,8 +68,8 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
     private TransactionDBOptions transactionOptions;
     private ReadOptions sharedReadOptions;
     private WriteOptions sharedWriteOptions;
-    private final Map<String, ColumnFamilyHandle> columnFamilyHandles;
-    private final Map<String, RocksDBCounter> counters;
+    private final Map<String, ColumnFamilyHandle> columnFamilyHandles = new HashMap<>();
+    private final Map<String, RocksDBCounter> counters = new HashMap<>();
     private final ThreadLocal<NestedTransactionContext> nestedTransactions = ThreadLocal.withInitial(() -> null);
     protected MetricsHolder metrics;
     protected final File dbDir;
@@ -112,8 +112,6 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
 
         // Load the native library
         RocksDB.loadLibrary();
-        this.columnFamilyHandles = new HashMap<>();
-        this.counters = new HashMap<>();
 
         try {
             this.openInternal();
@@ -497,7 +495,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
     }
 
     /**
-     * Begins a new read-only transaction with default read and write options
+     * Begins a new read-only transaction with default read options.
      *
      * @return New read-only transaction
      */
@@ -511,8 +509,8 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
         // Standalone read - no snapshot required, reuse the shared options
         this.metrics.incrementTransactions();
         this.metrics.incrementActiveTransactions();
-        return new ShortLivedTransactionContext(this.db, this.sharedReadOptions, this.sharedWriteOptions, false, false,
-                                                this.metrics);
+        // Standalone read - avoid RocksDB transaction and reuse the shared read options
+        return new ReadOnlyTransactionContext(this.db, this.sharedReadOptions, false, this.metrics);
     }
 
     /**

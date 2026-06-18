@@ -123,7 +123,7 @@ public class TestShortLivedTransactionContext {
         return consumer;
     }
 
-    @Test(expectedExceptions = IllegalStateException.class, dataProvider = "consumers")
+    @Test(expectedExceptions = UnsupportedOperationException.class, dataProvider = "consumers")
     public void givenMockTransaction_whenClosed_thenOperationsAfterCloseThrowsIllegalState(
             Consumer<TransactionContext> consumer) {
         // Given
@@ -277,25 +277,7 @@ public class TestShortLivedTransactionContext {
         }
     }
 
-    @Test
-    public void givenNoSnapshotRequested_whenCreated_thenSnapshotNotTaken() {
-        // Given
-        TransactionDB db = mock(TransactionDB.class);
-        Transaction transaction = mock(Transaction.class);
-        when(db.beginTransaction(any())).thenReturn(transaction);
-        MetricsHolder metrics = mock(MetricsHolder.class);
-        ReadOptions readOptions = mock(ReadOptions.class);
-        WriteOptions writeOptions = mock(WriteOptions.class);
-
-        // When (withSnapshot = false)
-        try (ShortLivedTransactionContext context =
-                     new ShortLivedTransactionContext(db, readOptions, writeOptions, false, false, metrics)) {
-            // Then - read-only transactions must not pin a snapshot
-            verify(transaction, never()).setSnapshot();
-        }
-    }
-
-    @Test(expectedExceptions = IllegalStateException.class)
+    @Test(expectedExceptions = UnsupportedOperationException.class)
     public void givenClosedContext_whenDeleting_thenIllegalState() throws RocksDBException {
         // Given
         TransactionDB db = mock(TransactionDB.class);

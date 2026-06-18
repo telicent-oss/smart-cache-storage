@@ -30,7 +30,7 @@ public class ShortLivedTransactionContext implements TransactionContext {
 
     private final WriteOptions writeOptions;
     private final ReadOptions readOptions;
-    private final boolean ownsOptions, readOnly;
+    private final boolean ownsOptions;
     private Transaction rocksTransaction;
     private final MetricsHolder metrics;
 
@@ -48,50 +48,27 @@ public class ShortLivedTransactionContext implements TransactionContext {
     }
 
     /**
-     * Creates a new short-lived transaction context that takes a snapshot.
-     *
-     * @param db           Transactional Rocks DB
-     * @param readOptions  Read options
-     * @param writeOptions Write options
-     * @param ownsOptions  Whether this context owns the supplied options.
-     */
-    public ShortLivedTransactionContext(TransactionDB db, ReadOptions readOptions, WriteOptions writeOptions,
-                                        boolean ownsOptions, MetricsHolder metrics) {
-        this(db, readOptions, writeOptions, ownsOptions, true, metrics);
-    }
-
-    /**
      * Creates a new short-lived transaction context.
      *
      * @param db           Transactional Rocks DB
      * @param readOptions  Read options
      * @param writeOptions Write options
-     * @param ownsOptions  Whether this context owns the supplied options.
-     * @param withSnapshot Snapshots are only required for write transactions to enable conflict detection
+     * @param ownsOptions  Whether this context owns the supplied options
      */
     public ShortLivedTransactionContext(TransactionDB db, ReadOptions readOptions, WriteOptions writeOptions,
-                                        boolean ownsOptions, boolean withSnapshot, MetricsHolder metrics) {
+                                        boolean ownsOptions, MetricsHolder metrics) {
         Objects.requireNonNull(db, "db cannot be null");
         this.readOptions = Objects.requireNonNull(readOptions, "readOptions cannot be null");
         this.writeOptions = Objects.requireNonNull(writeOptions, "writeOptions cannot be null");
         this.ownsOptions = ownsOptions;
         this.metrics = Objects.requireNonNull(metrics, "metrics cannot be null");
         this.rocksTransaction = db.beginTransaction(this.writeOptions);
-        this.readOnly = !withSnapshot;
-        if (withSnapshot) {
-            this.rocksTransaction.setSnapshot();
-        }
+        this.rocksTransaction.setSnapshot();
     }
 
     private void ensureNotClosed() {
         if (this.rocksTransaction == null) {
-            throw new IllegalStateException("Transaction already closed");
-        }
-    }
-
-    private void ensureWriteTransaction() {
-        if (this.readOnly) {
-            throw new IllegalStateException("Read only transactions do not permit writes");
+            throw new UnsupportedOperationException("Transaction is no longer active");
         }
     }
 
@@ -104,7 +81,6 @@ public class ShortLivedTransactionContext implements TransactionContext {
     @Override
     public void put(ColumnFamilyHandle cfHandle, byte[] key, byte[] value) throws RocksDBException {
         ensureNotClosed();
-        ensureWriteTransaction();
         this.rocksTransaction.put(cfHandle, key, value);
     }
 
@@ -123,11 +99,8 @@ public class ShortLivedTransactionContext implements TransactionContext {
     @Override
     public void commit() throws RocksDBException {
         if (this.rocksTransaction != null) {
-            if (this.readOnly) {
-                this.metrics.incrementReadOnlyTransactions();
-            } else {
-                this.metrics.incrementWriteTransactions();
-            }
+            this.metrics.incrementWriteTransactions();
+
             try {
                 this.rocksTransaction.commit();
                 this.rocksTransaction.close();
@@ -214,7 +187,6 @@ public class ShortLivedTransactionContext implements TransactionContext {
     @Override
     public void delete(ColumnFamilyHandle handle, byte[] key) throws RocksDBException {
         ensureNotClosed();
-        ensureWriteTransaction();
         this.rocksTransaction.delete(handle, key);
     }
 
