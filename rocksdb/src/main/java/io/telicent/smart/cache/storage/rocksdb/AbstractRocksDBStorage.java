@@ -407,7 +407,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
     }
 
     /**
-     * Begins a new read-only transaction with default read and write options
+     * Begins a new read-only transaction with default read options.
      *
      * @return New read-only transaction
      */
@@ -418,8 +418,8 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
             // Join the active transaction so any uncommitted writes remain visible to this read
             return context.increment();
         }
-        // Standalone read - no snapshot required, reuse the shared options
-        return new ShortLivedTransactionContext(this.db, this.sharedReadOptions, this.sharedWriteOptions, false, false);
+        // Standalone read - avoid RocksDB transaction and reuse the shared read options
+        return new ReadOnlyTransactionContext(this.db, this.sharedReadOptions, false);
     }
 
     /**
