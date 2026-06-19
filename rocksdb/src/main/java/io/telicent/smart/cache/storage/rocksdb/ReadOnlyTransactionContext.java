@@ -15,6 +15,7 @@
  */
 package io.telicent.smart.cache.storage.rocksdb;
 
+import io.telicent.smart.cache.storage.rocksdb.metrics.MetricsHolder;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDBException;
@@ -34,6 +35,7 @@ public class ReadOnlyTransactionContext implements TransactionContext {
     private final ReadOptions readOptions;
     private final boolean ownsOptions;
     private boolean closed = false;
+    private MetricsHolder metrics;
 
     /**
      * Creates a new read-only context that owns the supplied options.
@@ -41,8 +43,8 @@ public class ReadOnlyTransactionContext implements TransactionContext {
      * @param db          Transactional Rocks DB
      * @param readOptions Read options
      */
-    public ReadOnlyTransactionContext(TransactionDB db, ReadOptions readOptions) {
-        this(db, readOptions, true);
+    public ReadOnlyTransactionContext(TransactionDB db, ReadOptions readOptions, MetricsHolder metrics) {
+        this(db, readOptions, true, metrics);
     }
 
     /**
@@ -52,10 +54,11 @@ public class ReadOnlyTransactionContext implements TransactionContext {
      * @param readOptions Read options
      * @param ownsOptions Whether this context owns the supplied options
      */
-    public ReadOnlyTransactionContext(TransactionDB db, ReadOptions readOptions, boolean ownsOptions) {
+    public ReadOnlyTransactionContext(TransactionDB db, ReadOptions readOptions, boolean ownsOptions, MetricsHolder metrics) {
         this.db = Objects.requireNonNull(db, "db cannot be null");
         this.readOptions = Objects.requireNonNull(readOptions, "readOptions cannot be null");
         this.ownsOptions = ownsOptions;
+        this.metrics = Objects.requireNonNull(metrics, "Metrics cannot be null");
     }
 
     private void ensureNotClosed() {
@@ -91,8 +94,13 @@ public class ReadOnlyTransactionContext implements TransactionContext {
     @Override
     public void commit() {
         if (!this.closed) {
+            this.metrics.incrementReadOnlyTransactions();
             this.closed = true;
-            closeOwnedOptions();
+            try {
+                closeOwnedOptions();
+            } finally {
+                this.metrics.decrementActiveTransactions();
+            }
         }
     }
 

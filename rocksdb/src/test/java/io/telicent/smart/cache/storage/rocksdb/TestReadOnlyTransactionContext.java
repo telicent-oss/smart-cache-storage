@@ -15,6 +15,7 @@
  */
 package io.telicent.smart.cache.storage.rocksdb;
 
+import io.telicent.smart.cache.storage.rocksdb.metrics.MetricsHolder;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDBException;
@@ -70,6 +71,7 @@ public class TestReadOnlyTransactionContext {
         TransactionDB db = mock(TransactionDB.class);
         Transaction transaction = mock(Transaction.class);
         when(db.beginTransaction(any())).thenReturn(transaction);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         ReadOptions readOptions = mock(ReadOptions.class);
         ColumnFamilyHandle handle = mock(ColumnFamilyHandle.class);
         byte[] key = "key".getBytes();
@@ -77,7 +79,7 @@ public class TestReadOnlyTransactionContext {
         when(db.get(handle, readOptions, key)).thenReturn(value);
 
         // When
-        try (ReadOnlyTransactionContext context = new ReadOnlyTransactionContext(db, readOptions, false)) {
+        try (ReadOnlyTransactionContext context = new ReadOnlyTransactionContext(db, readOptions, false, metrics)) {
             // Then
             assertEquals(context.get(handle, key), value);
             verify(db, never()).beginTransaction(any());
@@ -92,6 +94,7 @@ public class TestReadOnlyTransactionContext {
         TransactionDB db = mock(TransactionDB.class);
         Transaction transaction = mock(Transaction.class);
         when(db.beginTransaction(any())).thenReturn(transaction);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         ReadOptions readOptions = mock(ReadOptions.class);
         ColumnFamilyHandle handle = mock(ColumnFamilyHandle.class);
         List<ColumnFamilyHandle> handles = List.of(handle);
@@ -100,7 +103,7 @@ public class TestReadOnlyTransactionContext {
         when(db.multiGetAsList(readOptions, handles, keys)).thenReturn(values);
 
         // When
-        try (ReadOnlyTransactionContext context = new ReadOnlyTransactionContext(db, readOptions, false)) {
+        try (ReadOnlyTransactionContext context = new ReadOnlyTransactionContext(db, readOptions, false, metrics)) {
             // Then
             assertEquals(context.multiGetAsList(handles, keys), values);
             verify(db, never()).beginTransaction(any());
@@ -114,6 +117,7 @@ public class TestReadOnlyTransactionContext {
         TransactionDB db = mock(TransactionDB.class);
         Transaction transaction = mock(Transaction.class);
         when(db.beginTransaction(any())).thenReturn(transaction);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         ReadOptions readOptions = mock(ReadOptions.class);
         ColumnFamilyHandle handle = mock(ColumnFamilyHandle.class);
         RocksIterator iterator = mock(RocksIterator.class);
@@ -121,7 +125,7 @@ public class TestReadOnlyTransactionContext {
         when(iterator.isValid()).thenReturn(false);
 
         // When
-        try (ReadOnlyTransactionContext context = new ReadOnlyTransactionContext(db, readOptions, false)) {
+        try (ReadOnlyTransactionContext context = new ReadOnlyTransactionContext(db, readOptions, false, metrics)) {
             // Then
             assertEquals(context.count(handle), 0L);
             assertTrue(context.isEmpty(handle));
@@ -135,10 +139,11 @@ public class TestReadOnlyTransactionContext {
     public void givenOwnedReadOptions_whenCommittingOrClosing_thenOptionsClosed() {
         // Given
         TransactionDB db = mock(TransactionDB.class);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         ReadOptions readOptions = mock(ReadOptions.class);
 
         // When
-        try (ReadOnlyTransactionContext context = new ReadOnlyTransactionContext(db, readOptions)) {
+        try (ReadOnlyTransactionContext context = new ReadOnlyTransactionContext(db, readOptions, metrics)) {
             assertTrue(context.isActive());
             context.commit();
             assertFalse(context.isActive());
@@ -153,11 +158,12 @@ public class TestReadOnlyTransactionContext {
     public void givenReadOnlyContext_whenWriting_thenUnsupported() {
         // Given
         TransactionDB db = mock(TransactionDB.class);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         ReadOptions readOptions = mock(ReadOptions.class);
         ColumnFamilyHandle handle = mock(ColumnFamilyHandle.class);
 
         // When
-        try (ReadOnlyTransactionContext context = new ReadOnlyTransactionContext(db, readOptions, false)) {
+        try (ReadOnlyTransactionContext context = new ReadOnlyTransactionContext(db, readOptions, false, metrics)) {
             context.put(handle, "key".getBytes(), "value".getBytes());
         }
     }
@@ -166,11 +172,12 @@ public class TestReadOnlyTransactionContext {
     public void givenReadOnlyContext_whenDeleting_thenUnsupported() {
         // Given
         TransactionDB db = mock(TransactionDB.class);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         ReadOptions readOptions = mock(ReadOptions.class);
         ColumnFamilyHandle handle = mock(ColumnFamilyHandle.class);
 
         // When
-        try (ReadOnlyTransactionContext context = new ReadOnlyTransactionContext(db, readOptions, false)) {
+        try (ReadOnlyTransactionContext context = new ReadOnlyTransactionContext(db, readOptions, false, metrics)) {
             context.delete(handle, "key".getBytes());
         }
     }
@@ -180,10 +187,11 @@ public class TestReadOnlyTransactionContext {
             Consumer<ReadOnlyTransactionContext> consumer) {
         // Given
         TransactionDB db = mock(TransactionDB.class);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         ReadOptions readOptions = mock(ReadOptions.class);
 
         // When
-        ReadOnlyTransactionContext context = new ReadOnlyTransactionContext(db, readOptions, false);
+        ReadOnlyTransactionContext context = new ReadOnlyTransactionContext(db, readOptions, false, metrics);
         context.commit();
 
         // Then

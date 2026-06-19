@@ -15,7 +15,11 @@
  */
 package io.telicent.smart.cache.storage.rocksdb;
 
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.semconv.DbAttributes;
 import io.telicent.smart.cache.storage.*;
+import io.telicent.smart.cache.storage.rocksdb.metrics.MetricsHolder;
 import org.apache.commons.lang3.StringUtils;
 import org.rocksdb.*;
 import org.slf4j.Logger;
@@ -50,20 +54,26 @@ import java.util.stream.Collectors;
  *   }
  * </pre>
  */
-public abstract class AbstractRocksDBStorage extends AbstractStorage implements BackupRestoreCapable,
-        CompactCapable {
+public abstract class AbstractRocksDBStorage extends AbstractStorage implements BackupRestoreCapable, CompactCapable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractRocksDBStorage.class);
+    protected static final int KILOBYTE = 1024;
+    protected static final int GIGABYTE = KILOBYTE * KILOBYTE * KILOBYTE;
+    protected static final int MEGABYTE = KILOBYTE * KILOBYTE;
+
     private TransactionDB db;
     private Options options;
+    private Cache cache;
+    private BloomFilter bloomFilter;
     private TransactionDBOptions transactionOptions;
     private ReadOptions sharedReadOptions;
     private WriteOptions sharedWriteOptions;
-    private final Map<String, ColumnFamilyHandle> columnFamilyHandles;
-    private final Map<String, RocksDBCounter> counters;
+    private final Map<String, ColumnFamilyHandle> columnFamilyHandles = new HashMap<>();
+    private final Map<String, RocksDBCounter> counters = new HashMap<>();
     private final ThreadLocal<NestedTransactionContext> nestedTransactions = ThreadLocal.withInitial(() -> null);
-
+    protected MetricsHolder metrics;
     protected final File dbDir;
+    private Statistics stats;
 
     protected final TransactionDB getTransactionDB() {
         return this.db;
@@ -98,42 +108,40 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
     public AbstractRocksDBStorage(File dbDir) throws IOException, RocksDBException {
         this.dbDir = dbDir;
         Objects.requireNonNull(dbDir, "Database Directory cannot be null");
+        Files.createDirectories(dbDir.toPath());
 
         // Load the native library
         RocksDB.loadLibrary();
 
-        this.options = createDefaultOptions();
-        this.transactionOptions = createDefaultTransactionOptions();
-        Files.createDirectories(dbDir.toPath());
-
-        List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
-        try (DBOptions dbOptions = new DBOptions(this.options);
-             ColumnFamilyOptions cfOptions = defaultColumnFamilyOptions()) {
-            List<ColumnFamilyDescriptor> cfDescriptors = prepareColumnFamilyDescriptors(cfOptions);
-            LOGGER.info("Prepared {} column family descriptors", cfDescriptors.size());
-
-            this.db = TransactionDB.open(dbOptions, this.transactionOptions, dbDir.getAbsolutePath(), cfDescriptors,
-                                         cfHandles);
-            LOGGER.info("Successfully opened RocksDB database at {}", dbDir.getAbsolutePath());
-
-            // 3. Obtain our handles for each column family
-            this.columnFamilyHandles = new HashMap<>();
-            for (int i = 0; i < cfDescriptors.size(); i++) {
-                String name = new String(cfDescriptors.get(i).getName(), StandardCharsets.UTF_8);
-                this.columnFamilyHandles.put(name, cfHandles.get(i));
+        try {
+            this.openInternal();
+        } catch (RuntimeException e) {
+            // NB - Because openInternal() needs to not throw checked exceptions (due to how it's also used in
+            //      restore()) it potentially rewraps the actual Rocks error in a RuntimeException, since our
+            //      constructor does declare checked exceptions we can unwrap those
+            if (e.getCause() instanceof RocksDBException rocksError) {
+                throw rocksError;
+            } else if (e.getCause() instanceof IOException ioError) {
+                throw ioError;
+            } else {
+                throw e;
             }
         }
+    }
 
-        // 4. Prepare the shared read/write options reused across transactions
-        this.sharedReadOptions = defaultReadOptions();
-        this.sharedWriteOptions = defaultWriteOptions();
-
-        // 5. Prepare any counters we need
-        this.counters = this.prepareCounters();
-        if (!this.counters.isEmpty()) {
-            LOGGER.info("Prepared {} counters ({})", this.counters.size(),
-                        StringUtils.join(this.counters.keySet(), ", "));
-        }
+    /**
+     * Builds default attributes used for OpenTelemetry metrics
+     * <p>
+     * As this method takes a builder derived classes can override this method and call
+     * {@code super.createDefaultAttributes(builder)} to get the default attributes provided by the base implementation
+     * before adding their own
+     * </p>
+     *
+     * @param builder Builder used to build the options
+     */
+    protected void createDefaultAttributes(AttributesBuilder builder) {
+        builder.put(DbAttributes.DB_SYSTEM_NAME, "rocksdb")
+               .put(DbAttributes.DB_NAMESPACE, "file://" + this.dbDir.getAbsolutePath());
     }
 
     /**
@@ -157,36 +165,67 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
     protected Options createDefaultOptions() {
         // Always want to create the database and column families if missing, otherwise we can't open a new blank
         // location as a database
-        Options options =
-                new Options().setCreateIfMissing(true).setCreateMissingColumnFamilies(true);
+        Options options = new Options().setCreateIfMissing(true).setCreateMissingColumnFamilies(true);
 
         // Apply all the official RocksDB recommendations
         LOGGER.debug("Configuring RocksDB options from defaults to recommended:");
         LOGGER.debug("maxBackgroundJobs {} to {}", options.maxBackgroundJobs(), 6);
         options.setMaxBackgroundJobs(6);
-        LOGGER.debug("bytesPerSync {} to {}", options.bytesPerSync(), 1048576);
-        options.setBytesPerSync(1048576);
+        LOGGER.debug("bytesPerSync {} to {}", options.bytesPerSync(), MEGABYTE);
+        options.setBytesPerSync(MEGABYTE);
         LOGGER.debug("compactionPriority {} to {}", options.compactionPriority(),
                      CompactionPriority.MinOverlappingRatio);
         options.setCompactionPriority(CompactionPriority.MinOverlappingRatio);
 
+        // Limit the maximum size of write buffers for the entire database
+        // Otherwise the default write buffer size (64MB) is per column family, and each column family may have 2 of
+        // these by default, so if a database has lots of column families the write buffers can consume significant
+        // memory e.g.
+        // 9 * 64 * 2 = 2308 MB which is ~ 2.2 GB
+        // As this is actual memory usage want to avoid this growing uncontrolled
+        options.setDbWriteBufferSize(256 * MEGABYTE);
+
+        // Also limit the max WAL size to 1GB
+        // Otherwise RocksDB defaults this to (#ColumnFamilies * WriteBufferSize * MaxWriteBuffers) * 4
+        // Even for the default WriteBufferSize of 64MB and default MaxWriteBuffers of 2 it doesn't take many column
+        // families for this to become a large number e.g.
+        // (9 * 64 * 2) * 4 = 4608 MB which is ~4.5GB
+        // While this represents on-disk space usage we prefer to limit this to stop storage amplification becoming a
+        // problem
+        LOGGER.debug("maxTotalWalSize to {}", GIGABYTE);
+        options.setMaxTotalWalSize(GIGABYTE);
+
         // Table level configuration
         var tableOptions = new BlockBasedTableConfig();
-        LOGGER.debug("blockSize {} to {}", tableOptions.blockSize(), 16 * 1024);
-        tableOptions.setBlockSize(16 * 1024);
+        tableOptions.setBlockCache(this.cache);
+        LOGGER.debug("blockSize {} to {}", tableOptions.blockSize(), 16 * KILOBYTE);
+        tableOptions.setBlockSize(16 * KILOBYTE); // 16KB
         LOGGER.debug("cacheIndexAndFilterBlocks {} to {}", tableOptions.cacheIndexAndFilterBlocks(), true);
         tableOptions.setCacheIndexAndFilterBlocks(true);
         LOGGER.debug("pinL0FilterAndIndexBlocksInCache {} to {}", tableOptions.pinL0FilterAndIndexBlocksInCache(),
                      true);
         tableOptions.setPinL0FilterAndIndexBlocksInCache(true);
-        var newFilterPolicy = new BloomFilter(10.0);
-        LOGGER.debug("filterPolicy {} to {}", tableOptions.filterPolicy(), newFilterPolicy);
-        tableOptions.setFilterPolicy(newFilterPolicy);
+        LOGGER.debug("filterPolicy {} to {}", tableOptions.filterPolicy(), this.bloomFilter);
+        tableOptions.setFilterPolicy(this.bloomFilter);
         LOGGER.debug("formatVersion {} to {}", tableOptions.formatVersion(), 5);
         tableOptions.setFormatVersion(5);
         options.setTableFormatConfig(tableOptions);
 
         return options;
+    }
+
+    /**
+     * Creates the default block cache
+     * <p>
+     * By default, this will be a 16MB LRU cache.  Derived classes can override this method if they wish to customise
+     * the block cache size or implementation.
+     * </p>
+     *
+     * @return Default block cache
+     */
+    protected Cache createDefaultBlockCache() {
+        LOGGER.debug("blockCache to {} (per column family)", 16 * MEGABYTE);
+        return new LRUCache(16 * MEGABYTE); // 16MB
     }
 
     /**
@@ -277,11 +316,23 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
             for (final ColumnFamilyHandle cfHandle : columnFamilyHandles.values()) {
                 cfHandle.close();
             }
+            columnFamilyHandles.clear();
+            counters.clear();
+            metrics.close();
             db.close();
+            cache.close();
+            bloomFilter.close();
             options.close();
             transactionOptions.close();
             this.sharedReadOptions.close();
             this.sharedWriteOptions.close();
+
+            // NB - The stats object is intentionally not closed because if this closeInternal() is in the course of a
+            //      restore() we want stats to be cumulative across the restore and keeping the stats object open so
+            //      we can reuse it permits that
+            //      While this means we will leak the memory for this object in most real-world use cases the storage
+            //      lives for the life of the application so when the database closes completely that memory would be
+            //      freed as part of application shutdown anyway
         } catch (Throwable e) {
             throw new RuntimeException("Failed to close RocksDB resources", e);
         }
@@ -289,32 +340,71 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
 
     protected final void openInternal() {
         try {
+            // 1. Prepare column family descriptors
+            ColumnFamilyOptions cfOptions = defaultColumnFamilyOptions();
+            List<ColumnFamilyDescriptor> cfDescriptors = prepareColumnFamilyDescriptors(cfOptions);
+            LOGGER.info("Prepared {} column family descriptors", cfDescriptors.size());
+            List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
+
+            // 2. Open RocksDB with configured Options and Statistics enabled
+            //    This excludes detailed statistics as per documentation those have performance penalties
+            this.cache = createDefaultBlockCache();
+            this.bloomFilter = createDefaultBloomFilter();
             this.options = createDefaultOptions();
+            if (this.stats == null) {
+                // NB - We only create the stats object the first time we are opened, if we get reopened e.g. due to a
+                //      restore() we reuse the same stats object so statistics remain cumulative
+                this.stats = new Statistics();
+                this.stats.setStatsLevel(StatsLevel.EXCEPT_DETAILED_TIMERS);
+            }
+            options.setStatistics(stats);
+            LOGGER.debug("Enabled statistics at level {}", StatsLevel.EXCEPT_DETAILED_TIMERS);
             this.transactionOptions = createDefaultTransactionOptions();
+            DBOptions dbOptions = new DBOptions(this.options);
+            try {
+                this.db = TransactionDB.open(dbOptions, this.transactionOptions, dbDir.getAbsolutePath(), cfDescriptors,
+                                             cfHandles);
+                LOGGER.info("Successfully opened RocksDB database at {}", dbDir.getAbsolutePath());
+            } catch (RocksDBException e) {
+                cfDescriptors.forEach(cf -> cf.getOptions().close());
+                throw e;
+            }
+
+            // 3. Obtain our handles for each column family
+            for (int i = 0; i < cfDescriptors.size(); i++) {
+                String name = new String(cfDescriptors.get(i).getName(), StandardCharsets.UTF_8);
+                this.columnFamilyHandles.put(name, cfHandles.get(i));
+            }
+
+            // 4. Prepare the shared read/write options reused across transactions
             this.sharedReadOptions = defaultReadOptions();
             this.sharedWriteOptions = defaultWriteOptions();
 
-            columnFamilyHandles.clear();
-
-            List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
-
-            try (DBOptions dbOptions = new DBOptions(this.options)) {
-                try (ColumnFamilyOptions cfOptions = defaultColumnFamilyOptions()) {
-                    List<ColumnFamilyDescriptor> cfDescriptors = prepareColumnFamilyDescriptors(cfOptions);
-
-                    this.db = TransactionDB.open(dbOptions, this.transactionOptions,
-                                                 dbDir.getAbsolutePath(), cfDescriptors, cfHandles);
-
-                    for (int i = 0; i < cfDescriptors.size(); i++) {
-                        String cfName = new String(cfDescriptors.get(i).getName(), StandardCharsets.UTF_8);
-                        columnFamilyHandles.put(cfName, cfHandles.get(i));
-                    }
-                }
+            // 5. Prepare any counters we need
+            this.counters.putAll(this.prepareCounters());
+            if (!this.counters.isEmpty()) {
+                LOGGER.info("Prepared {} counters ({})", this.counters.size(),
+                            StringUtils.join(this.counters.keySet(), ", "));
             }
+
+            // 6. Setup metrics
+            AttributesBuilder builder = Attributes.builder();
+            createDefaultAttributes(builder);
+            this.metrics = new MetricsHolder(builder.build(), this.db, this.stats);
+
             LOGGER.info("RocksDB opened successfully at {}", dbDir.getAbsolutePath());
         } catch (RocksDBException e) {
             throw new RuntimeException("Failed to open RocksDB", e);
         }
+    }
+
+    /**
+     * Creates the default Bloom Filter used to speed up lookups and iterators
+     *
+     * @return Default bloom filter using the RocksDB recommended 10 bits per key
+     */
+    protected BloomFilter createDefaultBloomFilter() {
+        return new BloomFilter(10.0);
     }
 
     /**
@@ -398,7 +488,10 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
         if (context != null && context.isActive()) {
             return context.increment();
         }
-        return new ShortLivedTransactionContext(this.db, this.sharedReadOptions, this.sharedWriteOptions, false);
+        this.metrics.incrementTransactions();
+        this.metrics.incrementActiveTransactions();
+        return new ShortLivedTransactionContext(this.db, this.sharedReadOptions, this.sharedWriteOptions, false,
+                                                this.metrics);
     }
 
     /**
@@ -413,8 +506,11 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
             // Join the active transaction so any uncommitted writes remain visible to this read
             return context.increment();
         }
+        // Standalone read - no snapshot required, reuse the shared options
+        this.metrics.incrementTransactions();
+        this.metrics.incrementActiveTransactions();
         // Standalone read - avoid RocksDB transaction and reuse the shared read options
-        return new ReadOnlyTransactionContext(this.db, this.sharedReadOptions, false);
+        return new ReadOnlyTransactionContext(this.db, this.sharedReadOptions, false, this.metrics);
     }
 
     /**
@@ -428,7 +524,10 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
         if (context == null || !context.isActive()) {
             // No prior nested transaction, or previous one has been closed, create a fresh one reusing the shared
             // options rather than allocating fresh native option objects
-            context = new NestedTransactionContext(this.db, this.sharedReadOptions, this.sharedWriteOptions, false);
+            this.metrics.incrementTransactions();
+            this.metrics.incrementActiveTransactions();
+            context = new NestedTransactionContext(this.db, this.sharedReadOptions, this.sharedWriteOptions, false,
+                                                   this.metrics);
             this.nestedTransactions.set(context);
             return context;
         } else {
@@ -449,11 +548,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
     protected final RocksDBCounter createCounter(byte[] countersColumnFamilyName, String counterKey) throws
             RocksDBException {
         String cfName = new String(countersColumnFamilyName, StandardCharsets.UTF_8);
-        return new RocksDBCounter(
-                () -> this.db,
-                () -> this.columnFamilyHandles.get(cfName),
-                counterKey
-        );
+        return new RocksDBCounter(this.db, this.columnFamilyHandles.get(cfName), counterKey);
     }
 
     /**
@@ -497,8 +592,9 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
             File backupDir = new File(config.getBackupLocation());
             Files.createDirectories(backupDir.toPath());
 
-            try (BackupEngineOptions backupOptions = new BackupEngineOptions(backupDir.getAbsolutePath());
-                 BackupEngine backupEngine = BackupEngine.open(Env.getDefault(), backupOptions)) {
+            try (BackupEngineOptions backupOptions = new BackupEngineOptions(
+                    backupDir.getAbsolutePath()); BackupEngine backupEngine = BackupEngine.open(Env.getDefault(),
+                                                                                                backupOptions)) {
 
                 backupEngine.createNewBackup(getTransactionDB(), true);
 
@@ -543,53 +639,35 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
             if (!backupDir.exists()) {
                 throw new RestoreException("Backup directory " + config.getBackupLocation() + " does not exist");
             }
-            try (BackupEngineOptions backupOptions = new BackupEngineOptions(backupDir.getAbsolutePath());
-                 BackupEngine backupEngine = BackupEngine.open(Env.getDefault(), backupOptions);
-                 RestoreOptions restoreOptions = new RestoreOptions(false)) {
+            try (BackupEngineOptions backupOptions = new BackupEngineOptions(
+                    backupDir.getAbsolutePath()); BackupEngine backupEngine = BackupEngine.open(Env.getDefault(),
+                                                                                                backupOptions); RestoreOptions restoreOptions = new RestoreOptions(
+                    false)) {
 
                 if (config.getBackupId() != null) {
                     int backupId = Integer.parseInt(config.getBackupId());
-                    backupEngine.restoreDbFromBackup(
-                            backupId,
-                            dbDir.getAbsolutePath(),
-                            dbDir.getAbsolutePath(),
-                            restoreOptions
-                    );
+                    backupEngine.restoreDbFromBackup(backupId, dbDir.getAbsolutePath(), dbDir.getAbsolutePath(),
+                                                     restoreOptions);
                 } else {
-                    backupEngine.restoreDbFromLatestBackup(
-                            dbDir.getAbsolutePath(),
-                            dbDir.getAbsolutePath(),
-                            restoreOptions
-                    );
+                    backupEngine.restoreDbFromLatestBackup(dbDir.getAbsolutePath(), dbDir.getAbsolutePath(),
+                                                           restoreOptions);
                 }
 
                 List<BackupInfo> backupInfos = backupEngine.getBackupInfo();
-                BackupInfo restoredBackup = config.getBackupId() != null
-                                            ? backupInfos.stream()
-                                                         .filter(b -> String.valueOf(b.backupId())
-                                                                            .equals(config.getBackupId()))
-                                                         .findFirst()
-                                                         .orElseThrow(() -> new RestoreException(
-                                                                 "Backup not found: " + config.getBackupId()))
-                                            : backupInfos.getLast();
+                BackupInfo restoredBackup = config.getBackupId() != null ? backupInfos.stream()
+                                                                                      .filter(b -> String.valueOf(
+                                                                                                                 b.backupId())
+                                                                                                         .equals(config.getBackupId()))
+                                                                                      .findFirst()
+                                                                                      .orElseThrow(
+                                                                                              () -> new RestoreException(
+                                                                                                      "Backup not found: " + config.getBackupId())) :
+                                            backupInfos.getLast();
 
                 openInternal();
 
-                // We have to resynchronise any counters after a restore operation as their in-memory values wouldn't be
-                // in-sync with their backup values
-                LOGGER.info("Resynchronising counters after restore...");
-                for (Map.Entry<String, RocksDBCounter> counter : this.counters.entrySet()) {
-                    long before = counter.getValue().get();
-                    counter.getValue().sync();
-                    LOGGER.info("Counter {} restored value from {} to {}", counter.getKey(), before,
-                                counter.getValue().get());
-                }
-
                 LOGGER.info("Restored {} from backup {}", dbDir.getPath(), restoredBackup.backupId());
-                return RestoreStatus.success(
-                        String.valueOf(restoredBackup.backupId()),
-                        restoredBackup.size()
-                );
+                return RestoreStatus.success(String.valueOf(restoredBackup.backupId()), restoredBackup.size());
             }
         } catch (RocksDBException | RuntimeException e) {
             try {
@@ -633,17 +711,14 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
 
     @Override
     public List<BackupDetails> listBackups(String backupDir) throws BackupException {
-        try (BackupEngineOptions backupOptions = new BackupEngineOptions(backupDir);
-             BackupEngine backupEngine = BackupEngine.open(Env.getDefault(), backupOptions)) {
+        try (BackupEngineOptions backupOptions = new BackupEngineOptions(
+                backupDir); BackupEngine backupEngine = BackupEngine.open(Env.getDefault(), backupOptions)) {
 
-            return backupEngine.getBackupInfo().stream()
-                               .map(rocksBackup -> new BackupDetails(
-                                       null,
-                                       String.valueOf(rocksBackup.backupId()),
-                                       null,
-                                       Instant.ofEpochSecond(rocksBackup.timestamp()),
-                                       rocksBackup.size()
-                               ))
+            return backupEngine.getBackupInfo()
+                               .stream()
+                               .map(rocksBackup -> new BackupDetails(null, String.valueOf(rocksBackup.backupId()), null,
+                                                                     Instant.ofEpochSecond(rocksBackup.timestamp()),
+                                                                     rocksBackup.size()))
                                .collect(Collectors.toList());
 
         } catch (RocksDBException e) {
@@ -653,8 +728,8 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
 
     @Override
     public void deleteBackup(String backupDir, String backupId) throws BackupException {
-        try (BackupEngineOptions backupOptions = new BackupEngineOptions(backupDir);
-             BackupEngine backupEngine = BackupEngine.open(Env.getDefault(), backupOptions)) {
+        try (BackupEngineOptions backupOptions = new BackupEngineOptions(
+                backupDir); BackupEngine backupEngine = BackupEngine.open(Env.getDefault(), backupOptions)) {
 
             int id = Integer.parseInt(backupId);
             backupEngine.deleteBackup(id);

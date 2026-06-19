@@ -15,6 +15,7 @@
  */
 package io.telicent.smart.cache.storage.rocksdb;
 
+import io.telicent.smart.cache.storage.rocksdb.metrics.MetricsHolder;
 import org.rocksdb.*;
 
 import java.util.List;
@@ -31,17 +32,19 @@ public class ShortLivedTransactionContext implements TransactionContext {
     private final ReadOptions readOptions;
     private final boolean ownsOptions;
     private Transaction rocksTransaction;
+    private final MetricsHolder metrics;
 
     /**
-     * Creates a new short-lived transaction context that <strong>owns</strong> the supplied options,
-     * and will close them when this context is committed/closed.
+     * Creates a new short-lived transaction context that <strong>owns</strong> the supplied options, and will close
+     * them when this context is committed/closed.
      *
      * @param db           Transactional Rocks DB
      * @param readOptions  Read options
      * @param writeOptions Write options
      */
-    public ShortLivedTransactionContext(TransactionDB db, ReadOptions readOptions, WriteOptions writeOptions) {
-        this(db, readOptions, writeOptions, true);
+    public ShortLivedTransactionContext(TransactionDB db, ReadOptions readOptions, WriteOptions writeOptions,
+                                        MetricsHolder metrics) {
+        this(db, readOptions, writeOptions, true, metrics);
     }
 
     /**
@@ -53,11 +56,12 @@ public class ShortLivedTransactionContext implements TransactionContext {
      * @param ownsOptions  Whether this context owns the supplied options
      */
     public ShortLivedTransactionContext(TransactionDB db, ReadOptions readOptions, WriteOptions writeOptions,
-                                        boolean ownsOptions) {
+                                        boolean ownsOptions, MetricsHolder metrics) {
         Objects.requireNonNull(db, "db cannot be null");
         this.readOptions = Objects.requireNonNull(readOptions, "readOptions cannot be null");
         this.writeOptions = Objects.requireNonNull(writeOptions, "writeOptions cannot be null");
         this.ownsOptions = ownsOptions;
+        this.metrics = Objects.requireNonNull(metrics, "metrics cannot be null");
         this.rocksTransaction = db.beginTransaction(this.writeOptions);
         this.rocksTransaction.setSnapshot();
     }
@@ -95,17 +99,26 @@ public class ShortLivedTransactionContext implements TransactionContext {
     @Override
     public void commit() throws RocksDBException {
         if (this.rocksTransaction != null) {
-            this.rocksTransaction.commit();
-            this.rocksTransaction.close();
-            this.rocksTransaction = null;
-            closeOwnedOptions();
+            this.metrics.incrementWriteTransactions();
+
+            try {
+                this.rocksTransaction.commit();
+                this.rocksTransaction.close();
+                this.rocksTransaction = null;
+            } finally {
+                this.metrics.decrementActiveTransactions();
+                closeOwnedOptions();
+            }
         }
-     }
+    }
 
     @Override
     public void close() {
         try {
             if (this.rocksTransaction != null) {
+                // If the transaction was closed without committing we consider it a read-only transaction even if
+                // writes might have been made but are now being discarded
+                this.metrics.incrementReadOnlyTransactions();
                 this.rocksTransaction.rollback();
                 this.rocksTransaction.close();
                 this.rocksTransaction = null;
@@ -113,13 +126,14 @@ public class ShortLivedTransactionContext implements TransactionContext {
         } catch (RocksDBException e) {
             throw new RuntimeException("Failed to rollback RocksDB transaction", e);
         } finally {
+            this.metrics.decrementActiveTransactions();
             closeOwnedOptions();
         }
     }
 
     /**
-     * Closes the read/write options if this context owns them. RocksDB native option objects are safe to
-     * close more than once so this method is idempotent.
+     * Closes the read/write options if this context owns them. RocksDB native option objects are safe to close more
+     * than once so this method is idempotent.
      */
     private void closeOwnedOptions() {
         if (this.ownsOptions) {

@@ -15,10 +15,12 @@
  */
 package io.telicent.smart.cache.storage.rocksdb;
 
+import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicInteger;
 

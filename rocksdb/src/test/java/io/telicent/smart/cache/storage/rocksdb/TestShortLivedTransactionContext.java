@@ -15,6 +15,7 @@
  */
 package io.telicent.smart.cache.storage.rocksdb;
 
+import io.telicent.smart.cache.storage.rocksdb.metrics.MetricsHolder;
 import org.mockito.Mockito;
 import org.rocksdb.*;
 import org.testng.annotations.DataProvider;
@@ -35,9 +36,11 @@ public class TestShortLivedTransactionContext {
         TransactionDB db = mock(TransactionDB.class);
         Transaction transaction = mock(Transaction.class);
         when(db.beginTransaction(any())).thenReturn(transaction);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         ReadOptions readOptions = mock(ReadOptions.class);
         WriteOptions writeOptions = mock(WriteOptions.class);
-        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions)) {
+        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions,
+                                                                                     metrics)) {
             // When
             context.commit();
 
@@ -59,9 +62,11 @@ public class TestShortLivedTransactionContext {
         TransactionDB db = mock(TransactionDB.class);
         Transaction transaction = mock(Transaction.class);
         when(db.beginTransaction(any())).thenReturn(transaction);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         ReadOptions readOptions = mock(ReadOptions.class);
         WriteOptions writeOptions = mock(WriteOptions.class);
-        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions)) {
+        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions,
+                                                                                     metrics)) {
             // When
             context.close();
 
@@ -125,9 +130,10 @@ public class TestShortLivedTransactionContext {
         TransactionDB db = mock(TransactionDB.class);
         Transaction transaction = mock(Transaction.class);
         when(db.beginTransaction(any())).thenReturn(transaction);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         ReadOptions readOptions = mock(ReadOptions.class);
         WriteOptions writeOptions = mock(WriteOptions.class);
-        try (TransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions)) {
+        try (TransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions, metrics)) {
             // When
             context.close();
 
@@ -143,9 +149,11 @@ public class TestShortLivedTransactionContext {
         Transaction transaction = mock(Transaction.class);
         doThrow(new RocksDBException("failed")).when(transaction).rollback();
         when(db.beginTransaction(any())).thenReturn(transaction);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         ReadOptions readOptions = mock(ReadOptions.class);
         WriteOptions writeOptions = mock(WriteOptions.class);
-        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions)) {
+        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions,
+                                                                                     metrics)) {
             // When and Then
             context.close();
         }
@@ -157,12 +165,14 @@ public class TestShortLivedTransactionContext {
         TransactionDB db = mock(TransactionDB.class);
         Transaction transaction = mock(Transaction.class);
         when(db.beginTransaction(any())).thenReturn(transaction);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         ReadOptions readOptions = mock(ReadOptions.class);
         WriteOptions writeOptions = mock(WriteOptions.class);
         ColumnFamilyHandle handle = mock(ColumnFamilyHandle.class);
         byte[] key = "deleteKey".getBytes();
 
-        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions)) {
+        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions,
+                                                                                     metrics)) {
             // When
             context.delete(handle, key);
 
@@ -179,10 +189,12 @@ public class TestShortLivedTransactionContext {
         ColumnFamilyHandle handle = mock(ColumnFamilyHandle.class);
         doThrow(new RocksDBException("delete failed")).when(transaction).delete(any(), any(byte[].class));
         when(db.beginTransaction(any())).thenReturn(transaction);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         ReadOptions readOptions = mock(ReadOptions.class);
         WriteOptions writeOptions = mock(WriteOptions.class);
 
-        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions)) {
+        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions,
+                                                                                     metrics)) {
             // When and Then
             context.delete(handle, "key".getBytes());
         }
@@ -194,10 +206,11 @@ public class TestShortLivedTransactionContext {
         TransactionDB db = mock(TransactionDB.class);
         Transaction transaction = mock(Transaction.class);
         when(db.beginTransaction(any())).thenReturn(transaction);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         ReadOptions readOptions = mock(ReadOptions.class);
         WriteOptions writeOptions = mock(WriteOptions.class);
-        // The 3-arg constructor owns the options
-        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions)) {
+        // This constructor owns the options
+        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions, metrics)) {
             // When
             context.commit();
 
@@ -213,9 +226,10 @@ public class TestShortLivedTransactionContext {
         TransactionDB db = mock(TransactionDB.class);
         Transaction transaction = mock(Transaction.class);
         when(db.beginTransaction(any())).thenReturn(transaction);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         ReadOptions readOptions = mock(ReadOptions.class);
         WriteOptions writeOptions = mock(WriteOptions.class);
-        ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions);
+        ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions, metrics);
 
         // When
         context.close();
@@ -231,11 +245,12 @@ public class TestShortLivedTransactionContext {
         TransactionDB db = mock(TransactionDB.class);
         Transaction transaction = mock(Transaction.class);
         when(db.beginTransaction(any())).thenReturn(transaction);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         ReadOptions readOptions = mock(ReadOptions.class);
         WriteOptions writeOptions = mock(WriteOptions.class);
         // ownsOptions = false => the options are shared/owned by the caller and must never be closed by the context
         try (ShortLivedTransactionContext context =
-                     new ShortLivedTransactionContext(db, readOptions, writeOptions, false)) {
+                     new ShortLivedTransactionContext(db, readOptions, writeOptions, false, metrics)) {
             // When
             context.commit();
         }
@@ -251,11 +266,12 @@ public class TestShortLivedTransactionContext {
         TransactionDB db = mock(TransactionDB.class);
         Transaction transaction = mock(Transaction.class);
         when(db.beginTransaction(any())).thenReturn(transaction);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         ReadOptions readOptions = mock(ReadOptions.class);
         WriteOptions writeOptions = mock(WriteOptions.class);
 
         // When (constructors default to taking a snapshot)
-        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions)) {
+        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions, metrics)) {
             // Then
             verify(transaction, times(1)).setSnapshot();
         }
@@ -267,11 +283,12 @@ public class TestShortLivedTransactionContext {
         TransactionDB db = mock(TransactionDB.class);
         Transaction transaction = mock(Transaction.class);
         when(db.beginTransaction(any())).thenReturn(transaction);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         ReadOptions readOptions = mock(ReadOptions.class);
         WriteOptions writeOptions = mock(WriteOptions.class);
         ColumnFamilyHandle handle = mock(ColumnFamilyHandle.class);
 
-        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions)) {
+        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions, metrics)) {
             // When
             context.close();
 

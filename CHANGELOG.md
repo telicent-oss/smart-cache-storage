@@ -1,10 +1,29 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.12.0
+
+- RocksDB improvements:
+    - Standardised open code for constructor vs reopen after a `restore()`
+    - Improved `createDefaultOptions()` to set some additional memory usage related settings to help reduce total memory
+      and disk usage
+    - Enabled OpenTelemetry metrics for RocksDB storage including:
+        - Counters for transactions
+        - Gauges for memory usage
+        - Counters for RocksDB internal statistics
+    - Fixed JNI memory leak relating to use of read and write options
+    - Option to create read-only transactions with lower memory footprints
+- Label Store improvements:
+    - Some RocksDB operations use read-only transactions when appropriate
+- Build improvements:
+    - Upgraded Smart Caches Core to 0.40.2
+    
 # 0.11.5
+
 - RocksDB improvements:
     - Improve read-only transactions
 
 # 0.11.4
+
 - RocksDB improvements:
   - Addressing memory leaks
   - Performance improvements
