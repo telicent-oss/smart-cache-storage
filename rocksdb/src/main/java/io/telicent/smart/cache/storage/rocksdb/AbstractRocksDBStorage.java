@@ -177,6 +177,14 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
                      CompactionPriority.MinOverlappingRatio);
         options.setCompactionPriority(CompactionPriority.MinOverlappingRatio);
 
+        // Bound the number of SST files RocksDB keeps open simultaneously.
+        // The default (-1) leaves every SST file open and pins its index/filter (table reader) memory indefinitely,
+        // so as the dataset grows this native memory grows without limit.  Capping it bounds table-reader memory;
+        // combined with cache_index_and_filter_blocks (see createBlockBasedTableConfig()) the index/filter blocks for
+        // open files are instead accounted for within, and bounded by, the shared block cache.
+        LOGGER.debug("maxOpenFiles {} to {}", options.maxOpenFiles(), 1024);
+        options.setMaxOpenFiles(1024);
+
         // Limit the maximum size of write buffers for the entire database
         // Otherwise the default write buffer size (64MB) is per column family, and each column family may have 2 of
         // these by default, so if a database has lots of column families the write buffers can consume significant
@@ -195,21 +203,11 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
         LOGGER.debug("maxTotalWalSize to {}", GIGABYTE);
         options.setMaxTotalWalSize(GIGABYTE);
 
-        // Table level configuration
-        var tableOptions = new BlockBasedTableConfig();
-        tableOptions.setBlockCache(this.cache);
-        LOGGER.debug("blockSize {} to {}", tableOptions.blockSize(), 16 * KILOBYTE);
-        tableOptions.setBlockSize(16 * KILOBYTE); // 16KB
-        LOGGER.debug("cacheIndexAndFilterBlocks {} to {}", tableOptions.cacheIndexAndFilterBlocks(), true);
-        tableOptions.setCacheIndexAndFilterBlocks(true);
-        LOGGER.debug("pinL0FilterAndIndexBlocksInCache {} to {}", tableOptions.pinL0FilterAndIndexBlocksInCache(),
-                     true);
-        tableOptions.setPinL0FilterAndIndexBlocksInCache(true);
-        LOGGER.debug("filterPolicy {} to {}", tableOptions.filterPolicy(), this.bloomFilter);
-        tableOptions.setFilterPolicy(this.bloomFilter);
-        LOGGER.debug("formatVersion {} to {}", tableOptions.formatVersion(), 5);
-        tableOptions.setFormatVersion(5);
-        options.setTableFormatConfig(tableOptions);
+        // NB - The block based table configuration (block cache, bloom filter, cache_index_and_filter_blocks etc.) is
+        //      intentionally NOT set here.  Table configuration is a column-family level concern and is applied via
+        //      defaultColumnFamilyOptions()/createBlockBasedTableConfig().  Setting it on this Options instance has no
+        //      effect because we only ever use it to derive DBOptions (new DBOptions(options)) when opening the
+        //      database, and DBOptions does not carry the table format configuration.
 
         return options;
     }
@@ -217,15 +215,17 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
     /**
      * Creates the default block cache
      * <p>
-     * By default, this will be a 16MB LRU cache.  Derived classes can override this method if they wish to customise
-     * the block cache size or implementation.
+     * By default, this will be a 256MB LRU cache.  A single cache instance is shared across all column families of this
+     * store (see {@link #createBlockBasedTableConfig()}) so it provides a single, bounded ceiling for cached data,
+     * index and filter blocks.  Derived classes can override this method if they wish to customise the block cache size
+     * or implementation, e.g. to share a single cache across multiple store instances.
      * </p>
      *
      * @return Default block cache
      */
     protected Cache createDefaultBlockCache() {
-        LOGGER.debug("blockCache to {} (per column family)", 16 * MEGABYTE);
-        return new LRUCache(16 * MEGABYTE); // 16MB
+        LOGGER.debug("blockCache to {} (shared across this store's column families)", 256 * MEGABYTE);
+        return new LRUCache(256L * MEGABYTE); // 256MB
     }
 
     /**
@@ -274,7 +274,45 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
     protected ColumnFamilyOptions defaultColumnFamilyOptions() {
         return new ColumnFamilyOptions().setLevelCompactionDynamicLevelBytes(true)
                                         .setCompressionType(CompressionType.LZ4_COMPRESSION)
-                                        .setBottommostCompressionType(CompressionType.ZLIB_COMPRESSION);
+                                        .setBottommostCompressionType(CompressionType.ZLIB_COMPRESSION)
+                                        .setTableFormatConfig(createBlockBasedTableConfig());
+    }
+
+    /**
+     * Creates the block based table configuration applied to every column family.
+     * <p>
+     * This is where the shared {@link #cache} block cache and {@link #bloomFilter} are actually wired into the column
+     * families.  Crucially it enables {@code cache_index_and_filter_blocks} so that index and filter blocks are
+     * accounted for within (and bounded by) the shared block cache rather than being held in unbounded table-reader
+     * memory.  This <strong>must</strong> be applied via the {@link ColumnFamilyOptions} (as it is here) rather than
+     * via the database {@link Options}, because the table format configuration is a column-family level concern and is
+     * not carried by the {@link DBOptions} we derive when opening the database.
+     * </p>
+     * <p>
+     * <strong>NB:</strong> {@link #cache} and {@link #bloomFilter} must have been initialised before this is called.
+     * {@link #openInternal()} guarantees this ordering.
+     * </p>
+     *
+     * @return Block based table configuration
+     */
+    protected BlockBasedTableConfig createBlockBasedTableConfig() {
+        BlockBasedTableConfig tableOptions = new BlockBasedTableConfig();
+        tableOptions.setBlockCache(this.cache);
+        LOGGER.debug("blockSize {} to {}", tableOptions.blockSize(), 16 * KILOBYTE);
+        tableOptions.setBlockSize(16 * KILOBYTE); // 16KB
+        LOGGER.debug("cacheIndexAndFilterBlocks {} to {}", tableOptions.cacheIndexAndFilterBlocks(), true);
+        tableOptions.setCacheIndexAndFilterBlocks(true);
+        // Treat index/filter blocks as high priority so that, when the cache is under pressure, they are evicted only
+        // after regular data blocks
+        tableOptions.setCacheIndexAndFilterBlocksWithHighPriority(true);
+        LOGGER.debug("pinL0FilterAndIndexBlocksInCache {} to {}", tableOptions.pinL0FilterAndIndexBlocksInCache(),
+                     true);
+        tableOptions.setPinL0FilterAndIndexBlocksInCache(true);
+        LOGGER.debug("filterPolicy {} to {}", tableOptions.filterPolicy(), this.bloomFilter);
+        tableOptions.setFilterPolicy(this.bloomFilter);
+        LOGGER.debug("formatVersion {} to {}", tableOptions.formatVersion(), 5);
+        tableOptions.setFormatVersion(5);
+        return tableOptions;
     }
 
     /**
@@ -340,16 +378,22 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
 
     protected final void openInternal() {
         try {
-            // 1. Prepare column family descriptors
+            // 1. Create the shared block cache and bloom filter.
+            //    These must exist before the column family options are built because the block based table config
+            //    applied to each column family (see createBlockBasedTableConfig()) wires them in.
+            this.cache = createDefaultBlockCache();
+            this.bloomFilter = createDefaultBloomFilter();
+
+            // 2. Prepare column family descriptors.
+            //    Their column family options carry the block based table config that routes index/filter blocks into
+            //    the bounded shared block cache.
             ColumnFamilyOptions cfOptions = defaultColumnFamilyOptions();
             List<ColumnFamilyDescriptor> cfDescriptors = prepareColumnFamilyDescriptors(cfOptions);
             LOGGER.info("Prepared {} column family descriptors", cfDescriptors.size());
             List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
 
-            // 2. Open RocksDB with configured Options and Statistics enabled
+            // 3. Open RocksDB with configured Options and Statistics enabled
             //    This excludes detailed statistics as per documentation those have performance penalties
-            this.cache = createDefaultBlockCache();
-            this.bloomFilter = createDefaultBloomFilter();
             this.options = createDefaultOptions();
             if (this.stats == null) {
                 // NB - We only create the stats object the first time we are opened, if we get reopened e.g. due to a
@@ -370,24 +414,24 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
                 throw e;
             }
 
-            // 3. Obtain our handles for each column family
+            // 4. Obtain our handles for each column family
             for (int i = 0; i < cfDescriptors.size(); i++) {
                 String name = new String(cfDescriptors.get(i).getName(), StandardCharsets.UTF_8);
                 this.columnFamilyHandles.put(name, cfHandles.get(i));
             }
 
-            // 4. Prepare the shared read/write options reused across transactions
+            // 5. Prepare the shared read/write options reused across transactions
             this.sharedReadOptions = defaultReadOptions();
             this.sharedWriteOptions = defaultWriteOptions();
 
-            // 5. Prepare any counters we need
+            // 6. Prepare any counters we need
             this.counters.putAll(this.prepareCounters());
             if (!this.counters.isEmpty()) {
                 LOGGER.info("Prepared {} counters ({})", this.counters.size(),
                             StringUtils.join(this.counters.keySet(), ", "));
             }
 
-            // 6. Setup metrics
+            // 7. Setup metrics
             AttributesBuilder builder = Attributes.builder();
             createDefaultAttributes(builder);
             this.metrics = new MetricsHolder(builder.build(), this.db, this.stats);
