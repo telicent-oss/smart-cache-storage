@@ -6,6 +6,7 @@
     - Standardised open code for constructor vs reopen after a `restore()`
     - Improved `createDefaultOptions()` to set some additional memory usage related settings to help reduce total memory
       and disk usage
+    - Ensures that Column Family related options are correctly populated into `ColumnFamilyOptions` so they are honoured
     - Enabled OpenTelemetry metrics for RocksDB storage including:
         - Counters for transactions
         - Gauges for memory usage
