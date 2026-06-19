@@ -17,6 +17,10 @@
 - Build improvements:
     - Upgraded Smart Caches Core to 0.40.2
     
+# 0.11.5
+
+- RocksDB improvements:
+    - Improve read-only transactions
 
 # 0.11.4
 
