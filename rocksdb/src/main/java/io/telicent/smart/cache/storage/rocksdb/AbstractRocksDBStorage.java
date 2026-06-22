@@ -404,14 +404,12 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
             options.setStatistics(stats);
             LOGGER.debug("Enabled statistics at level {}", StatsLevel.EXCEPT_DETAILED_TIMERS);
             this.transactionOptions = createDefaultTransactionOptions();
-            DBOptions dbOptions = new DBOptions(this.options);
-            try {
+            try (DBOptions dbOptions = new DBOptions(this.options)) {
                 this.db = TransactionDB.open(dbOptions, this.transactionOptions, dbDir.getAbsolutePath(), cfDescriptors,
                                              cfHandles);
                 LOGGER.info("Successfully opened RocksDB database at {}", dbDir.getAbsolutePath());
-            } catch (RocksDBException e) {
-                cfDescriptors.forEach(cf -> cf.getOptions().close());
-                throw e;
+            } finally {
+                cfOptions.close();
             }
 
             // 4. Obtain our handles for each column family
