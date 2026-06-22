@@ -146,19 +146,36 @@ public final class MetricsHolder implements AutoCloseable {
         }
 
         return builder.buildWithCallback(m -> {
-            if (!this.closed) {
-                m.record(this.stats.getTickerCount(ticker), this.dbAttributes);
+            if (this.closed) {
+                return;
+            }
+            Statistics currentStats = this.stats;
+            if (currentStats == null) {
+                return;
+            }
+            try {
+                m.record(currentStats.getTickerCount(ticker), this.dbAttributes);
+            } catch (Throwable e) {
+                LOGGER.warn("Failed to record RocksDB ticker {}", ticker);
             }
         });
     }
 
     private void observeRocksDbProperty(ObservableLongMeasurement m, String property) {
-        if (!this.closed) {
-            try {
-                m.record(this.db.getLongProperty(property), this.dbAttributes);
-            } catch (RocksDBException e) {
-                LOGGER.warn("Failed to track RocksDB metric {}", property);
-            }
+        if (this.closed) {
+            return;
+        }
+        // Snapshot the reference: close() may null this.db (and close the native DB) concurrently with this callback
+        // running on the OpenTelemetry collection thread. Reading it once and null-checking avoids an NPE, and
+        // catching Throwable (not just RocksDBException) keeps a shutdown-race error off the collection thread.
+        TransactionDB currentDb = this.db;
+        if (currentDb == null) {
+            return;
+        }
+        try {
+            m.record(currentDb.getLongProperty(property), this.dbAttributes);
+        } catch (Throwable e) {
+            LOGGER.warn("Failed to track RocksDB metric {}", property);
         }
     }
 
