@@ -227,4 +227,23 @@ attempting to do so will produce an `IllegalArgumentException`.
 Note that this method is a blocking call as it explicitly flushes the RocksDB database to remove the defunct files for
 the dropped column family.
 
+## Metrics
+
+From `0.12.0` onwards the `AbstractRocksStorage` implements OpenTelemetry metrics, currently exposed metrics are
+available from `MetricNames.names()`.  Note that most of these metrics will only be reported once RocksDB storage has
+been actively used.  All reported metrics will have the attributes `db.system.name` set to `rocksdb` and `db.namespace`
+set to `file://<db-dir>` so if multiple RocksDB storages are used within the same application their metrics will be
+distinctly identifiable.
+
+There are three categories of metrics exposed:
+
+1. Transactions - several counters that track total transactions, total read-only transactions and total write
+   transactions, as well as a gauge that tracks currently active transactions.
+2. RocksDB Memory Usage - several gauges that track RocksDB reported memory usage.
+3. RocksDB Statistics - numerous counters that expose interesting internal [RocksDB ticker counters][RocksStats].  Note
+   that only the subset of these tickers considered interesting is exposed.  If you think we need to expose additional
+   tickers open a PR that updates the package-private `MetricNames.INTERESTING_ROCKS_TICKERS` array with the relevant
+   `TickerType` enum constants.
+
 [RocksLabelStore]: ../label-stores/label-store-rocksdb/src/main/java/io/telicent/smart/cache/storage/labels/rocksdb/RocksDbLabelsStore.java
+[RocksStats]: https://github.com/facebook/rocksdb/wiki/Statistics

@@ -1,5 +1,46 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.12.0
+
+- RocksDB improvements:
+    - Standardised open code for constructor vs reopen after a `restore()`
+    - Improved `createDefaultOptions()` to set some additional memory usage related settings to help reduce total memory
+      and disk usage
+    - Ensures that Column Family related options are correctly populated into `ColumnFamilyOptions` so they are honoured
+    - Enabled OpenTelemetry metrics for RocksDB storage including:
+        - Counters for transactions
+        - Gauges for memory usage
+        - Counters for RocksDB internal statistics
+    - Fixed JNI memory leak relating to use of read and write options
+    - Option to create read-only transactions with lower memory footprints
+- Label Store improvements:
+    - Some RocksDB operations use read-only transactions when appropriate
+- Build improvements:
+    - Upgraded Smart Caches Core to 0.40.2
+    
+# 0.11.5
+
+- RocksDB improvements:
+    - Improve read-only transactions
+
+# 0.11.4
+
+- RocksDB improvements:
+  - Addressing memory leaks
+  - Performance improvements
+
+# 0.11.3
+
+- RocksDB improvements:
+    - Minor fixes to logging messages
+- Build improvements:
+    - Upgraded Flyway to 12.7.0
+    - Upgraded Hibernate to 7.4.0.Final
+    - Upgraded Jackson to 3.1.4
+    - Upgraded MongoDB to 5.8.0
+    - Upgraded Smart Caches Core to 0.40.0
+    - Various build and test dependencies updated to latest available
+
 # 0.11.2
 - Build improvements:
   - updating dependencies
