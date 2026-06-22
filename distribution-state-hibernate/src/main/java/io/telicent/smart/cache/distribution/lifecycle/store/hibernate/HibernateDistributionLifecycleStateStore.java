@@ -218,7 +218,7 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
 
                     // NB - We intentionally invalidate the cache here because if this store is being shared between
                     //      multiple applications this means another application already received and processed this
-                    //      action.  Thus,  any cache of the lifecycle state for the distribution maynow be outdated and
+                    //      action.  Thus,  any cache of the lifecycle state for the distribution may now be outdated and
                     //      should be refreshed from the underlying database when next needed
                     this.recentLifecycleStates.invalidate(action.getDistributionId());
                     return;
