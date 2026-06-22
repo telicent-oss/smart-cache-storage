@@ -47,25 +47,25 @@ public class TestRocksDBCounter extends AbstractRocksDBTests {
     @Test(expectedExceptions = NullPointerException.class, expectedExceptionsMessageRegExp = ".*cannot be null")
     public void givenNoColumnFamily_whenCreatingCounter_thenNPE() throws RocksDBException {
         // Given, When and Then
-        new RocksDBCounter(() -> Mockito.mock(TransactionDB.class), null, null);
+        new RocksDBCounter(Mockito.mock(TransactionDB.class), null, null);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = ".*cannot be blank/empty")
     public void givenNoKey_whenCreatingCounter_thenNPE() throws RocksDBException {
         // Given, When and Then
-        new RocksDBCounter(() -> Mockito.mock(TransactionDB.class), () -> Mockito.mock(ColumnFamilyHandle.class), null);
+        new RocksDBCounter(Mockito.mock(TransactionDB.class), Mockito.mock(ColumnFamilyHandle.class), null);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = ".*cannot be blank/empty")
     public void givenEmptyKey_whenCreatingCounter_thenNPE() throws RocksDBException {
         // Given, When and Then
-        new RocksDBCounter(() -> Mockito.mock(TransactionDB.class), () -> Mockito.mock(ColumnFamilyHandle.class), "");
+        new RocksDBCounter(Mockito.mock(TransactionDB.class), Mockito.mock(ColumnFamilyHandle.class), "");
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = ".*cannot be blank/empty")
     public void givenBlankKey_whenCreatingCounter_thenNPE() throws RocksDBException {
         // Given, When and Then
-        new RocksDBCounter(() -> Mockito.mock(TransactionDB.class), () -> Mockito.mock(ColumnFamilyHandle.class), "  ");
+        new RocksDBCounter(Mockito.mock(TransactionDB.class), Mockito.mock(ColumnFamilyHandle.class), "  ");
     }
 
 

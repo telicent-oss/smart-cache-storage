@@ -190,7 +190,7 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
 
         byte[] idBytes = longToBytes(id);
         ColumnFamilyHandle idToLabelHandle = getHandle(IDS_TO_LABELS_CF);
-        try (TransactionContext transaction = this.begin()) {
+        try (TransactionContext transaction = this.beginReadOnly()) {
             return transaction.get(idToLabelHandle, idBytes);
         } catch (RocksDBException e) {
             throw new RuntimeException("Error accessing RocksDB", e);
@@ -222,7 +222,7 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
             return Map.of();
         }
 
-        try (TransactionContext transaction = this.begin()) {
+        try (TransactionContext transaction = this.beginReadOnly()) {
             // 1) Bulk lookup any known labels
             List<byte[]> results = transaction.multiGetAsList(cfHandles, keys);
 
@@ -243,7 +243,7 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
     @Override
     public long labelCount() {
         this.ensureNotClosed();
-        try (TransactionContext transaction = this.begin()) {
+        try (TransactionContext transaction = this.beginReadOnly()) {
             return transaction.count(this.getHandle(LABELS_TO_IDS_CF));
         }
     }
@@ -292,7 +292,7 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
             throw new NullPointerException("key cannot be null/empty");
         }
 
-        try (TransactionContext transaction = this.begin()) {
+        try (TransactionContext transaction = this.beginReadOnly()) {
             byte[] labelId = transaction.get(this.getHandle(KEYS_TO_LABELS_CF), key);
             return labelId != null ? bytesToLong(labelId) : null;
         } catch (RocksDBException e) {
@@ -302,13 +302,26 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
 
     @Override
     public byte[] getLabelAsBytes(byte[] key) {
-        return LabelsStore.super.getLabelAsBytes(key);
+        this.ensureNotClosed();
+        if (DictionaryLabelsStore.isInvalidByteSequence(key)) {
+            throw new NullPointerException("key cannot be null/empty");
+        }
+
+        try (TransactionContext transaction = this.beginReadOnly()) {
+            byte[] labelId = transaction.get(this.getHandle(KEYS_TO_LABELS_CF), key);
+            if (labelId == null) {
+                return null;
+            }
+            return transaction.get(this.getHandle(IDS_TO_LABELS_CF), labelId);
+        } catch (RocksDBException e) {
+            throw new RuntimeException("Error accessing RocksDB", e);
+        }
     }
 
     @Override
     public long keyCount() {
         this.ensureNotClosed();
-        try (TransactionContext transaction = this.begin()) {
+        try (TransactionContext transaction = this.beginReadOnly()) {
             return transaction.count(this.getHandle(KEYS_TO_LABELS_CF));
         }
     }

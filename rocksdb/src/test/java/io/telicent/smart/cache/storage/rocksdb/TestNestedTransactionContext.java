@@ -15,6 +15,7 @@
  */
 package io.telicent.smart.cache.storage.rocksdb;
 
+import io.telicent.smart.cache.storage.rocksdb.metrics.MetricsHolder;
 import org.rocksdb.*;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
@@ -65,10 +66,11 @@ public class TestNestedTransactionContext {
         // Given
         TransactionDB db = mock(TransactionDB.class);
         Transaction transaction = mock(Transaction.class);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         when(db.beginTransaction(any())).thenReturn(transaction);
         ReadOptions readOptions = mock(ReadOptions.class);
         WriteOptions writeOptions = mock(WriteOptions.class);
-        try (NestedTransactionContext context = new NestedTransactionContext(db, readOptions, writeOptions)) {
+        try (NestedTransactionContext context = new NestedTransactionContext(db, readOptions, writeOptions, metrics)) {
             // When
             verifyNestedCommitDoesNotCommit(context, transaction, nestingLevels);
 
@@ -84,10 +86,11 @@ public class TestNestedTransactionContext {
         // Given
         TransactionDB db = mock(TransactionDB.class);
         Transaction transaction = mock(Transaction.class);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         when(db.beginTransaction(any())).thenReturn(transaction);
         ReadOptions readOptions = mock(ReadOptions.class);
         WriteOptions writeOptions = mock(WriteOptions.class);
-        try (NestedTransactionContext context = new NestedTransactionContext(db, readOptions, writeOptions)) {
+        try (NestedTransactionContext context = new NestedTransactionContext(db, readOptions, writeOptions, metrics)) {
             // When
             for (int i = 1; i <= nestingLevels; i++) {
                 verifyNestedCommitDoesNotCommit(context, transaction, 1);
@@ -105,10 +108,11 @@ public class TestNestedTransactionContext {
         // Given
         TransactionDB db = mock(TransactionDB.class);
         Transaction transaction = mock(Transaction.class);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         when(db.beginTransaction(any())).thenReturn(transaction);
         ReadOptions readOptions = mock(ReadOptions.class);
         WriteOptions writeOptions = mock(WriteOptions.class);
-        try (NestedTransactionContext context = new NestedTransactionContext(db, readOptions, writeOptions)) {
+        try (NestedTransactionContext context = new NestedTransactionContext(db, readOptions, writeOptions, metrics)) {
             // When
             verifyNestedCloseDoesNotClose(context, transaction, nestingLevels);
         }
@@ -124,10 +128,11 @@ public class TestNestedTransactionContext {
         // Given
         TransactionDB db = mock(TransactionDB.class);
         Transaction transaction = mock(Transaction.class);
+        MetricsHolder metrics = mock(MetricsHolder.class);
         when(db.beginTransaction(any())).thenReturn(transaction);
         ReadOptions readOptions = mock(ReadOptions.class);
         WriteOptions writeOptions = mock(WriteOptions.class);
-        try (NestedTransactionContext context = new NestedTransactionContext(db, readOptions, writeOptions)) {
+        try (NestedTransactionContext context = new NestedTransactionContext(db, readOptions, writeOptions, metrics)) {
             // When
             for (int i = 1; i <= nestingLevels; i++) {
                 verifyNestedCloseDoesNotClose(context, transaction, 1);

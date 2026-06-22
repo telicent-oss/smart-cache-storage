@@ -4,7 +4,7 @@
     <parent>
         <groupId>io.telicent.smart-caches.storage</groupId>
         <artifactId>parent</artifactId>
-        <version>0.11.3-SNAPSHOT</version>
+        <version>0.12.1-SNAPSHOT</version>
     </parent>
     <artifactId>rocksdb</artifactId>
     <name>Telicent Smart Caches - Storage - RocksDB Store</name>
@@ -22,6 +22,18 @@
             <groupId>io.telicent.smart-caches.storage</groupId>
             <artifactId>common</artifactId>
             <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.telicent.smart-caches</groupId>
+            <artifactId>observability-core</artifactId>
+            <version>${dependency.smart-caches}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.opentelemetry.semconv</groupId>
+            <artifactId>opentelemetry-semconv</artifactId>
+            <version>${dependency.otel-semconv}</version>
         </dependency>
 
         <dependency>
@@ -60,6 +72,26 @@
             <version>${dependency.awaitility}</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>io.telicent.smart-caches</groupId>
+            <artifactId>observability-core</artifactId>
+            <version>${dependency.smart-caches}</version>
+            <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-sdk</artifactId>
+            <scope>test</scope>
+        </dependency>
+      
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -72,7 +104,9 @@
                     <includes>
                         <include>**/Test*.java</include>
                     </includes>
-                    <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar} -XX:+EnableDynamicAgentLoading -Xshare:off</argLine>
+                    <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar} -XX:+EnableDynamicAgentLoading
+                        -Xshare:off
+                    </argLine>
                 </configuration>
             </plugin>
             <plugin>

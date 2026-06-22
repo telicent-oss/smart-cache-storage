@@ -43,4 +43,13 @@ public class External extends AbstractRocksDBStorage {
     public TransactionContext start() {
         return this.beginNested();
     }
+
+    /**
+     * Starts and returns a read-only transaction
+     *
+     * @return Read-only transaction context
+     */
+    public TransactionContext startReadOnly() {
+        return this.beginReadOnly();
+    }
 }
