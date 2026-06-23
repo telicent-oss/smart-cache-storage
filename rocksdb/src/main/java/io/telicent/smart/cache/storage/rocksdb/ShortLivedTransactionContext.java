@@ -116,17 +116,20 @@ public class ShortLivedTransactionContext implements TransactionContext {
     public void close() {
         try {
             if (this.rocksTransaction != null) {
-                // If the transaction was closed without committing we consider it a read-only transaction even if
-                // writes might have been made but are now being discarded
-                this.metrics.incrementReadOnlyTransactions();
-                this.rocksTransaction.rollback();
-                this.rocksTransaction.close();
-                this.rocksTransaction = null;
+                try {
+                    // If the transaction was closed without committing we consider it a read-only transaction even if
+                    // writes might have been made but are now being discarded
+                    this.metrics.incrementReadOnlyTransactions();
+                    this.rocksTransaction.rollback();
+                    this.rocksTransaction.close();
+                    this.rocksTransaction = null;
+                } finally {
+                    this.metrics.decrementActiveTransactions();
+                }
             }
         } catch (RocksDBException e) {
             throw new RuntimeException("Failed to rollback RocksDB transaction", e);
         } finally {
-            this.metrics.decrementActiveTransactions();
             closeOwnedOptions();
         }
     }
