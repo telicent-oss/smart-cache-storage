@@ -62,26 +62,93 @@ public final class MetricNames {
 
     }
 
+    /**
+     * Metric that reports the number of transactions
+     */
     public static final String TRANSACTIONS = "rocksdb.transactions";
+    /**
+     * Description for {@link #TRANSACTIONS}
+     */
     public static final String TRANSACTIONS_DESCRIPTION =
             "Number of RocksDB transactions used over the lifetime of the storage";
 
+    /**
+     * Metric that reports the current number of active transactions
+     */
     public static final String ACTIVE_TRANSACTIONS = "rocksdb.transactions.active";
+    /**
+     * Description for {@link #ACTIVE_TRANSACTIONS}
+     */
     public static final String ACTIVE_TRANSACTIONS_DESCRIPTION = "Number of currently active RocksDB transactions";
 
+    /**
+     * Metric that reports the number of read-only transaction, i.e., the transactions that only read the database
+     */
     public static final String READONLY_TRANSACTIONS = "rocksdb.transactions.readonly";
+    /**
+     * Description for {@link #READONLY_TRANSACTIONS}
+     */
     public static final String READONLY_TRANSACTIONS_DESCRIPTION =
             "Number of readonly RocksDB transactions i.e. transactions that did not commit() and thus did not write to the database";
 
+    /**
+     * Metric that reports the number of write transactions, i.e., the transactions that wrote to the database
+     */
     public static final String WRITE_TRANSACTIONS = "rocksdb.transactions.write";
+    /**
+     * Description for {@link #WRITE_TRANSACTIONS}
+     */
+    public static final String WRITE_TRANSACTIONS_DESCRIPTION =
+            "Number of write RocksDB transactions i.e. transactions that wrote to the database";
 
+    /**
+     * Metric that reports the current RocksDB block cache memory usage
+     */
     public static final String BLOCK_CACHE_MEMORY_USAGE = "rocksdb.block-cache.memory.usage";
+    /**
+     * Description for {@link #BLOCK_CACHE_MEMORY_USAGE}
+     */
+    public static final String BLOCK_CACHE_MEMORY_USAGE_DESCRIPTION =
+            "Reports the current memory usage of the RocksDB block cache";
+    /**
+     * Metric that reports the current RocksDB block cache memory usage by cached filter and index blocks
+     */
     public static final String BLOCK_CACHE_PINNED_MEMORY_USAGE = "rocksdb.block-cache.pinned.memory.usage";
+    /**
+     * Description for {@link #BLOCK_CACHE_PINNED_MEMORY_USAGE}
+     */
+    public static final String BLOCK_CACHE_PINNED_MEMORY_USAGE_DESCRIPTION =
+            "Reports the current memory usage of pinned index and filter blocks within the RocksDB block cache";
+    /**
+     * Metric that reports the estimated current RocksDB table readers memory usage
+     */
     public static final String TABLE_READERS_MEMORY_USAGE = "rocksdb.table-readers.memory.usage";
+    /**
+     * Description for {@link #TABLE_READERS_MEMORY_USAGE}
+     */
+    public static final String TABLE_READERS_MEMORY_USAGE_DESCRIPTION = "Reports the estimated current memory usage of RocksDB Table Readers";
+    /**
+     * Metric that reports the current RocksDB memtables memory usage
+     */
     public static final String MEMTABLES_MEMORY_USAGE = "rocksdb.memtables.memory.usage";
+    /**
+     * Description for {@link #MEMTABLES_MEMORY_USAGE}
+     */
+    public static final String MEMTABLES_MEMORY_USAGE_DESCRIPTION = "Reports the current memory usage of all memtables for the RocksDB database";
+
+    /**
+     * Metric that reports the current on-disk space usage of a RocksDB database
+     */
+    public static final String DISK_USAGE = "rocksdb.disk.usage";
+
+    /**
+     * Description for {@link #DISK_USAGE}
+     */
+    public static final String DISK_USAGE_DESCRIPTION = "Reports the current disk space usage for the RocksDB database";
 
     /**
      * Gets the names of all Telicent implemented RocksDB metrics
+     *
      * @see #names()
      */
     public static final String[] TELICENT_METRICS = {
@@ -92,7 +159,8 @@ public final class MetricNames {
             BLOCK_CACHE_MEMORY_USAGE,
             BLOCK_CACHE_PINNED_MEMORY_USAGE,
             TABLE_READERS_MEMORY_USAGE,
-            MEMTABLES_MEMORY_USAGE
+            MEMTABLES_MEMORY_USAGE,
+            DISK_USAGE
     };
 
     /**

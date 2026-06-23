@@ -52,4 +52,12 @@ public class External extends AbstractRocksDBStorage {
     public TransactionContext startReadOnly() {
         return this.beginReadOnly();
     }
+
+    /**
+     * Triggers a flush to disk
+     * @throws RocksDBException
+     */
+    public void flushForTests() throws RocksDBException {
+        this.flush();
+    }
 }
