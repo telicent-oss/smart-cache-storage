@@ -432,7 +432,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
             // 7. Setup metrics
             AttributesBuilder builder = Attributes.builder();
             createDefaultAttributes(builder);
-            this.metrics = new MetricsHolder(builder.build(), this.db, this.stats);
+            this.metrics = new MetricsHolder(builder.build(), this.dbDir, this.db, this.stats);
 
             LOGGER.info("RocksDB opened successfully at {}", dbDir.getAbsolutePath());
         } catch (RocksDBException e) {

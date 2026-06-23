@@ -26,6 +26,8 @@ import io.telicent.smart.cache.storage.rocksdb.AbstractRocksDBTests;
 import io.telicent.smart.cache.storage.rocksdb.External;
 import io.telicent.smart.cache.storage.rocksdb.TransactionContext;
 import org.apache.commons.lang3.RandomUtils;
+import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.TickerType;
 import org.testng.Assert;
@@ -184,6 +186,37 @@ public class TestMetrics extends AbstractRocksDBTests {
             Assert.assertEquals(
                     MetricTestUtils.getReportedMetric(MetricNames.READONLY_TRANSACTIONS, expectedAttributes())
                                    .longValue(), 1L);
+        }
+    }
+
+    @Test
+    public void givenRocksStorage_whenWritingData_thenDiskSpaceUsageChanges() throws RocksDBException, IOException {
+        // Given
+        try (External external = new External(this.dbDir)) {
+            long initialDiskUsage =
+                    MetricTestUtils.getReportedMetric(MetricNames.DISK_USAGE, expectedAttributes()).longValue();
+            Assert.assertNotEquals(initialDiskUsage, 0L);
+
+            // When
+            try (TransactionContext transaction = external.start()) {
+                ColumnFamilyHandle defaultHandle = external.getColumnFamilyHandles()
+                                                           .get(new String(RocksDB.DEFAULT_COLUMN_FAMILY,
+                                                                           StandardCharsets.UTF_8));
+                for (int i = 1; i <= 10_000; i++) {
+                    transaction.put(defaultHandle, RandomUtils.insecure().randomBytes(64),
+                                    RandomUtils.insecure().randomBytes(RandomUtils.insecure().randomInt(32, 1024)));
+                }
+                transaction.commit();
+            }
+            external.flushForTests();
+
+            // Then
+            long currentDiskUsage =
+                    MetricTestUtils.getReportedMetric(MetricNames.DISK_USAGE, expectedAttributes()).longValue();
+            Assert.assertNotEquals(currentDiskUsage, initialDiskUsage,
+                                   "Disk usage should have changed after writes were flushed to disk");
+            Assert.assertTrue(currentDiskUsage > initialDiskUsage,
+                              "Disk usage should be higher now than after initial database open");
         }
     }
 }

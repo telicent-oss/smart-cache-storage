@@ -24,6 +24,8 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import java.io.File;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -57,7 +59,7 @@ public class TestMetricsHolder {
         TransactionDB db = mock(TransactionDB.class);
         when(db.getLongProperty(any())).thenReturn(0L);
         Statistics stats = mock(Statistics.class);
-        MetricsHolder metrics = new MetricsHolder(Attributes.empty(), db, stats);
+        MetricsHolder metrics = new MetricsHolder(Attributes.empty(), new File("."), db, stats);
         metrics.close();
 
         // When
@@ -76,7 +78,7 @@ public class TestMetricsHolder {
         // Given
         TransactionDB db = mock(TransactionDB.class);
         Statistics stats = mock(Statistics.class);
-        MetricsHolder holder = new MetricsHolder(Attributes.empty(), db, stats);
+        MetricsHolder holder = new MetricsHolder(Attributes.empty(), new File("."), db, stats);
 
         // When and Then
         holder.close();
@@ -90,7 +92,7 @@ public class TestMetricsHolder {
         when(db.getLongProperty(any())).thenReturn(0L);
         Statistics stats = mock(Statistics.class);
         when(stats.getTickerCount(any())).thenReturn(0L);
-        MetricsHolder holder = new MetricsHolder(Attributes.empty(), db, stats);
+        MetricsHolder holder = new MetricsHolder(Attributes.empty(), new File("."), db, stats);
         // NB - A normal close() would set the closed flag and immediately close() all the observables which stops them
         //      invoking their callbacks but if we set the closed flag without that we want to test the edge case of the
         //      observables callbacks triggering during a close() operation and ensure they don't try and report metrics
