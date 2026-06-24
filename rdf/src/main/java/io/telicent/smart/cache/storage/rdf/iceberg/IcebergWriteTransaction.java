@@ -2,11 +2,13 @@ package io.telicent.smart.cache.storage.rdf.iceberg;
 
 import org.apache.iceberg.*;
 import org.apache.iceberg.data.GenericAppenderFactory;
+import org.apache.iceberg.data.GenericFileWriterFactory;
 import org.apache.iceberg.data.GenericRecord;
 import org.apache.iceberg.data.Record;
 import org.apache.iceberg.io.FileAppenderFactory;
 import org.apache.iceberg.io.OutputFileFactory;
 import org.apache.iceberg.io.PartitionedFanoutWriter;
+import org.apache.iceberg.io.WriteResult;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -34,13 +36,12 @@ public class IcebergWriteTransaction {
     public IcebergWriteTransaction(final Table table, final int targetFileSize, int partitionId, long taskId) {
         this.table = Objects.requireNonNull(table);
 
-        FileAppenderFactory<org.apache.iceberg.data.Record> fileAppenderFactory =
-                new GenericAppenderFactory(this.table.schema(), this.table.spec());
+        GenericFileWriterFactory fileWriterFactory = new GenericFileWriterFactory.Builder(table).build();
         OutputFileFactory outputFileFactory =
                 OutputFileFactory.builderFor(this.table, partitionId, taskId).build();
         this.partitionKey = new PartitionKey(this.table.spec(), this.table.spec().schema());
         this.partitionedFanoutWriter =
-                new PartitionedFanoutWriter<>(this.table.spec(), FileFormat.PARQUET, fileAppenderFactory,
+                new PartitionedFanoutWriter<>(this.table.spec(), FileFormat.PARQUET, fileWriterFactory,
                                               outputFileFactory, this.table.io(), targetFileSize) {
                     @Override
                     protected PartitionKey partition(Record record) {
@@ -80,10 +81,16 @@ public class IcebergWriteTransaction {
      * @throws IOException Thrown if the commit fails
      */
     public void commit() throws IOException {
+        WriteResult result = this.partitionedFanoutWriter.complete();
+
         Transaction transaction = this.table.newTransaction();
         AppendFiles append = transaction.newAppend();
-        Arrays.stream(this.partitionedFanoutWriter.dataFiles()).forEach(append::appendFile);
+        Arrays.stream(result.dataFiles()).forEach(append::appendFile);
         append.commit();
         transaction.commitTransaction();
+    }
+
+    public void rollback() throws IOException {
+        this.partitionedFanoutWriter.abort();
     }
 }

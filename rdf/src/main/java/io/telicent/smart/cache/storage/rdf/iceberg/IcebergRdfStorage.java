@@ -9,10 +9,11 @@ import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.catalog.TableIdentifier;
 import org.apache.iceberg.types.Types;
 
+import java.io.IOException;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class IcebergDatasetGraph {
+public class IcebergRdfStorage {
 
     private static final Schema QUADS_SCHEMA
             = new Schema(Types.NestedField.required(1, IcebergFields.GRAPH, Types.LongType.get()),
@@ -38,7 +39,7 @@ public class IcebergDatasetGraph {
     private final AtomicInteger taskCounter = new AtomicInteger(0);
     private IcebergWriteTransaction transaction;
 
-    public IcebergDatasetGraph(RdfTermDictionary termDictionary, Catalog catalog) {
+    public IcebergRdfStorage(RdfTermDictionary termDictionary, Catalog catalog) {
         this.catalog = Objects.requireNonNull(catalog);
         this.termDictionary = Objects.requireNonNull(termDictionary);
         this.quadsTable = this.catalog.createTable(QUADS_ID, QUADS_SCHEMA, QUADS_PARTITIONING);
@@ -52,9 +53,17 @@ public class IcebergDatasetGraph {
                                                        this.taskCounter.incrementAndGet());
     }
 
-    public void commit() {
+    public void commit() throws IOException {
         if (this.transaction == null) {
-
+            throw new IllegalStateException("Not in a transaction");
         }
+        this.transaction.commit();
+    }
+
+    public void abort() throws IOException {
+        if (this.transaction == null) {
+            throw new IllegalStateException("Not in a transaction");
+        }
+        this.transaction.rollback();
     }
 }
