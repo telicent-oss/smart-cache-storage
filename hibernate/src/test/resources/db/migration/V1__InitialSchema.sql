@@ -39,7 +39,7 @@ create table if not exists addresses
 
 create table if not exists orders
 (
-    billingadressid   bigint
+    billingaddressid   bigint
     constraint billingaddress_fk
     references addresses,
     id                bigint       not null

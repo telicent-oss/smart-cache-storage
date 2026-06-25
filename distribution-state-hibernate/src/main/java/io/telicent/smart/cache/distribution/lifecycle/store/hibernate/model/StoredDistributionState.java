@@ -13,22 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.telicent.smart.cache.storage.hibernate.model;
+package io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model;
 
+import io.telicent.smart.cache.distribution.lifecycle.DistributionLifecycleState;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.NaturalId;
 
-import java.util.List;
-
-@Table(name = "ORDERS")
+@Table(name = "DISTRIBUTION_STATES")
 @Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Order {
+public class StoredDistributionState {
 
     @Id
     @GeneratedValue
@@ -36,18 +35,9 @@ public class Order {
     private Long id;
 
     @NaturalId
-    @Column(name = "orderId", unique = true, nullable = false)
-    private String orderId;
+    @Column(name = "distributionId", nullable = false, length = 500)
+    private String distributionId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "billingAddressId")
-    private Address billingAddress;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "shippingAddressId")
-    private Address shippingAddress;
-
-    @OneToMany(fetch = FetchType.LAZY)
-    @JoinColumn(name = "items")
-    private List<LineItem> items;
+    @Column(name = "state", nullable = false)
+    private DistributionLifecycleState state;
 }

@@ -13,41 +13,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.telicent.smart.cache.storage.hibernate.model;
+package io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model;
 
+import io.hypersistence.utils.hibernate.type.json.JsonType;
+import io.telicent.smart.cache.distribution.lifecycle.events.LifecycleAction;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.NaturalId;
+import org.hibernate.annotations.Type;
 
-import java.util.List;
+import java.util.UUID;
 
-@Table(name = "ORDERS")
+@Table(name = "LIFECYCLE_ACTIONS")
 @Entity
+@NamedQueries({
+        @NamedQuery(name = "activeEvents",
+        query = """
+                SELECT a FROM StoredLifecycleAction a
+                LEFT JOIN StoredApplicationState s ON a.eventId=s.id.eventId
+                WHERE (s.state IS NULL OR s.state != Completed)
+                """)
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Order {
-
+public class StoredLifecycleAction {
     @Id
     @GeneratedValue
     @Column(name = "id")
     private Long id;
 
     @NaturalId
-    @Column(name = "orderId", unique = true, nullable = false)
-    private String orderId;
+    @Column(name = "eventId")
+    private UUID eventId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "billingAddressId")
-    private Address billingAddress;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "shippingAddressId")
-    private Address shippingAddress;
-
-    @OneToMany(fetch = FetchType.LAZY)
-    @JoinColumn(name = "items")
-    private List<LineItem> items;
+    @Type(JsonType.class)
+    @Column(nullable = false, name = "action", columnDefinition = "json")
+    private LifecycleAction action;
 }

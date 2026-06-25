@@ -13,41 +13,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.telicent.smart.cache.storage.hibernate.model;
+package io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model;
 
+import io.telicent.smart.cache.distribution.lifecycle.ApplicationState;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.NaturalId;
 
-import java.util.List;
-
-@Table(name = "ORDERS")
+@Table(name = "LIFECYCLE_APPLICATION_STATES", uniqueConstraints = {
+        @UniqueConstraint(name = "eventAndAppConstraint", columnNames = {
+                "eventId", "application"
+        })
+})
 @Entity
+//@formatter:off
+@NamedQueries({
+        @NamedQuery(name = "findForEvent",
+                    query = """
+                    SELECT a FROM StoredApplicationState a
+                    WHERE a.id.eventId = :eventId
+                    """)
+})
+//@formatter:on
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Order {
+public class StoredApplicationState {
 
-    @Id
-    @GeneratedValue
-    @Column(name = "id")
-    private Long id;
+    @EmbeddedId
+    private AppStateId id;
 
-    @NaturalId
-    @Column(name = "orderId", unique = true, nullable = false)
-    private String orderId;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "billingAddressId")
-    private Address billingAddress;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "shippingAddressId")
-    private Address shippingAddress;
-
-    @OneToMany(fetch = FetchType.LAZY)
-    @JoinColumn(name = "items")
-    private List<LineItem> items;
+    @Column(name = "state")
+    private ApplicationState state;
 }

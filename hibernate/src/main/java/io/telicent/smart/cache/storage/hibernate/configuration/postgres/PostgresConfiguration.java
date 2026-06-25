@@ -16,7 +16,6 @@
 package io.telicent.smart.cache.storage.hibernate.configuration.postgres;
 
 import io.telicent.smart.cache.storage.hibernate.configuration.DatabaseConfiguration;
-import io.telicent.smart.cache.storage.hibernate.configuration.HibernateConfiguration;
 import io.telicent.smart.cache.storage.hibernate.configuration.JpaConfiguration;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;

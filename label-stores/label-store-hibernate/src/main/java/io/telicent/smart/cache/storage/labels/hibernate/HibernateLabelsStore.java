@@ -91,7 +91,7 @@ public class HibernateLabelsStore extends AbstractHibernateStorage implements La
             return id;
         } catch (RollbackException e) {
             // This can happen if two threads try to insert the same label at the same time
-            if (e.getCause() instanceof ConstraintViolationException cv) {
+            if (e.getCause() instanceof ConstraintViolationException) {
                 // Just recurse since the other thread likely already successfully inserted the label and in a fresh
                 // transaction we'll successfully retrieve the label
                 return idForLabel(label);
