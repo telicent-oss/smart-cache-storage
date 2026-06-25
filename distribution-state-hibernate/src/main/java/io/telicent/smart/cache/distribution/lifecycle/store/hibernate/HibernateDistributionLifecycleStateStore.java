@@ -33,7 +33,6 @@ import io.telicent.smart.cache.storage.hibernate.configuration.JpaConfiguration;
 import jakarta.persistence.RollbackException;
 import org.apache.commons.lang3.StringUtils;
 import org.flywaydb.core.Flyway;
-import org.hibernate.KeyType;
 import org.hibernate.annotations.NaturalId;
 import org.hibernate.exception.ConstraintViolationException;
 
