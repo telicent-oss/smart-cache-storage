@@ -13,6 +13,7 @@ The following modules are currently provided
 - [`mongodb`](mongodb.md)
 - [`rocksdb`](rocksdb.md)
 - [`label-stores`](label-stores.md)
+- [`distribution-state-hibernate`](distribution-state-hibernate.md)
 
 ## Depending on these modules
 
