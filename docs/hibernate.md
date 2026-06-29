@@ -64,7 +64,7 @@ Then at runtime you populate and supply a `Properties` object with the necessary
 
 To help API consumers with this a `DatabaseConfiguration` object is provided, that can be automatically populated from
 configuration obtained using the Smart Caches [Configurator][Configurator] API by using the static
-`DatabaseConfiguration. fromConfigurator()` method.  This supports the following configuration variables:
+`DatabaseConfiguration.fromConfigurator()` method.  This supports the following configuration variables:
 
 | Variable                            | Purpose                                       |
 |-------------------------------------|-----------------------------------------------|

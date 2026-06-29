@@ -1,5 +1,18 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.13.0
+
+- RocksDB improvements
+    - Added `rocksdb.disk.usage` gauge to report current disk usage per RocksDB storage instance
+    - Fixed a bug where `rocksdb.transactions.active` gauge could incorrectly report negative active transactions
+- New `distribution-state-hibernate` module
+    - Provides a `HibernateDistributionLifecycleStateStore` implementation which is a Hibernate backed implementation of
+      the `DistributionLifecycleStateStore` interface from Smart Caches Core
+- Build improvements:
+    - Upgraded Flyway to 12.9.0
+    - Upgraded Hibernate to 7.4.3.Final
+    - Upgraded Smart Caches Core to 0.40.3
+
 # 0.12.0
 
 - RocksDB improvements:
