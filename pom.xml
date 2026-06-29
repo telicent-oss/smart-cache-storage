@@ -75,7 +75,7 @@
         <dependency.commons-codec>1.22.0</dependency.commons-codec>
         <dependency.flyway>12.9.0</dependency.flyway>
         <dependency.h2>2.4.240</dependency.h2>
-        <dependency.hibernate>7.4.2.Final</dependency.hibernate>
+        <dependency.hibernate>7.4.3.Final</dependency.hibernate>
         <dependency.hypersistence>3.15.3</dependency.hypersistence>
         <dependency.jakarta-persistence>3.2.0</dependency.jakarta-persistence>
         <dependency.jackson3>3.2.0</dependency.jackson3>
