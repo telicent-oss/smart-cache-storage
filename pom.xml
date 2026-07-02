@@ -66,6 +66,8 @@
 
         <analyze.failOnWarnings>false</analyze.failOnWarnings>
 
+        <central.deployment.name>SC Storage Libs ${project.version}</central.deployment.name>
+
         <!-- Plugin Versions -->
         <plugin.editorconfig>0.2.0</plugin.editorconfig>
         <plugin.exec>3.4.1</plugin.exec>
