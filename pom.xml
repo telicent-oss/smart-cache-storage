@@ -10,7 +10,7 @@
     <parent>
         <groupId>io.telicent.smart-caches</groupId>
         <artifactId>parent</artifactId>
-        <version>0.40.3</version>
+        <version>1.0.0</version>
     </parent>
     <description>Libraries to simplify using common storage layers across Smart Caches</description>
 
