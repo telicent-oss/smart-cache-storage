@@ -22,6 +22,7 @@
 
     <properties>
         <license.header.path>${project.parent.basedir}</license.header.path>
+        <dependency.slf4j-nop>2.0.18</dependency.slf4j-nop>
     </properties>
 
     <dependencies>
@@ -42,6 +43,12 @@
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-nop</artifactId>
+            <version>${dependency.slf4j-nop}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
