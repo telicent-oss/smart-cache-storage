@@ -1,5 +1,9 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.13.1
+- Build improvements:
+  - Dependency updates
+
 # 0.13.0
 
 - RocksDB improvements
