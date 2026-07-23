@@ -19,12 +19,17 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.telicent.smart.cache.distribution.lifecycle.ApplicationState;
 import io.telicent.smart.cache.distribution.lifecycle.DistributionLifecycleState;
+import io.telicent.smart.cache.distribution.lifecycle.events.IngestStatus;
 import io.telicent.smart.cache.distribution.lifecycle.events.LifecycleAcknowledgement;
 import io.telicent.smart.cache.distribution.lifecycle.events.LifecycleAction;
+import io.telicent.smart.cache.distribution.lifecycle.events.utils.DistributionOffsets;
+import io.telicent.smart.cache.distribution.lifecycle.events.utils.PartitionOffsets;
 import io.telicent.smart.cache.distribution.lifecycle.store.DistributionLifecycleStateStore;
 import io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model.AppStateId;
+import io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model.IngestStateId;
 import io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model.StoredApplicationState;
 import io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model.StoredDistributionState;
+import io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model.StoredIngestState;
 import io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model.StoredLifecycleAction;
 import io.telicent.smart.cache.storage.hibernate.AbstractHibernateStorage;
 import io.telicent.smart.cache.storage.hibernate.TransactionContext;
@@ -58,6 +63,7 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
     private final Cache<UUID, LifecycleAction> recentActions;
     private final Cache<String, DistributionLifecycleState> recentLifecycleStates;
     private final Cache<AppStateId, ApplicationState> recentAppStates;
+    private final Cache<IngestStateId, PartitionOffsets> recentIngestStates;
 
     /**
      * Creates a new hibernate backed distribution lifecycle state store
@@ -87,6 +93,11 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
                                        .initialCapacity(RECENT_CACHE_SIZE)
                                        .expireAfterWrite(RECENT_CACHE_DURATION)
                                        .build();
+        this.recentIngestStates = Caffeine.newBuilder()
+                                          .maximumSize(RECENT_CACHE_SIZE)
+                                          .initialCapacity(RECENT_CACHE_SIZE)
+                                          .expireAfterWrite(RECENT_CACHE_DURATION)
+                                          .build();
     }
 
     @Override
@@ -316,6 +327,54 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
     }
 
     @Override
+    public void add(String application, IngestStatus status) {
+        Objects.requireNonNull(status, "Ingest Status cannot be null");
+        if (StringUtils.isBlank(application)) {
+            throw new IllegalArgumentException("Application ID cannot be null/blank");
+        }
+
+        DistributionOffsets distributionOffsets = status.getOffsets();
+        if (distributionOffsets == null || distributionOffsets.getAllOffsets() == null
+                || distributionOffsets.getAllOffsets().isEmpty()) {
+            return;
+        }
+
+        try (TransactionContext context = this.begin()) {
+            boolean changed = false;
+            for (Map.Entry<String, PartitionOffsets> entry : distributionOffsets.getAllOffsets().entrySet()) {
+                String distributionId = entry.getKey();
+                PartitionOffsets incoming = entry.getValue();
+                if (StringUtils.isBlank(distributionId) || incoming == null) {
+                    continue;
+                }
+
+                IngestStateId id = new IngestStateId(application, distributionId);
+                StoredIngestState stored = getOrCreateById(context, id, StoredIngestState.class, () ->
+                        new StoredIngestState(id, new PartitionOffsets()));
+
+                PartitionOffsets merged = copyOffsets(stored.getOffsets());
+                if (mergeOffsets(merged, incoming)) {
+                    stored.setOffsets(merged);
+                    context.getEntityManager().merge(stored);
+                    changed = true;
+                }
+
+                this.recentIngestStates.put(id, copyOffsets(stored.getOffsets()));
+            }
+
+            if (changed) {
+                context.commit();
+            }
+        } catch (RollbackException e) {
+            if (e.getCause() instanceof ConstraintViolationException) {
+                add(application, status);
+            } else {
+                throw new IllegalStateException("Failed to apply ingest status", e);
+            }
+        }
+    }
+
+    @Override
     public List<LifecycleAction> activeEvents() {
         try (TransactionContext context = this.begin()) {
             return this.loadByNamedQuery(context, StoredLifecycleAction.class, "activeEvents", Collections.emptyMap(),
@@ -398,6 +457,73 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
     }
 
     @Override
+    public Map<String, PartitionOffsets> getIngestStatuses(String application) {
+        if (StringUtils.isBlank(application)) {
+            throw new IllegalArgumentException("Application ID cannot be null/blank");
+        }
+
+        try (TransactionContext context = this.begin()) {
+            List<StoredIngestState> states =
+                    this.loadByNamedQuery(context, StoredIngestState.class, "findForApplication",
+                                          Map.of("application", application));
+            Map<String, PartitionOffsets> statuses = new HashMap<>();
+            for (StoredIngestState state : states) {
+                PartitionOffsets copy = copyOffsets(state.getOffsets());
+                statuses.put(state.getId().getDistributionId(), copy);
+                this.recentIngestStates.put(state.getId(), copyOffsets(copy));
+            }
+            return statuses;
+        }
+    }
+
+    @Override
+    public PartitionOffsets getIngestStatus(String application, String distributionId) {
+        if (StringUtils.isBlank(application)) {
+            throw new IllegalArgumentException("Application ID cannot be null/blank");
+        } else if (StringUtils.isBlank(distributionId)) {
+            throw new IllegalArgumentException("Distribution ID cannot be null/blank");
+        }
+
+        try (TransactionContext context = this.begin()) {
+            PartitionOffsets offsets =
+                    fromCacheOrDbWithUpdate(context, new IngestStateId(application, distributionId),
+                                            this.recentIngestStates, StoredIngestState.class,
+                                            s -> copyOffsets(s.getOffsets()));
+            return offsets != null ? copyOffsets(offsets) : null;
+        }
+    }
+
+    @Override
+    public Long getIngestOffset(String application, String distributionId, String partition) {
+        if (StringUtils.isBlank(partition)) {
+            throw new IllegalArgumentException("Partition cannot be null/blank");
+        }
+
+        PartitionOffsets offsets = getIngestStatus(application, distributionId);
+        return offsets != null ? offsets.getOffset(partition) : null;
+    }
+
+    @Override
+    public Map<String, Map<String, PartitionOffsets>> getAllIngestStatuses() {
+        try (TransactionContext context = this.begin()) {
+            List<StoredIngestState> states = this.loadAll(context, StoredIngestState.class);
+            Map<String, Map<String, PartitionOffsets>> allStatuses = new HashMap<>();
+            if (states.isEmpty()) {
+                this.recentIngestStates.invalidateAll();
+                return allStatuses;
+            }
+
+            for (StoredIngestState state : states) {
+                PartitionOffsets copy = copyOffsets(state.getOffsets());
+                allStatuses.computeIfAbsent(state.getId().getApplication(), ignored -> new HashMap<>())
+                           .put(state.getId().getDistributionId(), copy);
+                this.recentIngestStates.put(state.getId(), copyOffsets(copy));
+            }
+            return allStatuses;
+        }
+    }
+
+    @Override
     public void flush() {
         // Flush is mostly a no-op because any changes to the state store are immediately persistent to the underlying
         // database
@@ -417,6 +543,37 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
         this.recentActions.invalidateAll();
         this.recentLifecycleStates.invalidateAll();
         this.recentAppStates.invalidateAll();
+        this.recentIngestStates.invalidateAll();
+    }
+
+    private static PartitionOffsets copyOffsets(PartitionOffsets source) {
+        PartitionOffsets copy = new PartitionOffsets();
+        if (source != null && source.getOffsets() != null) {
+            source.getOffsets().forEach(copy::setOffset);
+        }
+        return copy;
+    }
+
+    private static boolean mergeOffsets(PartitionOffsets target, PartitionOffsets incoming) {
+        boolean changed = false;
+        if (incoming == null || incoming.getOffsets() == null) {
+            return false;
+        }
+
+        for (Map.Entry<String, Long> entry : incoming.getOffsets().entrySet()) {
+            String partition = entry.getKey();
+            Long incomingOffset = entry.getValue();
+            if (StringUtils.isBlank(partition) || incomingOffset == null) {
+                continue;
+            }
+
+            Long existingOffset = target.getOffset(partition);
+            if (existingOffset == null || incomingOffset > existingOffset) {
+                target.setOffset(partition, incomingOffset);
+                changed = true;
+            }
+        }
+        return changed;
     }
 
     @Override
