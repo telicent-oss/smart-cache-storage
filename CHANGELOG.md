@@ -1,5 +1,10 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.14.0
+
+- Build improvements:
+    - Stop publishing irrelevant modules to Maven Central
+
 # 0.13.1
 - Build improvements:
   - Dependency updates
