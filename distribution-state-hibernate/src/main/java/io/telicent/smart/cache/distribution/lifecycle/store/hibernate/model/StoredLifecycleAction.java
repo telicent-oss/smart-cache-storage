@@ -24,18 +24,31 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.NaturalId;
 import org.hibernate.annotations.Type;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Table(name = "LIFECYCLE_ACTIONS")
 @Entity
-@NamedQueries({
-        @NamedQuery(name = "activeEvents",
-        query = """
-                SELECT a FROM StoredLifecycleAction a
-                LEFT JOIN StoredApplicationState s ON a.eventId=s.id.eventId
-                WHERE (s.state IS NULL OR s.state != Completed)
-                """)
-})
+@NamedQuery(name = "activeEvents",
+query = """
+        SELECT a FROM StoredLifecycleAction a
+        LEFT JOIN StoredApplicationState s ON a.eventId=s.id.eventId
+        WHERE (s.state IS NULL OR s.state != Completed)
+        """)
+@NamedQuery(name = "distributionEvents",
+query = """
+        SELECT a FROM StoredLifecycleAction a
+        WHERE a.distributionId=:distributionId
+        ORDER BY a.lastUpdated ASC, a.id ASC
+        """)
+@NamedQuery(name = "latestDistributionEvent",
+query = """
+        SELECT a FROM StoredLifecycleAction a
+        WHERE a.distributionId=:distributionId
+        ORDER BY a.lastUpdated DESC, a.id DESC
+        LIMIT 1
+        """
+)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -48,6 +61,12 @@ public class StoredLifecycleAction {
     @NaturalId
     @Column(name = "eventId")
     private UUID eventId;
+
+    @Column(name = "distributionId", nullable = false, length = 500)
+    private String distributionId;
+
+    @Column(name = "lastUpdated", nullable = false)
+    private Instant lastUpdated;
 
     @Type(JsonType.class)
     @Column(nullable = false, name = "action", columnDefinition = "json")

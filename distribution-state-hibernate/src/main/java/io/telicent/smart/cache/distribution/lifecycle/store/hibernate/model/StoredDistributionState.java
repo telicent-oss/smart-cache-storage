@@ -24,6 +24,11 @@ import org.hibernate.annotations.NaturalId;
 
 @Table(name = "DISTRIBUTION_STATES")
 @Entity
+@NamedQuery(name = "activeDistributions",
+query = """
+        SELECT d FROM StoredDistributionState d
+        WHERE d.state=DistributionLifecycleState.Active
+        """)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

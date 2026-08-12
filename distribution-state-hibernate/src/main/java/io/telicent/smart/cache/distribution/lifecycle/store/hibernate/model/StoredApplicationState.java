@@ -21,6 +21,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
+
 @Table(name = "LIFECYCLE_APPLICATION_STATES", uniqueConstraints = {
         @UniqueConstraint(name = "eventAndAppConstraint", columnNames = {
                 "eventId", "application"
@@ -28,13 +30,11 @@ import lombok.NoArgsConstructor;
 })
 @Entity
 //@formatter:off
-@NamedQueries({
-        @NamedQuery(name = "findForEvent",
-                    query = """
-                    SELECT a FROM StoredApplicationState a
-                    WHERE a.id.eventId = :eventId
-                    """)
-})
+@NamedQuery(name = "findForEvent",
+            query = """
+            SELECT a FROM StoredApplicationState a
+            WHERE a.id.eventId = :eventId
+            """)
 //@formatter:on
 @Data
 @NoArgsConstructor
@@ -43,6 +43,9 @@ public class StoredApplicationState {
 
     @EmbeddedId
     private AppStateId id;
+
+    @Column(name = "lastUpdated", nullable = false)
+    private Instant lastUpdated;
 
     @Column(name = "state")
     private ApplicationState state;
