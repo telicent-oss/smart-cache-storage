@@ -71,7 +71,11 @@
         <!-- Plugin Versions -->
         <plugin.editorconfig>0.2.0</plugin.editorconfig>
         <plugin.exec>3.4.1</plugin.exec>
+        <plugin.sonar>5.7.0.6970</plugin.sonar>
         <plugin.war>3.1.0</plugin.war>
+
+        <!-- SonarQube analysis, invoked from CI via mvn sonar:sonar -->
+        <sonar.projectKey>telicent-oss_smart-cache-storage</sonar.projectKey>
 
         <!-- Dependency Versions -->
         <dependency.commons-codec>1.22.1</dependency.commons-codec>
@@ -222,6 +226,11 @@
                             </configuration>
                         </execution>
                     </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.sonarsource.scanner.maven</groupId>
+                    <artifactId>sonar-maven-plugin</artifactId>
+                    <version>${plugin.sonar}</version>
                 </plugin>
             </plugins>
 
