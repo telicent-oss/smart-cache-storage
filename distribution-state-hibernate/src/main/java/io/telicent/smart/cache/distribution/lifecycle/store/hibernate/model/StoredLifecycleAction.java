@@ -25,8 +25,6 @@ import org.hibernate.annotations.NaturalId;
 import org.hibernate.annotations.Type;
 
 import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.util.Date;
 import java.util.UUID;
 
 @Table(name = "LIFECYCLE_ACTIONS")
