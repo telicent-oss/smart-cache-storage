@@ -2,11 +2,18 @@
 
 # 0.14.0
 
+- Distribution State Hibernate improvements:
+    - Updated database structure to support new `DistributionLifecycleStateStore` methods in Smart Caches Core 1.2.0
 - Build improvements:
-    - Stop publishing irrelevant modules to Maven Central
+    - Apache Commons Codec upgraded to 1.22.1
+    - Flyway upgraded to 13.2.0
+    - MongoDB upgraded to 5.9.1
+    - Smart Caches Core upgraded to 1.2.0
+    - Various build and test dependencies upgraded to latest available
 
 # 0.13.1
 - Build improvements:
+  - Stop publishing irrelevant modules to Maven Central
   - Dependency updates
 
 # 0.13.0

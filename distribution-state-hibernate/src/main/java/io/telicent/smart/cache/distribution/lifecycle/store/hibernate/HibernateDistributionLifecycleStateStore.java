@@ -38,11 +38,15 @@ import io.telicent.smart.cache.storage.hibernate.configuration.JpaConfiguration;
 import jakarta.persistence.RollbackException;
 import org.apache.commons.lang3.StringUtils;
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.CoreLocationPrefix;
+import org.flywaydb.core.api.Location;
 import org.hibernate.annotations.NaturalId;
 import org.hibernate.exception.ConstraintViolationException;
 
 import java.lang.reflect.Field;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -108,6 +112,9 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
                                  dbProperties.getProperty(JpaConfiguration.JAKARTA_PERSISTENCE_JDBC_PASSWORD))
                      .baselineVersion("0")
                      .baselineOnMigrate(true)
+                     .locations(Location.fromPath(CoreLocationPrefix.CLASSPATH_PREFIX, "/db/migration/"),
+                                Location.fromPath(CoreLocationPrefix.CLASSPATH_PREFIX,
+                                                  "/io/telicent/smart/cache/distribution/lifecycle/store/hibernate/migrations/"))
                      .load();
     }
 
@@ -228,7 +235,7 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
 
                     // NB - We intentionally invalidate the cache here because if this store is being shared between
                     //      multiple applications this means another application already received and processed this
-                    //      action.  Thus,  any cache of the lifecycle state for the distribution may now be outdated and
+                    //      action.  Thus, any cache of the lifecycle state for the distribution may now be outdated and
                     //      should be refreshed from the underlying database when next needed
                     this.recentLifecycleStates.invalidate(action.getDistributionId());
                     return;
@@ -239,7 +246,9 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
             getOrCreateByNaturalId(context, action.getEventId(), StoredLifecycleAction.class, () -> {
                 StoredLifecycleAction newAction = new StoredLifecycleAction();
                 newAction.setEventId(action.getEventId());
+                newAction.setDistributionId(action.getDistributionId());
                 newAction.setAction(action);
+                newAction.setLastUpdated(Instant.now());
                 return newAction;
             });
 
@@ -302,6 +311,7 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
             StoredApplicationState stored = getOrCreateById(context, id, StoredApplicationState.class, () -> {
                 StoredApplicationState newState = new StoredApplicationState();
                 newState.setId(id);
+                newState.setLastUpdated(Instant.now());
                 return newState;
             });
             ApplicationState target = getTargetState(ack, stored.getState());
@@ -334,8 +344,7 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
         }
 
         DistributionOffsets distributionOffsets = status.getOffsets();
-        if (distributionOffsets == null || distributionOffsets.getAllOffsets() == null
-                || distributionOffsets.getAllOffsets().isEmpty()) {
+        if (distributionOffsets.getAllOffsets() == null || distributionOffsets.getAllOffsets().isEmpty()) {
             return;
         }
 
@@ -349,8 +358,8 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
                 }
 
                 IngestStateId id = new IngestStateId(application, distributionId);
-                StoredIngestState stored = getOrCreateById(context, id, StoredIngestState.class, () ->
-                        new StoredIngestState(id, new PartitionOffsets()));
+                StoredIngestState stored = getOrCreateById(context, id, StoredIngestState.class,
+                                                           () -> new StoredIngestState(id, new PartitionOffsets()));
 
                 PartitionOffsets merged = copyOffsets(stored.getOffsets());
                 if (mergeOffsets(merged, incoming)) {
@@ -378,13 +387,46 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
     public List<LifecycleAction> activeEvents() {
         try (TransactionContext context = this.begin()) {
             return this.loadByNamedQuery(context, StoredLifecycleAction.class, "activeEvents", Collections.emptyMap(),
-                                         l -> {
-                                             List<LifecycleAction> active = new ArrayList<>();
-                                             for (StoredLifecycleAction action : l) {
-                                                 active.add(action.getAction());
-                                             }
-                                             return active;
-                                         });
+                                         this::materializeActions);
+        }
+    }
+
+    private List<LifecycleAction> materializeActions(List<StoredLifecycleAction> actions) {
+        return actions.stream().map(StoredLifecycleAction::getAction).toList();
+    }
+
+    @Override
+    public List<LifecycleAction> distributionEvents(String distributionId) {
+        if (StringUtils.isBlank(distributionId)) {
+            throw new IllegalArgumentException("Distribution ID cannot be null/blank");
+        }
+        try (TransactionContext context = this.begin()) {
+            return this.loadByNamedQuery(context, StoredLifecycleAction.class, "distributionEvents",
+                                         Map.of("distributionId", distributionId), this::materializeActions);
+        }
+    }
+
+    @Override
+    public LifecycleAction latestEvent(String distributionId) {
+        if (StringUtils.isBlank(distributionId)) {
+            throw new IllegalArgumentException("Distribution ID cannot be null/blank");
+        }
+        try (TransactionContext context = this.begin()) {
+            List<LifecycleAction> actions =
+                    this.loadByNamedQuery(context, StoredLifecycleAction.class, "latestDistributionEvent",
+                                          Map.of("distributionId", distributionId), this::materializeActions);
+            return actions.isEmpty() ? null : actions.getFirst();
+        }
+    }
+
+    @Override
+    public LifecycleAction getEvent(UUID eventId) {
+        if (eventId == null) {
+            throw new IllegalArgumentException("Event ID cannot be null");
+        }
+        try (TransactionContext context = this.begin()) {
+            return this.loadByNaturalId(context, eventId, StoredLifecycleAction.class,
+                                        StoredLifecycleAction::getAction);
         }
     }
 
@@ -417,6 +459,18 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
                     fromCacheOrDbWithUpdate(context, distributionId, this.recentLifecycleStates,
                                             StoredDistributionState.class, StoredDistributionState::getState);
             return state != null ? state : DistributionLifecycleState.Unregistered;
+        }
+    }
+
+    protected List<String> materializeDistributionIds(List<StoredDistributionState> stored) {
+        return stored.stream().map(StoredDistributionState::getDistributionId).toList();
+    }
+
+    @Override
+    public List<String> activeDistributions() {
+        try (TransactionContext context = this.begin()) {
+            return this.loadByNamedQuery(context, StoredDistributionState.class, "activeDistributions",
+                                         Collections.emptyMap(), this::materializeDistributionIds);
         }
     }
 
@@ -457,6 +511,20 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
     }
 
     @Override
+    public Instant getApplicationStateLastUpdated(UUID eventId, String application) {
+        if (eventId == null) {
+            throw new IllegalArgumentException("Event ID cannot be null");
+        } else if (StringUtils.isBlank(application)) {
+            throw new IllegalArgumentException("Application ID cannot be null/blank");
+        }
+        try (TransactionContext context = this.begin()) {
+            AppStateId id = new AppStateId(eventId, application);
+            StoredApplicationState state = context.getEntityManager().find(StoredApplicationState.class, id);
+            return state != null ? state.getLastUpdated() : null;
+        }
+    }
+
+    @Override
     public Map<String, PartitionOffsets> getIngestStatuses(String application) {
         if (StringUtils.isBlank(application)) {
             throw new IllegalArgumentException("Application ID cannot be null/blank");
@@ -485,10 +553,9 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
         }
 
         try (TransactionContext context = this.begin()) {
-            PartitionOffsets offsets =
-                    fromCacheOrDbWithUpdate(context, new IngestStateId(application, distributionId),
-                                            this.recentIngestStates, StoredIngestState.class,
-                                            s -> copyOffsets(s.getOffsets()));
+            PartitionOffsets offsets = fromCacheOrDbWithUpdate(context, new IngestStateId(application, distributionId),
+                                                               this.recentIngestStates, StoredIngestState.class,
+                                                               s -> copyOffsets(s.getOffsets()));
             return offsets != null ? copyOffsets(offsets) : null;
         }
     }
@@ -521,6 +588,11 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
             }
             return allStatuses;
         }
+    }
+
+    @Override
+    public boolean requiresFlush() {
+        return DistributionLifecycleStateStore.super.requiresFlush();
     }
 
     @Override

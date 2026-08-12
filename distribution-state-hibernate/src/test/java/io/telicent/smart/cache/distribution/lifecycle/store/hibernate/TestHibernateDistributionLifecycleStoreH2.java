@@ -64,6 +64,11 @@ public class TestHibernateDistributionLifecycleStoreH2 extends AbstractDistribut
         return true;
     }
 
+    @Override
+    public boolean tracksLastAppStateUpdated() {
+        return true;
+    }
+
     @Test
     public void givenFreshStore_whenCheckingIngestStatuses_thenEmpty() {
         try (DistributionLifecycleStateStore store = newStore()) {

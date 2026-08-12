@@ -15,10 +15,16 @@
  */
 package io.telicent.smart.cache.storage;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Abstract base class for closeable storage implementations
  */
 public abstract class AbstractStorage implements AutoCloseable {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractStorage.class);
+
     /**
      * The exception message thrown as an {@link IllegalStateException} by {@link #ensureNotClosed()}
      */
@@ -63,12 +69,14 @@ public abstract class AbstractStorage implements AutoCloseable {
     @Override
     public final synchronized void close() {
         if (!this.closed) {
+            LOGGER.info("Closing storage {}", this.getClass().getCanonicalName());
             try {
                 this.closeInternal();
             } finally {
                 // Always mark as closed even if internal close fails, this is done in the finally block so if an
                 // exception occurs it still gets thrown upwards for the caller to deal with
                 this.closed = true;
+                LOGGER.info("Storage {} marked as closed", this.getClass().getCanonicalName());
             }
         }
     }
