@@ -7,7 +7,7 @@
 - Build improvements:
     - Apache Commons Codec upgraded to 1.22.1
     - Flyway upgraded to 13.2.0
-    - MongoDB upgraded to 5.9.1
+    - MongoDB upgraded to 5.9.2
     - Smart Caches Core upgraded to 1.2.0
     - Various build and test dependencies upgraded to latest available
 
