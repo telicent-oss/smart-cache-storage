@@ -19,7 +19,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.EntityTransaction;
 import org.hibernate.Session;
-import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -61,9 +60,9 @@ public class TestShortLivedTransactionContext {
     }
 
     private EntityManagerFactory mockEntityManagerFactory(EntityTransaction transaction) {
-        EntityManagerFactory entityManagerFactory = Mockito.mock(EntityManagerFactory.class);
-        EntityManager entityManager = Mockito.mock(EntityManager.class);
-        Session session = Mockito.mock(Session.class);
+        EntityManagerFactory entityManagerFactory = mock(EntityManagerFactory.class);
+        EntityManager entityManager = mock(EntityManager.class);
+        Session session = mock(Session.class);
         when(entityManagerFactory.createEntityManager()).thenReturn(entityManager);
         when(entityManager.unwrap(Session.class)).thenReturn(session);
         when(entityManager.getTransaction()).thenReturn(transaction);

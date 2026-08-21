@@ -29,6 +29,7 @@ import org.apache.commons.lang3.StringUtils;
 @Builder
 @ToString
 @EqualsAndHashCode
+@SuppressWarnings("java:S1845")
 public class DatabaseConfiguration {
 
     /**
@@ -66,9 +67,11 @@ public class DatabaseConfiguration {
     public static final String PASSWORD = "DATABASE_PASSWORD";
 
     private final String jdbcUrl;
-    private final String hostname, database;
+    private final String hostname;
+    private final String database;
     private final Integer port;
-    private final String username, password;
+    private final String username;
+    private final String password;
 
     /**
      * Gets the database configuration based upon using the {@link Configurator} API to retrieve the configuration based

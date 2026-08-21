@@ -17,6 +17,7 @@ package io.telicent.smart.cache.storage.mongodb;
 
 import io.telicent.smart.cache.storage.mongodb.cluster.SecureMongoTestCluster;
 
+@SuppressWarnings("java:S3577")
 public class DockerTestSecureMongoPerformance extends DockerTestMongoPerformance {
 
     public DockerTestSecureMongoPerformance() {

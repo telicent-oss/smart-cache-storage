@@ -123,10 +123,8 @@ public class MongoDBLabelsStore extends AbstractMongoStorage implements LabelsSt
         JacksonMongoCollection<EncodedLabel> collection = getLabelsCollection();
         Map<byte[], Long> ids = new LinkedHashMap<>();
         for (byte[] label : labels) {
-            if (DictionaryLabelsStore.isInvalidByteSequence(label)) {
-                continue;
-            }
-            if (ids.containsKey(label)) {
+            // Ignore null/duplicate labels
+            if (DictionaryLabelsStore.isInvalidByteSequence(label) || ids.containsKey(label)) {
                 continue;
             }
             String encoded = this.encoder.encodeToString(label);

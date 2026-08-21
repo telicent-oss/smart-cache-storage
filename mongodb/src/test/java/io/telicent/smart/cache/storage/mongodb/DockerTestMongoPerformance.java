@@ -29,6 +29,7 @@ import org.testng.annotations.*;
 
 import java.util.*;
 
+@SuppressWarnings("java:S3577")
 public class DockerTestMongoPerformance extends AbstractMongoDBTests {
 
     private static final int MANY_USERS_SIZE = 1_000;

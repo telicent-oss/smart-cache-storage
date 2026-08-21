@@ -27,6 +27,7 @@ import java.util.Properties;
 /**
  * Tests against containerised Postgres configured using the JDBC URL
  */
+@SuppressWarnings("java:S3577")
 public class DockerTestOrderManagerPostgresJdbcUrl extends AbstractOrderManagerTests {
 
     private PostgreSQLContainer<?> postgres;

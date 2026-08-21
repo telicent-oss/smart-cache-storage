@@ -31,6 +31,7 @@ import org.testng.annotations.Test;
 
 import java.util.Properties;
 
+@SuppressWarnings("java:S3577")
 public class DockerTestSecureMongoDBStorage extends DockerTestMongoDBStorage {
 
     public static final String USERNAME = "admin";

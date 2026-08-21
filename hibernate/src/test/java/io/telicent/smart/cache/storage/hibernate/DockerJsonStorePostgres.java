@@ -27,6 +27,7 @@ import java.util.Properties;
 /**
  * Tests against containerised Postgres
  */
+@SuppressWarnings("java:S3577")
 public class DockerJsonStorePostgres extends AbstractJsonStorageTests {
 
     private PostgreSQLContainer<?> postgres;

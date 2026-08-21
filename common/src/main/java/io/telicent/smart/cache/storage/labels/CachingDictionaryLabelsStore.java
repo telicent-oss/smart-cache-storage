@@ -167,12 +167,8 @@ public class CachingDictionaryLabelsStore extends AbstractStorage implements Dic
         boolean allCached = true;
         Map<Long, byte[]> labels = new LinkedHashMap<>();
         for (Long id : ids) {
-            // Ignore null IDs
-            if (id == null) {
-                continue;
-            }
-            // NB - The list might contain duplicate IDs
-            if (labels.containsKey(id)) {
+            // Ignore null/duplicate IDs
+            if (id == null || labels.containsKey(id)) {
                 continue;
             }
             labels.put(id, this.idsToLabels.getIfPresent(id));

@@ -76,7 +76,7 @@ final class ShortLivedTransactionContext implements TransactionContext {
             if (this.isActive()) {
                 this.entityManager.getTransaction().rollback();
             }
-        } catch (Throwable e) {
+        } catch (Exception e) {
             LOGGER.warn("Failed to rollback transaction", e);
         }
 

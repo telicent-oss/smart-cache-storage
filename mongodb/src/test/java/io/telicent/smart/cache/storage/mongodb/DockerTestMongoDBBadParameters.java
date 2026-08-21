@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+@SuppressWarnings("java:S3577")
 public class DockerTestMongoDBBadParameters extends AbstractMongoDBTests {
 
     @Test(expectedExceptions = NullPointerException.class, expectedExceptionsMessageRegExp = "Mongo Client.*")

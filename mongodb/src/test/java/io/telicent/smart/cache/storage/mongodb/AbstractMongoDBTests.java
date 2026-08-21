@@ -21,7 +21,9 @@ import io.telicent.smart.cache.storage.mongodb.cluster.MongoTestCluster;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
-public class AbstractMongoDBTests {
+// S2187 - Base test fixture for other tests in this module
+@SuppressWarnings("java:S2187")
+public abstract class AbstractMongoDBTests {
     /**
      * Protected so tests can override this to use a different test cluster e.g. SecureMongoTestCluster
      */

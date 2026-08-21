@@ -56,7 +56,7 @@ import java.util.function.Supplier;
  * </p>
  */
 @ToString
-@SuppressWarnings({ "unused", "UnusedReturnValue" })
+@SuppressWarnings({ "unused", "UnusedReturnValue", "java:S119" })
 public abstract class AbstractHibernateStorage extends AbstractStorage {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractHibernateStorage.class);
@@ -82,7 +82,7 @@ public abstract class AbstractHibernateStorage extends AbstractStorage {
      *                        database connection properties <strong>MUST</strong> be supplied via the
      *                        {@code dbProperties} parameter instead.
      */
-    public AbstractHibernateStorage(Properties dbProperties, String persistenceUnit) {
+    protected AbstractHibernateStorage(Properties dbProperties, String persistenceUnit) {
         Flyway flyway = configureFlyway(dbProperties);
         if (flyway != null) {
             LOGGER.info("Beginning Flyway schema migration...");

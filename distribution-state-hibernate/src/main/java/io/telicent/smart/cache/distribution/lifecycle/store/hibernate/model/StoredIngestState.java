@@ -31,13 +31,11 @@ import org.hibernate.annotations.Type;
 @Table(name = "LIFECYCLE_INGEST_STATES")
 @Entity
 //@formatter:off
-@NamedQueries({
-        @NamedQuery(name = "findForApplication",
-                    query = """
-                    SELECT i FROM StoredIngestState i
-                    WHERE i.id.application = :application
-                    """)
-})
+@NamedQuery(name = "findForApplication",
+            query = """
+            SELECT i FROM StoredIngestState i
+            WHERE i.id.application = :application
+            """)
 //@formatter:on
 @Data
 @NoArgsConstructor

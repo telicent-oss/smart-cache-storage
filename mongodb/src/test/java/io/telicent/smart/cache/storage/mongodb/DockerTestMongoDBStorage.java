@@ -27,6 +27,7 @@ import org.testng.annotations.*;
 
 import java.util.*;
 
+@SuppressWarnings("java:S3577")
 public class DockerTestMongoDBStorage extends AbstractMongoDBTests {
 
     @BeforeMethod
