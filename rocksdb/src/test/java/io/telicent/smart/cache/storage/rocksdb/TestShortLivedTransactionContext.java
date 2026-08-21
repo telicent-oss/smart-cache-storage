@@ -16,7 +16,6 @@
 package io.telicent.smart.cache.storage.rocksdb;
 
 import io.telicent.smart.cache.storage.rocksdb.metrics.MetricsHolder;
-import org.mockito.Mockito;
 import org.rocksdb.*;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -82,8 +81,9 @@ public class TestShortLivedTransactionContext {
     }
 
     @DataProvider(name = "consumers")
+    @SuppressWarnings("resource")
     private Object[][] consumers() {
-        ColumnFamilyHandle handle = Mockito.mock(ColumnFamilyHandle.class);
+        ColumnFamilyHandle handle = mock(ColumnFamilyHandle.class);
         return new Object[][] {
                 { consumer(t -> t.isEmpty(handle)) },
                 { consumer(t -> t.count(handle)) },

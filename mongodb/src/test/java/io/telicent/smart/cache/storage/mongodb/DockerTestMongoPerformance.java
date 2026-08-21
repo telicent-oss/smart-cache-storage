@@ -205,7 +205,6 @@ public class DockerTestMongoPerformance extends AbstractMongoDBTests {
     @Test
     public void givenStorageWithManyUsersAndData_whenRandomlyDeletingSavedDataByNonExistentIds_thenNothingChanges() {
         // Given
-        Random random = new Random();
         try (MongoClient client = this.mongo.createMongoClient()) {
             try (UserDataStore store = createStorage(client)) {
                 JacksonMongoCollection<SavedData> data =

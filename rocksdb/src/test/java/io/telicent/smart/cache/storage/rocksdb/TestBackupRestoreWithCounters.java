@@ -34,7 +34,7 @@ import java.util.Map;
 
 public class TestBackupRestoreWithCounters extends AbstractRocksDBTests {
 
-    private Map<String, Long> getCounters(AbstractCounterTester tester, List<String> names) throws RocksDBException {
+    private Map<String, Long> getCounters(AbstractCounterTester tester, List<String> names) {
         Map<String, Long> values = new LinkedHashMap<>();
 
         for (String name : names) {

@@ -51,7 +51,9 @@ public final class MetricsHolder implements AutoCloseable {
     private TransactionDB db;
     private Statistics stats;
     private boolean closed = false;
-    private final LongCounter transactions, readOnlyTransactions, writeTransactions;
+    private final LongCounter transactions;
+    private final LongCounter readOnlyTransactions;
+    private final LongCounter writeTransactions;
     private final AtomicLong active = new AtomicLong(0);
 
     // These two lists track our observable metrics, i.e., those populated by callbacks, these are all close()'d in our
@@ -100,7 +102,7 @@ public final class MetricsHolder implements AutoCloseable {
                        .build();
         ObservableLongGauge blockCacheUsage
                 = meter.gaugeBuilder(BLOCK_CACHE_MEMORY_USAGE)
-                       .setUnit("bytes")
+                       .setUnit(UNIT_BYTES)
                        .setDescription(BLOCK_CACHE_MEMORY_USAGE_DESCRIPTION)
                        .ofLongs()
                        .buildWithCallback(
@@ -108,7 +110,7 @@ public final class MetricsHolder implements AutoCloseable {
         this.gauges.add(blockCacheUsage);
         ObservableLongGauge blockCachePinnedUsage
                 = meter.gaugeBuilder(BLOCK_CACHE_PINNED_MEMORY_USAGE)
-                       .setUnit("bytes")
+                       .setUnit(UNIT_BYTES)
                        .setDescription(BLOCK_CACHE_PINNED_MEMORY_USAGE_DESCRIPTION)
                        .ofLongs()
                        .buildWithCallback(m ->
@@ -116,7 +118,7 @@ public final class MetricsHolder implements AutoCloseable {
         this.gauges.add(blockCachePinnedUsage);
         ObservableLongGauge tableReadersUsage
                 = meter.gaugeBuilder(TABLE_READERS_MEMORY_USAGE)
-                       .setUnit("bytes")
+                       .setUnit(UNIT_BYTES)
                        .setDescription(TABLE_READERS_MEMORY_USAGE_DESCRIPTION)
                        .ofLongs()
                        .buildWithCallback(m ->
@@ -124,7 +126,7 @@ public final class MetricsHolder implements AutoCloseable {
         this.gauges.add(tableReadersUsage);
         ObservableLongGauge memtablesUsage
                 = meter.gaugeBuilder(MEMTABLES_MEMORY_USAGE)
-                       .setUnit("bytes")
+                       .setUnit(UNIT_BYTES)
                        .setDescription(MEMTABLES_MEMORY_USAGE_DESCRIPTION)
                        .ofLongs()
                        .buildWithCallback(m ->
@@ -132,7 +134,7 @@ public final class MetricsHolder implements AutoCloseable {
         this.gauges.add(memtablesUsage);
         ObservableLongGauge diskUsage
                 = meter.gaugeBuilder(DISK_USAGE)
-                       .setUnit("bytes")
+                       .setUnit(UNIT_BYTES)
                        .setDescription(DISK_USAGE_DESCRIPTION)
                        .ofLongs()
                        .buildWithCallback(m -> {
@@ -164,7 +166,7 @@ public final class MetricsHolder implements AutoCloseable {
     private ObservableLongCounter buildForTicker(Meter meter, TickerType ticker) {
         LongCounterBuilder builder = meter.counterBuilder(asMetricName(ticker));
         if (ticker.name().contains("BYTES")) {
-            builder = builder.setUnit("bytes");
+            builder = builder.setUnit(UNIT_BYTES);
         }
 
         return builder.buildWithCallback(m -> {
@@ -177,7 +179,7 @@ public final class MetricsHolder implements AutoCloseable {
             }
             try {
                 m.record(currentStats.getTickerCount(ticker), this.dbAttributes);
-            } catch (Throwable e) {
+            } catch (Exception e) {
                 LOGGER.warn("Failed to record RocksDB ticker {}", ticker);
             }
         });
@@ -199,14 +201,14 @@ public final class MetricsHolder implements AutoCloseable {
         }
         // Snapshot the reference: close() may null this.db (and close the native DB) concurrently with this callback
         // running on the OpenTelemetry collection thread. Reading it once and null-checking avoids an NPE, and
-        // catching Throwable (not just RocksDBException) keeps a shutdown-race error off the collection thread.
+        // catching Exception (not just RocksDBException) keeps a shutdown-race error off the collection thread.
         TransactionDB currentDb = this.db;
         if (currentDb == null) {
             return;
         }
         try {
             m.record(currentDb.getLongProperty(property), this.dbAttributes);
-        } catch (Throwable e) {
+        } catch (Exception e) {
             LOGGER.warn("Failed to track RocksDB metric {}", property);
         }
     }

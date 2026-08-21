@@ -1,17 +1,14 @@
 /**
  * Copyright (C) Telicent Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package io.telicent.smart.cache.storage.mongodb;
 
@@ -101,7 +98,7 @@ public class DockerTestMongoDBBadParameters extends AbstractMongoDBTests {
     public void givenStorage_whenCreatingIndexIfNotExistWithoutName_thenIllegalArgument() {
         // Given
         try (MongoClient mongoClient = this.mongo.createMongoClient()) {
-            try (BadStorage storage = new BadStorage(mongoClient,MongoTestCluster.DEFAULT_TEST_DB)) {
+            try (BadStorage storage = new BadStorage(mongoClient, MongoTestCluster.DEFAULT_TEST_DB)) {
                 // When
                 JacksonMongoCollection<User> collection = getUsersCollection(storage);
                 Assert.assertNotNull(collection);
@@ -118,7 +115,7 @@ public class DockerTestMongoDBBadParameters extends AbstractMongoDBTests {
     public void givenStorage_whenCreatingIndexWithoutName_thenGeneratedNameReturned() {
         // Given
         try (MongoClient mongoClient = this.mongo.createMongoClient()) {
-            try (BadStorage storage = new BadStorage(mongoClient,MongoTestCluster.DEFAULT_TEST_DB)) {
+            try (BadStorage storage = new BadStorage(mongoClient, MongoTestCluster.DEFAULT_TEST_DB)) {
                 // When
                 JacksonMongoCollection<User> collection = getUsersCollection(storage);
                 String name = storage.createIndex(collection, null, "user");
@@ -135,11 +132,11 @@ public class DockerTestMongoDBBadParameters extends AbstractMongoDBTests {
 
         List<Method> methods = new ArrayList<>();
         for (Method method : cls.getDeclaredMethods()) {
-            if (method.getParameterCount() >= 1) {
-                if (Objects.equals(method.getParameterTypes()[0], JacksonMongoCollection.class)) {
-                    methods.add(method);
-                }
+            if (method.getParameterCount() >= 1 && Objects.equals(method.getParameterTypes()[0],
+                                                                  JacksonMongoCollection.class)) {
+                methods.add(method);
             }
+
         }
 
         Object[][] data = new Object[methods.size()][];
@@ -156,7 +153,7 @@ public class DockerTestMongoDBBadParameters extends AbstractMongoDBTests {
                                                                          Class<?>[] parameterTypes) throws Throwable {
         // Given
         try (MongoClient mongoClient = this.mongo.createMongoClient()) {
-            try (AbstractMongoStorage storage = new BadStorage(mongoClient,MongoTestCluster.DEFAULT_TEST_DB)) {
+            try (AbstractMongoStorage storage = new BadStorage(mongoClient, MongoTestCluster.DEFAULT_TEST_DB)) {
                 Method method = AbstractMongoStorage.class.getDeclaredMethod(methodName, parameterTypes);
                 method.setAccessible(true);
 
@@ -177,7 +174,7 @@ public class DockerTestMongoDBBadParameters extends AbstractMongoDBTests {
             Throwable {
         // Given
         try (MongoClient mongoClient = this.mongo.createMongoClient()) {
-            try (AbstractMongoStorage storage = new BadStorage(mongoClient,MongoTestCluster.DEFAULT_TEST_DB)) {
+            try (AbstractMongoStorage storage = new BadStorage(mongoClient, MongoTestCluster.DEFAULT_TEST_DB)) {
                 storage.close();
                 Method method = AbstractMongoStorage.class.getDeclaredMethod(methodName, parameterTypes);
                 method.setAccessible(true);
@@ -202,7 +199,7 @@ public class DockerTestMongoDBBadParameters extends AbstractMongoDBTests {
 
         // Given
         try (MongoClient mongoClient = this.mongo.createMongoClient()) {
-            try (BadStorage storage = new BadStorage(mongoClient,MongoTestCluster.DEFAULT_TEST_DB)) {
+            try (BadStorage storage = new BadStorage(mongoClient, MongoTestCluster.DEFAULT_TEST_DB)) {
                 Method method = AbstractMongoStorage.class.getDeclaredMethod(methodName, parameterTypes);
                 method.setAccessible(true);
                 JacksonMongoCollection<User> collection = getUsersCollection(storage);
@@ -228,7 +225,7 @@ public class DockerTestMongoDBBadParameters extends AbstractMongoDBTests {
                                                                                               this.mongo.getConnectionString()))
                                                                               .writeConcern(WriteConcern.UNACKNOWLEDGED)
                                                                               .build())) {
-            try (BadStorage storage = new BadStorage(mongoClient,MongoTestCluster.DEFAULT_TEST_DB)) {
+            try (BadStorage storage = new BadStorage(mongoClient, MongoTestCluster.DEFAULT_TEST_DB)) {
                 // When
                 JacksonMongoCollection<User> users = getUsersCollection(storage);
                 boolean oneDeleted = storage.deleteOne(users, storage.findById("test"));

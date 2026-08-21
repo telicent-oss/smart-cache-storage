@@ -47,7 +47,6 @@ public class TestMetricsHolder {
         // Given
         TransactionDB db = mock(TransactionDB.class);
         when(db.getLongProperty(any())).thenThrow(new RocksDBException("Bad property"));
-        Statistics stats = mock(Statistics.class);
 
         // When and Then
         MetricTestUtils.verifyNotReported(MetricNames.names());

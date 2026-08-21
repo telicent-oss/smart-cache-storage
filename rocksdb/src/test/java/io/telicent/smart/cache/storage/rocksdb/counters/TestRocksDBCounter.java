@@ -18,7 +18,6 @@ package io.telicent.smart.cache.storage.rocksdb.counters;
 import io.telicent.smart.cache.storage.rocksdb.AbstractRocksDBTests;
 import io.telicent.smart.cache.storage.rocksdb.RocksDBCounter;
 import org.apache.commons.lang3.RandomUtils;
-import org.mockito.Mockito;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.TransactionDB;
@@ -30,6 +29,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.mockito.Mockito.mock;
 
 public class TestRocksDBCounter extends AbstractRocksDBTests {
 
@@ -47,25 +48,25 @@ public class TestRocksDBCounter extends AbstractRocksDBTests {
     @Test(expectedExceptions = NullPointerException.class, expectedExceptionsMessageRegExp = ".*cannot be null")
     public void givenNoColumnFamily_whenCreatingCounter_thenNPE() throws RocksDBException {
         // Given, When and Then
-        new RocksDBCounter(Mockito.mock(TransactionDB.class), null, null);
+        new RocksDBCounter(mock(TransactionDB.class), null, null);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = ".*cannot be blank/empty")
     public void givenNoKey_whenCreatingCounter_thenNPE() throws RocksDBException {
         // Given, When and Then
-        new RocksDBCounter(Mockito.mock(TransactionDB.class), Mockito.mock(ColumnFamilyHandle.class), null);
+        new RocksDBCounter(mock(TransactionDB.class), mock(ColumnFamilyHandle.class), null);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = ".*cannot be blank/empty")
     public void givenEmptyKey_whenCreatingCounter_thenNPE() throws RocksDBException {
         // Given, When and Then
-        new RocksDBCounter(Mockito.mock(TransactionDB.class), Mockito.mock(ColumnFamilyHandle.class), "");
+        new RocksDBCounter(mock(TransactionDB.class), mock(ColumnFamilyHandle.class), "");
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = ".*cannot be blank/empty")
     public void givenBlankKey_whenCreatingCounter_thenNPE() throws RocksDBException {
         // Given, When and Then
-        new RocksDBCounter(Mockito.mock(TransactionDB.class), Mockito.mock(ColumnFamilyHandle.class), "  ");
+        new RocksDBCounter(mock(TransactionDB.class), mock(ColumnFamilyHandle.class), "  ");
     }
 
 

@@ -23,7 +23,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
-public class AbstractRocksDBTests {
+// S2187 - Abstract base class for RocksDB test fixtures
+@SuppressWarnings("java:S2187")
+public abstract class AbstractRocksDBTests {
     /**
      * The current temporary database directory
      */
