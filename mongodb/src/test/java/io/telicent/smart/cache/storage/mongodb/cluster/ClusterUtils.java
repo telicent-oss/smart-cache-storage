@@ -31,7 +31,7 @@ public class ClusterUtils {
             return System.currentTimeMillis();
         }
         long start = System.currentTimeMillis();
-        ORIGINAL_STDOUT.format("%s...\n", message);
+        ORIGINAL_STDOUT.format("%s...%n", message);
         return start;
     }
 
@@ -39,6 +39,6 @@ public class ClusterUtils {
         if (!SYSOUT_LOGGING_ENABLED) {
             return;
         }
-        ORIGINAL_STDOUT.format("%s in %,d ms\n", message, System.currentTimeMillis() - start);
+        ORIGINAL_STDOUT.format("%s in %,d ms%n", message, System.currentTimeMillis() - start);
     }
 }

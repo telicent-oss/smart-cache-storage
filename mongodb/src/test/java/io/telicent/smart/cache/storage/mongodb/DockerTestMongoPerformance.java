@@ -29,6 +29,7 @@ import org.testng.annotations.*;
 
 import java.util.*;
 
+@SuppressWarnings("java:S3577")
 public class DockerTestMongoPerformance extends AbstractMongoDBTests {
 
     private static final int MANY_USERS_SIZE = 1_000;
@@ -204,7 +205,6 @@ public class DockerTestMongoPerformance extends AbstractMongoDBTests {
     @Test
     public void givenStorageWithManyUsersAndData_whenRandomlyDeletingSavedDataByNonExistentIds_thenNothingChanges() {
         // Given
-        Random random = new Random();
         try (MongoClient client = this.mongo.createMongoClient()) {
             try (UserDataStore store = createStorage(client)) {
                 JacksonMongoCollection<SavedData> data =

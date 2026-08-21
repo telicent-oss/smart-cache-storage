@@ -27,16 +27,15 @@ import org.testng.annotations.*;
 
 import java.util.*;
 
+@SuppressWarnings("java:S3577")
 public class DockerTestMongoDBStorage extends AbstractMongoDBTests {
 
     @BeforeMethod
     public void resetCollection() {
-        if (this.mongo != null) {
-            if (this.mongo.isRunning()) {
-                try (MongoClient client = this.mongo.createMongoClient()) {
-                    MongoTestCluster.resetCollection(client, UserDataStore.USERS_COLLECTION);
-                    MongoTestCluster.resetCollection(client, UserDataStore.DATA_COLLECTION);
-                }
+        if (this.mongo != null && this.mongo.isRunning()) {
+            try (MongoClient client = this.mongo.createMongoClient()) {
+                MongoTestCluster.resetCollection(client, UserDataStore.USERS_COLLECTION);
+                MongoTestCluster.resetCollection(client, UserDataStore.DATA_COLLECTION);
             }
         }
     }

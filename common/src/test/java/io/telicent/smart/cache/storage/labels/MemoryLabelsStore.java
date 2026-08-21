@@ -68,15 +68,15 @@ public class MemoryLabelsStore extends AbstractStorage implements LabelsStore {
             return Collections.emptyMap();
         }
 
-        Map<byte[], Long> ids = new LinkedHashMap<>();
+        Map<byte[], Long> retrievedIds = new LinkedHashMap<>();
         for (byte[] label : labels) {
             // Per contract ignore null/empty labels
             if (DictionaryLabelsStore.isInvalidByteSequence(label)) {
                 continue;
             }
-            ids.put(label, this.idForLabel(label));
+            retrievedIds.put(label, this.idForLabel(label));
         }
-        return ids;
+        return retrievedIds;
     }
 
     @Override

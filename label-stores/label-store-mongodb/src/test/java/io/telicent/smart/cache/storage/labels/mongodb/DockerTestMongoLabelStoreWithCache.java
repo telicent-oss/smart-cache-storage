@@ -18,6 +18,7 @@ package io.telicent.smart.cache.storage.labels.mongodb;
 import io.telicent.smart.cache.storage.labels.CachingLabelsStore;
 import io.telicent.smart.cache.storage.labels.LabelsStore;
 
+@SuppressWarnings("java:S3577")
 public class DockerTestMongoLabelStoreWithCache extends DockerTestMongoLabelStore {
     @Override
     protected LabelsStore newStore() {

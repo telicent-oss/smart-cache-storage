@@ -25,6 +25,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 
+@SuppressWarnings("java:S3577")
 public class DockerTestMongoLabelStore extends AbstractLabelStoreTests {
     /**
      * Protected so tests can override this to use a different test cluster e.g. SecureMongoTestCluster
@@ -47,12 +48,10 @@ public class DockerTestMongoLabelStore extends AbstractLabelStoreTests {
 
     @BeforeMethod
     public void resetCollection() {
-        if (this.mongo != null) {
-            if (this.mongo.isRunning()) {
-                try (MongoClient client = this.mongo.createMongoClient()) {
-                    MongoTestCluster.resetCollection(client, MongoDBLabelsStore.ENCODED_LABELS_COLLECTION);
-                    MongoTestCluster.resetCollection(client, MongoDBLabelsStore.ASSIGNED_LABELS_COLLECTION);
-                }
+        if (this.mongo != null && this.mongo.isRunning()) {
+            try (MongoClient client = this.mongo.createMongoClient()) {
+                MongoTestCluster.resetCollection(client, MongoDBLabelsStore.ENCODED_LABELS_COLLECTION);
+                MongoTestCluster.resetCollection(client, MongoDBLabelsStore.ASSIGNED_LABELS_COLLECTION);
             }
         }
     }

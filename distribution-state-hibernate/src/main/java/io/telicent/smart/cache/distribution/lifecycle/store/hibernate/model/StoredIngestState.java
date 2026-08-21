@@ -20,7 +20,6 @@ import io.telicent.smart.cache.distribution.lifecycle.events.utils.PartitionOffs
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
-import jakarta.persistence.NamedQueries;
 import jakarta.persistence.NamedQuery;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -31,13 +30,11 @@ import org.hibernate.annotations.Type;
 @Table(name = "LIFECYCLE_INGEST_STATES")
 @Entity
 //@formatter:off
-@NamedQueries({
-        @NamedQuery(name = "findForApplication",
-                    query = """
-                    SELECT i FROM StoredIngestState i
-                    WHERE i.id.application = :application
-                    """)
-})
+@NamedQuery(name = "findForApplication",
+            query = """
+            SELECT i FROM StoredIngestState i
+            WHERE i.id.application = :application
+            """)
 //@formatter:on
 @Data
 @NoArgsConstructor

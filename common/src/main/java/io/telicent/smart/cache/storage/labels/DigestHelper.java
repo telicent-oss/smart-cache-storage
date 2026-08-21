@@ -30,6 +30,7 @@ import java.security.NoSuchAlgorithmException;
 public final class DigestHelper {
 
     private final String algorithm;
+    @SuppressWarnings("java:S5164")
     private final ThreadLocal<MessageDigest> digest;
 
     /**

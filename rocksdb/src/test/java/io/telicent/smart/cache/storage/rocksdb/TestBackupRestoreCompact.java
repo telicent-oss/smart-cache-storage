@@ -134,7 +134,7 @@ public class TestBackupRestoreCompact {
         // force a flush to ensure data is in SST files, not just memtable
         storage.flush();
         long countBefore = storage.count();
-        assertEquals(numKeys, countBefore);
+        assertEquals(countBefore, numKeys);
 
         // delete half the data to create waste
         int deleteCount = numKeys / 2;
@@ -220,7 +220,7 @@ public class TestBackupRestoreCompact {
         BackupStatus status = storage.backup(config);
         // Then
         assertTrue(status.isSuccess());
-        assertEquals("1", status.getBackupId());
+        assertEquals(status.getBackupId(), "1");
         assertFalse(status.getErrorMessage().isPresent());
     }
 
@@ -285,10 +285,10 @@ public class TestBackupRestoreCompact {
                                                           .build());
 
         storage.put("key2".getBytes(), "value2".getBytes());
-        BackupStatus backup2 = storage.backup(BackupConfig.builder()
-                                                          .name("backup-2")
-                                                          .backupLocation(backupDir)
-                                                          .build());
+        storage.backup(BackupConfig.builder()
+                                   .name("backup-2")
+                                   .backupLocation(backupDir)
+                                   .build());
 
         // When
         RestoreConfig restoreConfig = RestoreConfig.builder()

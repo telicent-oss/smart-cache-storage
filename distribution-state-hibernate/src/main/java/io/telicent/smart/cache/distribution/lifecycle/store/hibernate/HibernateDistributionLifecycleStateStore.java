@@ -135,6 +135,7 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
      * @param <TEntity>   Entity type
      * @return True if the ID value is of the Natural ID type of the entity class, false otherwise
      */
+    @SuppressWarnings("java:S119")
     private <TId, TEntity> boolean isNaturalId(TId id, Class<TEntity> entityClass) {
         Class<?> naturalIdType = naturalIdTypes.computeIfAbsent(entityClass, e -> {
             for (Field field : e.getDeclaredFields()) {
@@ -172,6 +173,7 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
      * @param <T>         Value type
      * @return Value, or {@code null} if no value associated with the ID in the database
      */
+    @SuppressWarnings("java:S119")
     private <TId, TEntity, T> T fromCacheOrDb(TransactionContext context, TId id, Cache<TId, T> cache,
                                               Class<TEntity> entityClass, Function<TEntity, T> loader) {
         T existing = cache.getIfPresent(id);
@@ -204,6 +206,7 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
      * @param <T>         Value type
      * @return Value, or {@code null} if nothing associated with the ID in the cache or database
      */
+    @SuppressWarnings("java:S119")
     private <TId, TEntity, T> T fromCacheOrDbWithUpdate(TransactionContext context, TId id, Cache<TId, T> cache,
                                                         Class<TEntity> entityClass, Function<TEntity, T> loader) {
         if (isNaturalId(id, entityClass)) {

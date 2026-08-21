@@ -32,6 +32,11 @@ public final class MetricNames {
     }
 
     /**
+     * Unit that many RocksDB metrics are reported in
+     */
+    public static final String UNIT_BYTES = "bytes";
+
+    /**
      * Metric that reports the current number of active transactions
      */
     public static final String ACTIVE_TRANSACTIONS = "rocksdb.transactions.active";
@@ -146,6 +151,7 @@ public final class MetricNames {
      *
      * @see #names()
      */
+    @SuppressWarnings("java:S2386")
     public static final String[] TELICENT_METRICS = {
             TRANSACTIONS,
             ACTIVE_TRANSACTIONS,

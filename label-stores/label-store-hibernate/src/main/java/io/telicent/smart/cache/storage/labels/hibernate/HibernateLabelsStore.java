@@ -131,10 +131,8 @@ public class HibernateLabelsStore extends AbstractHibernateStorage implements La
         try (TransactionContext context = this.begin()) {
             Map<byte[], Long> ids = new LinkedHashMap<>();
             for (byte[] label : labels) {
-                if (DictionaryLabelsStore.isInvalidByteSequence(label)) {
-                    continue;
-                }
-                if (ids.containsKey(label)) {
+                // Could be invalid or duplicate label
+                if (DictionaryLabelsStore.isInvalidByteSequence(label) || ids.containsKey(label)) {
                     continue;
                 }
                 ids.put(label, getOrCreateLabel(label, context));
@@ -144,7 +142,7 @@ public class HibernateLabelsStore extends AbstractHibernateStorage implements La
             return ids;
         } catch (RollbackException e) {
             // This can happen if two threads try to insert the same labels at the same time
-            if (e.getCause() instanceof ConstraintViolationException cv) {
+            if (e.getCause() instanceof ConstraintViolationException) {
                 // Just recurse since the other thread likely already successfully inserted the label and in a fresh
                 // transaction we'll successfully retrieve the label
                 return idsForLabels(labels);
@@ -183,12 +181,8 @@ public class HibernateLabelsStore extends AbstractHibernateStorage implements La
 
 
             for (Long id : ids) {
-                // Ignore null IDs
-                if (id == null) {
-                    continue;
-                }
-                // NB - The list might contain duplicate IDs
-                if (map.containsKey(id)) {
+                // Ignore null/duplicate IDs
+                if (id == null || map.containsKey(id)) {
                     continue;
                 }
 
@@ -274,16 +268,10 @@ public class HibernateLabelsStore extends AbstractHibernateStorage implements La
         this.ensureNotClosed();
 
         try (TransactionContext context = this.begin()) {
-            // TODO Could maybe simplify via a Named Query using a JOIN?
             String encoded = encoder.encodeToString(key);
-            AssignedLabel assignment =
-                    context.getSession().bySimpleNaturalId(AssignedLabel.class).load(encoded);
-
-            if (assignment == null) {
-                return null;
-            }
-            EncodedLabel label = context.getEntityManager().find(EncodedLabel.class, assignment.getLabelId());
-            return label != null ? label.getDecodedLabel() : null;
+            List<EncodedLabel> labels = this.loadByNamedQuery(context, EncodedLabel.class, "findLabelForAssignment",
+                                                              Map.of("key", encoded));
+            return labels.isEmpty() ? null : labels.getFirst().getDecodedLabel();
         }
     }
 

@@ -25,6 +25,7 @@ import org.testng.annotations.BeforeMethod;
 
 import java.util.Properties;
 
+@SuppressWarnings("java:S3577")
 public class DockerTestHibernateLabelsStorePostgres extends AbstractLabelStoreTests {
     private PostgreSQLContainer<?> postgres;
 

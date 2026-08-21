@@ -54,12 +54,14 @@ import java.util.stream.Collectors;
  *   }
  * </pre>
  */
+// S125 - RocksDB is used via a native library so there's lots of implementation concerns and gotchas commented here
+@SuppressWarnings("java:S125")
 public abstract class AbstractRocksDBStorage extends AbstractStorage implements BackupRestoreCapable, CompactCapable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractRocksDBStorage.class);
-    protected static final int KILOBYTE = 1024;
-    protected static final int GIGABYTE = KILOBYTE * KILOBYTE * KILOBYTE;
-    protected static final int MEGABYTE = KILOBYTE * KILOBYTE;
+    protected static final long KILOBYTE = 1024;
+    protected static final long GIGABYTE = KILOBYTE * KILOBYTE * KILOBYTE;
+    protected static final long MEGABYTE = KILOBYTE * KILOBYTE;
 
     private TransactionDB db;
     private Options options;
@@ -105,7 +107,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
      * @throws IOException      Thrown if the directory is not accessible
      * @throws RocksDBException Thrown if the RocksDB storage cannot be initialised for any reason
      */
-    public AbstractRocksDBStorage(File dbDir) throws IOException, RocksDBException {
+    protected AbstractRocksDBStorage(File dbDir) throws IOException, RocksDBException {
         this.dbDir = dbDir;
         Objects.requireNonNull(dbDir, "Database Directory cannot be null");
         Files.createDirectories(dbDir.toPath());
@@ -162,28 +164,30 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
      *
      * @return Default options for creating/opening the database
      */
+    // S2095 - Creating options are assigned to a field and cleaned up in closeInternal() method
+    @SuppressWarnings({"resource", "java:S2095"})
     protected Options createDefaultOptions() {
         // Always want to create the database and column families if missing, otherwise we can't open a new blank
         // location as a database
-        Options options = new Options().setCreateIfMissing(true).setCreateMissingColumnFamilies(true);
+        Options defaultOptions = new Options().setCreateIfMissing(true).setCreateMissingColumnFamilies(true);
 
         // Apply all the official RocksDB recommendations
         LOGGER.debug("Configuring RocksDB options from defaults to recommended:");
-        LOGGER.debug("maxBackgroundJobs {} to {}", options.maxBackgroundJobs(), 6);
-        options.setMaxBackgroundJobs(6);
-        LOGGER.debug("bytesPerSync {} to {}", options.bytesPerSync(), MEGABYTE);
-        options.setBytesPerSync(MEGABYTE);
-        LOGGER.debug("compactionPriority {} to {}", options.compactionPriority(),
+        LOGGER.debug("maxBackgroundJobs {} to {}", defaultOptions.maxBackgroundJobs(), 6);
+        defaultOptions.setMaxBackgroundJobs(6);
+        LOGGER.debug("bytesPerSync {} to {}", defaultOptions.bytesPerSync(), MEGABYTE);
+        defaultOptions.setBytesPerSync(MEGABYTE);
+        LOGGER.debug("compactionPriority {} to {}", defaultOptions.compactionPriority(),
                      CompactionPriority.MinOverlappingRatio);
-        options.setCompactionPriority(CompactionPriority.MinOverlappingRatio);
+        defaultOptions.setCompactionPriority(CompactionPriority.MinOverlappingRatio);
 
         // Bound the number of SST files RocksDB keeps open simultaneously.
         // The default (-1) leaves every SST file open and pins its index/filter (table reader) memory indefinitely,
         // so as the dataset grows this native memory grows without limit.  Capping it bounds table-reader memory;
         // combined with cache_index_and_filter_blocks (see createBlockBasedTableConfig()) the index/filter blocks for
         // open files are instead accounted for within, and bounded by, the shared block cache.
-        LOGGER.debug("maxOpenFiles {} to {}", options.maxOpenFiles(), 1024);
-        options.setMaxOpenFiles(1024);
+        LOGGER.debug("maxOpenFiles {} to {}", defaultOptions.maxOpenFiles(), 1024);
+        defaultOptions.setMaxOpenFiles(1024);
 
         // Limit the maximum size of write buffers for the entire database
         // Otherwise the default write buffer size (64MB) is per column family, and each column family may have 2 of
@@ -191,7 +195,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
         // memory e.g.
         // 9 * 64 * 2 = 2308 MB which is ~ 2.2 GB
         // As this is actual memory usage want to avoid this growing uncontrolled
-        options.setDbWriteBufferSize(256 * MEGABYTE);
+        defaultOptions.setDbWriteBufferSize(256 * MEGABYTE);
 
         // Also limit the max WAL size to 1GB
         // Otherwise RocksDB defaults this to (#ColumnFamilies * WriteBufferSize * MaxWriteBuffers) * 4
@@ -201,7 +205,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
         // While this represents on-disk space usage we prefer to limit this to stop storage amplification becoming a
         // problem
         LOGGER.debug("maxTotalWalSize to {}", GIGABYTE);
-        options.setMaxTotalWalSize(GIGABYTE);
+        defaultOptions.setMaxTotalWalSize(GIGABYTE);
 
         // NB - The block based table configuration (block cache, bloom filter, cache_index_and_filter_blocks etc.) is
         //      intentionally NOT set here.  Table configuration is a column-family level concern and is applied via
@@ -209,7 +213,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
         //      effect because we only ever use it to derive DBOptions (new DBOptions(options)) when opening the
         //      database, and DBOptions does not carry the table format configuration.
 
-        return options;
+        return defaultOptions;
     }
 
     /**
@@ -337,19 +341,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
     protected final void closeInternal() {
         try {
             // Ensure any updated counters are persisted at close time
-            if (!this.counters.isEmpty()) {
-                LOGGER.info("Persisting counters to ensure their values are up to date...");
-                try (TransactionContext context = this.begin()) {
-                    for (Map.Entry<String, RocksDBCounter> counter : this.counters.entrySet()) {
-                        counter.getValue().update(context);
-                        LOGGER.info("Counter {} persisted with value {}", counter.getKey(), counter.getValue().get());
-                    }
-                    context.commit();
-                    LOGGER.info("Persisted all counters successfully");
-                } catch (Throwable e) {
-                    LOGGER.warn("Unexpected error persisting counters: ", e);
-                }
-            }
+            persistCounters();
 
             for (final ColumnFamilyHandle cfHandle : columnFamilyHandles.values()) {
                 cfHandle.close();
@@ -371,8 +363,24 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
             //      While this means we will leak the memory for this object in most real-world use cases the storage
             //      lives for the life of the application so when the database closes completely that memory would be
             //      freed as part of application shutdown anyway
-        } catch (Throwable e) {
+        } catch (Exception e) {
             throw new RuntimeException("Failed to close RocksDB resources", e);
+        }
+    }
+
+    private void persistCounters() {
+        if (!this.counters.isEmpty()) {
+            LOGGER.info("Persisting counters to ensure their values are up to date...");
+            try (TransactionContext context = this.begin()) {
+                for (Map.Entry<String, RocksDBCounter> counter : this.counters.entrySet()) {
+                    counter.getValue().update(context);
+                    LOGGER.info("Counter {} persisted with value {}", counter.getKey(), counter.getValue().get());
+                }
+                context.commit();
+                LOGGER.info("Persisted all counters successfully");
+            } catch (Exception e) {
+                LOGGER.warn("Unexpected error persisting counters: ", e);
+            }
         }
     }
 
@@ -424,7 +432,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
 
             // 6. Prepare any counters we need
             this.counters.putAll(this.prepareCounters());
-            if (!this.counters.isEmpty()) {
+            if (!this.counters.isEmpty() && LOGGER.isInfoEnabled()) {
                 LOGGER.info("Prepared {} counters ({})", this.counters.size(),
                             StringUtils.join(this.counters.keySet(), ", "));
             }
@@ -715,7 +723,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
             try {
                 openInternal();
                 this.closed = false;
-            } catch (Throwable reopenError) {
+            } catch (Exception reopenError) {
                 LOGGER.error("Failed to reopen store after failed restore", reopenError);
                 this.closed = true;
             }
@@ -738,8 +746,10 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
             long sizeBefore = estimateSize();
             for (ColumnFamilyHandle handle : getAllColumnFamilyHandles()) {
                 getTransactionDB().compactRange(handle);
-                LOGGER.info("Compaction of ColumnFamily {} has been completed.",
-                            new String(handle.getName(), StandardCharsets.UTF_8));
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info("Compaction of ColumnFamily {} has been completed.",
+                                new String(handle.getName(), StandardCharsets.UTF_8));
+                }
             }
             flush();
             Instant endTime = Instant.now();
@@ -793,7 +803,10 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
             if (StringUtils.isNotBlank(sizeStr)) {
                 long size = Long.parseLong(sizeStr);
                 totalSize += size;
-                LOGGER.debug("ColumnFamily {} size: {}", new String(handle.getName(), StandardCharsets.UTF_8), size);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("ColumnFamily {} size: {}", new String(handle.getName(), StandardCharsets.UTF_8),
+                                 size);
+                }
             }
         }
         return totalSize;

@@ -165,36 +165,20 @@ public class TestMongoConfiguration {
         }
     }
 
-    @Test(expectedExceptions = MongoException.class, expectedExceptionsMessageRegExp = ".*" + MongoConfiguration.INVALID_URL_SUFFIX)
-    public void givenInvalidMongoUrl_whenConfiguring_thenFails() {
-        // Given
-        String rawUrl = "mongodb://:password@localhost:27017";
-        Properties properties = new Properties();
-        properties.put(MongoConfiguration.MONGO_URL, rawUrl);
-        Configurator.setSingleSource(new PropertiesSource(properties));
-
-        // When and Then
-        MongoConfiguration.fromConfigurator();
+    @DataProvider(name = "invalidUrls")
+    public Object[][] invalidUrls() {
+        return new Object[][] {
+                { "mongodb://:password@localhost:27017" },
+                { "mongodb://localhost:27017?authMechanism=SCRAM-SHA-256"},
+                { "mongodb://localhost:27017?authMechanism=unknown"}
+        };
     }
 
-    @Test(expectedExceptions = MongoException.class, expectedExceptionsMessageRegExp = ".*" + MongoConfiguration.INVALID_URL_SUFFIX)
-    public void givenIncompleteMongoUrl_whenConfiguring_thenFails() {
+    @Test(dataProvider = "invalidUrls", expectedExceptions = MongoException.class, expectedExceptionsMessageRegExp = ".*" + MongoConfiguration.INVALID_URL_SUFFIX)
+    public void givenInvalidMongoUrl_whenConfiguring_thenFails(String url) {
         // Given
-        String rawUrl = "mongodb://localhost:27017?authMechanism=SCRAM-SHA-256";
         Properties properties = new Properties();
-        properties.put(MongoConfiguration.MONGO_URL, rawUrl);
-        Configurator.setSingleSource(new PropertiesSource(properties));
-
-        // When and Then
-        MongoConfiguration.fromConfigurator();
-    }
-
-    @Test(expectedExceptions = MongoException.class, expectedExceptionsMessageRegExp = ".*" + MongoConfiguration.INVALID_URL_SUFFIX)
-    public void givenMongoUrlWithUnknownAuthMechanism_whenConfiguring_thenFails() {
-        // Given
-        String rawUrl = "mongodb://localhost:27017?authMechanism=unknown";
-        Properties properties = new Properties();
-        properties.put(MongoConfiguration.MONGO_URL, rawUrl);
+        properties.put(MongoConfiguration.MONGO_URL, url);
         Configurator.setSingleSource(new PropertiesSource(properties));
 
         // When and Then

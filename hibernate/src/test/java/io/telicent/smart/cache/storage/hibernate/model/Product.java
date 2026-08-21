@@ -24,16 +24,12 @@ import org.hibernate.annotations.NaturalId;
 import java.math.BigDecimal;
 
 @Table(name = "PRODUCTS")
-@NamedQueries(
-        {
-                @NamedQuery(name = "inStock", query = """
-                        SELECT p FROM Product p WHERE p.available>0
-                        """),
-                @NamedQuery(name = "outOfStock", query = """
-                        SELECT p FROM Product p WHERE p.available=0
-                        """)
-        }
-)
+@NamedQuery(name = "inStock", query = """
+        SELECT p FROM Product p WHERE p.available>0
+        """)
+@NamedQuery(name = "outOfStock", query = """
+        SELECT p FROM Product p WHERE p.available=0
+        """)
 @Entity
 @Data
 @NoArgsConstructor

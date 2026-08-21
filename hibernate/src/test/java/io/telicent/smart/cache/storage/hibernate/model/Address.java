@@ -19,12 +19,10 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Table(name = "ADDRESSES")
-@NamedQueries(
-        {
-                @NamedQuery(name = "findByPostalCode", query = """
+@NamedQuery(name = "findByPostalCode", query = """
 SELECT a FROM Address a WHERE a.postalCode = :postalCode
-"""),
-                @NamedQuery(name = "findByDetails", query = """
+""")
+@NamedQuery(name = "findByDetails", query = """
 SELECT a FROM Address a
 WHERE
   a.recipient = :recipient AND
@@ -32,12 +30,10 @@ WHERE
   a.street = :street AND
   a.city = :city AND
   a.postalCode = :postalCode
-"""),
-                @NamedQuery(name = "findByStreet", query = """
+""")
+@NamedQuery(name = "findByStreet", query = """
 SELECT a FROM Address a WHERE a.street = :street
 """)
-        }
-)
 @Entity
 @Data
 @NoArgsConstructor
