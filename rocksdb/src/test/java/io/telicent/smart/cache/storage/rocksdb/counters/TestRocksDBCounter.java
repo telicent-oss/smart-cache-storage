@@ -15,6 +15,7 @@
  */
 package io.telicent.smart.cache.storage.rocksdb.counters;
 
+import io.telicent.smart.cache.storage.CompactStatus;
 import io.telicent.smart.cache.storage.rocksdb.AbstractRocksDBTests;
 import io.telicent.smart.cache.storage.rocksdb.RocksDBCounter;
 import org.apache.commons.lang3.RandomUtils;
@@ -71,7 +72,7 @@ public class TestRocksDBCounter extends AbstractRocksDBTests {
 
 
     @DataProvider(name = "increments")
-    private Object[][] increments() {
+    public Object[][] increments() {
         return new Object[][] {
                 { 1 },
                 { 50 },
@@ -164,6 +165,11 @@ public class TestRocksDBCounter extends AbstractRocksDBTests {
             }
             Assert.assertFalse(counters.isEmpty());
             Assert.assertEquals(counters.count(), AlphabetCounters.NAMES.size());
+
+            // And
+            CompactStatus compactStatus = counters.compact();
+            Assert.assertNotNull(compactStatus);
+            Assert.assertTrue(compactStatus.getReclaimedBytes() >= 0);
         }
     }
 
