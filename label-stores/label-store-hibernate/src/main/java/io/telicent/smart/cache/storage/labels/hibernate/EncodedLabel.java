@@ -36,15 +36,16 @@ import java.util.Base64;
  */
 @Table(name = "ENCODED_LABELS")
 @Entity
-@NamedQueries(
-        value = {
-                @NamedQuery(name = "findByIds", query = """
-                        SELECT l FROM EncodedLabel l
-                        WHERE
-                          l.id IN :ids
-                        """)
-        }
-)
+@NamedQuery(name = "findByIds", query = """
+SELECT l FROM EncodedLabel l
+WHERE
+  l.id IN :ids
+""")
+@NamedQuery(name = "findLabelForAssignment", query = """
+SELECT l FROM EncodedLabel l
+JOIN AssignedLabel a ON a.labelId=l.id
+WHERE a.key=:key
+""")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
