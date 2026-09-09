@@ -1,5 +1,19 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.14.1
+
+- Distribution State Hibernate improvements:
+    - Removed defunct `flush()` method that SC-Core removed
+    - Fixed a bug with adding `IngestStatus` that could cause bad statuses to be held in the read path cache even if
+      no write occurred
+- Build improvements:
+    - Flyway upgraded to 13.4.0
+    - Hibernate upgraded to 7.4.7.Final
+    - Hypersistence Utils upgraded to 3.15.5
+    - Jackson upgraded to 3.2.2
+    - MongoDB upgraded to 5.11.0
+    - Smart Caches Core upgraded to 1.4.0
+
 # 0.14.0
 
 - Distribution State Hibernate improvements:
