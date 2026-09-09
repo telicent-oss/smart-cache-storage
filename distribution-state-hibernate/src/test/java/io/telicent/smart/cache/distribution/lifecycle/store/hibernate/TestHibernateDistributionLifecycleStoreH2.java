@@ -60,12 +60,12 @@ public class TestHibernateDistributionLifecycleStoreH2 extends AbstractDistribut
     }
 
     @Override
-    public boolean isImmediatelyPersistent() {
+    public boolean tracksLastAppStateUpdated() {
         return true;
     }
 
     @Override
-    public boolean tracksLastAppStateUpdated() {
+    public boolean isStorageShareable() {
         return true;
     }
 
@@ -141,11 +141,6 @@ public class TestHibernateDistributionLifecycleStoreH2 extends AbstractDistribut
         try (DistributionLifecycleStateStore store = newStore()) {
             store.add("test", IngestStatus.builder().offsets(offsets).build());
 
-            Assert.assertNotNull(store.getIngestStatus("test", "distro"));
-            Assert.assertTrue(store.getIngestStatus("test", "distro").getOffsets().isEmpty());
-
-            store.flush();
-
             Assert.assertNull(store.getIngestStatus("test", "distro"));
             Assert.assertNull(store.getIngestOffset("test", "distro", "partition-0"));
         }
@@ -162,8 +157,6 @@ public class TestHibernateDistributionLifecycleStoreH2 extends AbstractDistribut
 
             Assert.assertEquals(store.getLifecycleState("distro"), DistributionLifecycleState.Registered);
             Assert.assertEquals(store.getIngestOffset("test", "distro", "partition-0"), Long.valueOf(123L));
-
-            store.flush();
 
             Assert.assertEquals(store.getLifecycleState("distro"), DistributionLifecycleState.Registered);
             Assert.assertEquals(store.getIngestOffset("test", "distro", "partition-0"), Long.valueOf(123L));
