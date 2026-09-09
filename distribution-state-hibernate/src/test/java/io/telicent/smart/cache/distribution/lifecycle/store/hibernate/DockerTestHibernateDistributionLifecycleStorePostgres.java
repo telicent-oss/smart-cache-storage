@@ -72,12 +72,12 @@ public class DockerTestHibernateDistributionLifecycleStorePostgres extends Abstr
     }
 
     @Override
-    public boolean isImmediatelyPersistent() {
+    public boolean tracksLastAppStateUpdated() {
         return true;
     }
 
     @Override
-    public boolean tracksLastAppStateUpdated() {
+    public boolean isStorageShareable() {
         return true;
     }
 }

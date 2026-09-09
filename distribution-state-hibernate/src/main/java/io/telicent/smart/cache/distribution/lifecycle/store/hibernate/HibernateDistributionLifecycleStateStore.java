@@ -19,10 +19,12 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.telicent.smart.cache.distribution.lifecycle.ApplicationState;
 import io.telicent.smart.cache.distribution.lifecycle.DistributionLifecycleState;
+import io.telicent.smart.cache.distribution.lifecycle.LifecycleEventRejectedException;
 import io.telicent.smart.cache.distribution.lifecycle.events.IngestStatus;
 import io.telicent.smart.cache.distribution.lifecycle.events.LifecycleAcknowledgement;
 import io.telicent.smart.cache.distribution.lifecycle.events.LifecycleAction;
 import io.telicent.smart.cache.distribution.lifecycle.events.utils.DistributionOffsets;
+import io.telicent.smart.cache.distribution.lifecycle.events.utils.LifecycleActionFingerprint;
 import io.telicent.smart.cache.distribution.lifecycle.events.utils.PartitionOffsets;
 import io.telicent.smart.cache.distribution.lifecycle.store.DistributionLifecycleStateStore;
 import io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model.AppStateId;
@@ -228,9 +230,10 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
             // Ensure this action is not already present
             LifecycleAction existing = fromCacheOrDb(context, action.getEventId());
             if (existing != null) {
-                if (!Objects.equals(action, existing)) {
-                    throw new IllegalStateException(
-                            "A Lifecycle Action Event " + action.getEventId() + " with differing content is already known to this state store");
+                if (!LifecycleActionFingerprint.matches(action, existing)) {
+                    throw new LifecycleEventRejectedException(
+                            "A Lifecycle Action Event " + action.getEventId() + " with differing content is already known to this state store: " + LifecycleActionFingerprint.describeDifference(
+                                    existing, action));
                 } else {
                     // Duplicate event has already been received and processed, do not re-apply as that could revert the
                     // distribution into an unexpected state
@@ -305,7 +308,7 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
             LifecycleAction existingAction = fromCacheOrDb(context, ack.getEventId());
             // Don't permit acknowledgements for events we aren't aware of
             if (existingAction == null) {
-                throw new IllegalStateException(
+                throw new LifecycleEventRejectedException(
                         "Lifecycle Action Event " + ack.getEventId() + " is not known to this state store so cannot track application state against this event");
             }
 
@@ -368,9 +371,8 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
                     stored.setOffsets(merged);
                     context.getEntityManager().merge(stored);
                     changed = true;
+                    this.recentIngestStates.put(id, copyOffsets(stored.getOffsets()));
                 }
-
-                this.recentIngestStates.put(id, copyOffsets(stored.getOffsets()));
             }
 
             if (changed) {
@@ -592,24 +594,6 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
         }
     }
 
-    @Override
-    public boolean requiresFlush() {
-        return DistributionLifecycleStateStore.super.requiresFlush();
-    }
-
-    @Override
-    public void flush() {
-        // Flush is mostly a no-op because any changes to the state store are immediately persistent to the underlying
-        // database
-        // However we do need to honour API contract of not permitting any operations after a close()
-        ensureNotClosed();
-
-        // Also since we have caches flush() is a good point to invalidate those caches since if this store is being
-        // shared by multiple applications our cached state might have drifted depending on how our application has used
-        // the store relative to other applications
-        clearCaches();
-    }
-
     /**
      * Clears all our caches
      */
@@ -623,7 +607,11 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
     private static PartitionOffsets copyOffsets(PartitionOffsets source) {
         PartitionOffsets copy = new PartitionOffsets();
         if (source != null && source.getOffsets() != null) {
-            source.getOffsets().forEach(copy::setOffset);
+            for (Map.Entry<String, Long> offset : source.getOffsets().entrySet()) {
+                if (StringUtils.isNotBlank(offset.getKey()) && offset.getValue() != null) {
+                    copy.setOffset(offset.getKey(), offset.getValue());
+                }
+            }
         }
         return copy;
     }
