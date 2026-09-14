@@ -22,7 +22,7 @@
 
     <properties>
         <license.header.path>${project.parent.basedir}</license.header.path>
-        <dependency.slf4j-nop>2.0.18</dependency.slf4j-nop>
+        <dependency.slf4j-nop>2.0.19</dependency.slf4j-nop>
     </properties>
 
     <dependencies>
