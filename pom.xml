@@ -198,20 +198,28 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-dependency-plugin</artifactId>
                     <version>${plugin.dependency}</version>
-                    <configuration>
-                        <ignoredUnusedDeclaredDependencies>
-                            <ignoredUnusedDeclaredDependency>org.postgresql:postgresql</ignoredUnusedDeclaredDependency>
-                            <ignoredUnusedDeclaredDependency>com.h2database:h2</ignoredUnusedDeclaredDependency>
-                            <ignoredUnusedDeclaredDependency>org.flywaydb:flyway-database-postgresql</ignoredUnusedDeclaredDependency>
-                            <ignoredUnusedDeclaredDependency>org.hibernate.orm:hibernate-hikaricp</ignoredUnusedDeclaredDependency>
-                            <ignoredUnusedDeclaredDependency>com.fasterxml.jackson.core:jackson-databind</ignoredUnusedDeclaredDependency>
-                            <ignoredUnusedDeclaredDependency>com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations</ignoredUnusedDeclaredDependency>
-                            <ignoredUnusedDeclaredDependency>tools.jackson.core:jackson-databind</ignoredUnusedDeclaredDependency>
-                            <ignoredUnusedDeclaredDependency>org.eclipse.jetty:jetty-server</ignoredUnusedDeclaredDependency>
-                            <ignoredUnusedDeclaredDependency>ch.qos.logback:logback-classic</ignoredUnusedDeclaredDependency>
-                        </ignoredUnusedDeclaredDependencies>
-                    </configuration>
                     <executions>
+                        <!--
+                        The Smart Caches parent configures the analyze execution with its own ignore lists, and
+                        execution configuration takes precedence over plugin level configuration, so these must be set
+                        on the execution itself.  combine.children="append" adds them to the parent's list.
+                        -->
+                        <execution>
+                            <id>analyze</id>
+                            <configuration>
+                                <ignoredUnusedDeclaredDependencies combine.children="append">
+                                    <ignoredUnusedDeclaredDependency>org.postgresql:postgresql</ignoredUnusedDeclaredDependency>
+                                    <ignoredUnusedDeclaredDependency>com.h2database:h2</ignoredUnusedDeclaredDependency>
+                                    <ignoredUnusedDeclaredDependency>org.flywaydb:flyway-database-postgresql</ignoredUnusedDeclaredDependency>
+                                    <ignoredUnusedDeclaredDependency>org.hibernate.orm:hibernate-hikaricp</ignoredUnusedDeclaredDependency>
+                                    <ignoredUnusedDeclaredDependency>com.fasterxml.jackson.core:jackson-databind</ignoredUnusedDeclaredDependency>
+                                    <ignoredUnusedDeclaredDependency>com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations</ignoredUnusedDeclaredDependency>
+                                    <ignoredUnusedDeclaredDependency>tools.jackson.core:jackson-databind</ignoredUnusedDeclaredDependency>
+                                    <ignoredUnusedDeclaredDependency>org.eclipse.jetty:jetty-server</ignoredUnusedDeclaredDependency>
+                                    <ignoredUnusedDeclaredDependency>ch.qos.logback:logback-classic</ignoredUnusedDeclaredDependency>
+                                </ignoredUnusedDeclaredDependencies>
+                            </configuration>
+                        </execution>
                         <execution>
                             <goals>
                                 <goal>go-offline</goal>
