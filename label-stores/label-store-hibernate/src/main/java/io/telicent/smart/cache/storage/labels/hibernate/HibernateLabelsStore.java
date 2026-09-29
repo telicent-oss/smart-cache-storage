@@ -26,6 +26,7 @@ import jakarta.persistence.RollbackException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
+import org.hibernate.KeyType;
 import org.hibernate.exception.ConstraintViolationException;
 
 import java.util.*;
@@ -257,7 +258,7 @@ public class HibernateLabelsStore extends AbstractHibernateStorage implements La
         try (TransactionContext context = this.begin()) {
             String encoded = encoder.encodeToString(key);
             AssignedLabel assignment =
-                    context.getSession().bySimpleNaturalId(AssignedLabel.class).load(encoded);
+                    context.getSession().find(AssignedLabel.class, encoded, KeyType.NATURAL);
 
             return assignment != null ? assignment.getLabelId() : null;
         }
