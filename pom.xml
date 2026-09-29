@@ -84,6 +84,7 @@
         <dependency.hibernate>7.4.10.Final</dependency.hibernate>
         <dependency.hypersistence>3.16.0</dependency.hypersistence>
         <dependency.jakarta-persistence>3.2.0</dependency.jakarta-persistence>
+        <dependency.jakarta-xml-bind>4.0.4</dependency.jakarta-xml-bind>
         <dependency.jackson3>3.2.3</dependency.jackson3>
         <dependency.jetty>12.1.13</dependency.jetty>
         <dependency.jmh>1.37</dependency.jmh>
@@ -115,6 +116,17 @@
                 <groupId>jakarta.persistence</groupId>
                 <artifactId>jakarta.persistence-api</artifactId>
                 <version>${dependency.jakarta-persistence}</version>
+            </dependency>
+
+            <!--
+            Hibernate and its JAXB runtime (4.0.x) need the JAXB 4 API, but jackson-module-jakarta-xmlbind-annotations
+            asks for 3.0.1 and, being declared first in the hibernate module, won Maven's nearest match.  Pin the API
+            version so every module resolves the same, compatible, version.
+            -->
+            <dependency>
+                <groupId>jakarta.xml.bind</groupId>
+                <artifactId>jakarta.xml.bind-api</artifactId>
+                <version>${dependency.jakarta-xml-bind}</version>
             </dependency>
 
             <dependency>
