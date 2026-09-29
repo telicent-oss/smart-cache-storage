@@ -261,6 +261,7 @@
 
                                 <!-- Config -->
                                 <exclude>**/*.yml</exclude>
+                                <exclude>.mvn/maven.config</exclude>
 
                                 <!-- Trivy Cache -->
                                 <exclude>.trivy/**</exclude>
@@ -300,6 +301,23 @@
                         <exclude>.trivy/**</exclude>
                         <exclude>*-trivy-*</exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+
+            <!-- Compiler Plugin, adds to the configuration inherited from the Smart Caches parent -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <!--
+                    Report each deprecation and unchecked warning individually rather than javac's summary notes,
+                    which only say that some input files have them
+                    -->
+                    <showWarnings>true</showWarnings>
+                    <compilerArgs combine.children="append">
+                        <arg>-Xlint:deprecation</arg>
+                        <arg>-Xlint:unchecked</arg>
+                    </compilerArgs>
                 </configuration>
             </plugin>
 
@@ -344,7 +362,6 @@
                     generated types/methods
                     -->
                     <sourcepath>${project.build.directory}/delombok/</sourcepath>
-                    <javadocVersion>${java.version}</javadocVersion>
                     <additionalJOption>-Xdoclint:all,-missing</additionalJOption>
                 </configuration>
             </plugin>
@@ -364,5 +381,42 @@
         </plugins>
 
     </build>
+
+    <profiles>
+        <!--
+        Aggregator modules (this POM and label-stores) have no src/main/java, so there is nothing to delombok and the
+        plugin would only warn that there is no source to process.
+        -->
+        <profile>
+            <id>no-main-sources</id>
+            <activation>
+                <file>
+                    <missing>${basedir}/src/main/java</missing>
+                </file>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.projectlombok</groupId>
+                        <artifactId>lombok-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>default</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!--
+        CI builds every module with -Pdocker, but only the modules with Docker based tests define a docker profile.
+        This empty one stops Maven warning that the requested profile doesn't exist in the other modules.
+        -->
+        <profile>
+            <id>docker</id>
+        </profile>
+    </profiles>
 
 </project>
