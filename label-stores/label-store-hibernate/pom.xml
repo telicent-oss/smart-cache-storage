@@ -35,13 +35,10 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Test Dependencies -->
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <scope>test</scope>
-        </dependency>
-
+        <!--
+        Test Dependencies.  label-stores/pom.xml already gives every label store slf4j-nop for the tests, adding Logback
+        as well made SLF4J warn about multiple providers.
+        -->
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
@@ -72,6 +69,15 @@
                     <includes>
                         <include>**/Test*.java</include>
                     </includes>
+                    <systemPropertyVariables>
+                        <!--
+                        Hibernate logs through JBoss Logging, which only picks SLF4J by itself when Logback is present
+                        and otherwise falls back to java.util.logging, printing thousands of lines.  Point it at SLF4J,
+                        which the slf4j-nop test dependency from label-stores/pom.xml silences.  The docker profile's
+                        Surefire configuration inherits this.
+                        -->
+                        <org.jboss.logging.provider>slf4j</org.jboss.logging.provider>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
 
