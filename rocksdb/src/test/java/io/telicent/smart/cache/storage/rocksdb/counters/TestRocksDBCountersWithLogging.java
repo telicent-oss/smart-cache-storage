@@ -51,13 +51,17 @@ public class TestRocksDBCountersWithLogging extends TestRocksDBCounter {
         root.setLevel(Level.DEBUG);
     }
 
-    @AfterClass
+    // alwaysRun so that a failure in this class can't leave later test classes with logging silenced
+    @AfterClass(alwaysRun = true)
     public void teardownLogging() {
         if (root != null) {
             root.setLevel(this.originalLevel);
-            root.detachAppender(this.nopAppender);
-            this.nopAppender.stop();
+            if (this.nopAppender != null) {
+                root.detachAppender(this.nopAppender);
+                this.nopAppender.stop();
+            }
             this.originalAppenders.forEach(root::addAppender);
+            this.originalAppenders.clear();
         }
     }
 }
