@@ -179,6 +179,26 @@
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>${plugin.jacoco}</version>
             </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>analyze</id>
+                        <configuration>
+                            <!--
+                            Only the tests here use Hypersistence Utils directly, but this module provides it to the
+                            stores built on it, such as distribution-state-hibernate, so it stays compile scope.  Adds
+                            to the Smart Caches parent's list rather than replacing it.
+                            -->
+                            <ignoredNonTestScopedDependencies combine.children="append">
+                                <ignoredNonTestScopedDependency>io.hypersistence:hypersistence-utils-hibernate-71</ignoredNonTestScopedDependency>
+                            </ignoredNonTestScopedDependencies>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 

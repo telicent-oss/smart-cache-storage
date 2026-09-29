@@ -181,6 +181,11 @@
                                         <exclude>about.html</exclude>
                                         <exclude>THIRD-PARTY</exclude>
                                         <exclude>**/module-info.class</exclude>
+                                        <!--
+                                        The common and mongodb tests jars both contain one.  Logback prefers it over
+                                        this module's own logback.xml, so leaving it in would also override that.
+                                        -->
+                                        <exclude>logback-test.xml</exclude>
                                     </excludes>
                                 </filter>
                             </filters>

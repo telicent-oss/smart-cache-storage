@@ -28,7 +28,7 @@ import io.telicent.smart.cache.storage.mongodb.model.UserDataStore;
 import org.apache.commons.lang3.ArrayUtils;
 import org.bson.UuidRepresentation;
 import org.bson.conversions.Bson;
-import org.junit.Assert;
+import org.testng.Assert;
 import org.mongojack.JacksonMongoCollection;
 import org.testng.SkipException;
 import org.testng.annotations.DataProvider;

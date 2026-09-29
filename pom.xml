@@ -84,6 +84,7 @@
         <dependency.hibernate>7.4.10.Final</dependency.hibernate>
         <dependency.hypersistence>3.16.0</dependency.hypersistence>
         <dependency.jakarta-persistence>3.2.0</dependency.jakarta-persistence>
+        <dependency.jakarta-xml-bind>4.0.4</dependency.jakarta-xml-bind>
         <dependency.jackson3>3.2.3</dependency.jackson3>
         <dependency.jetty>12.1.13</dependency.jetty>
         <dependency.jmh>1.37</dependency.jmh>
@@ -115,6 +116,17 @@
                 <groupId>jakarta.persistence</groupId>
                 <artifactId>jakarta.persistence-api</artifactId>
                 <version>${dependency.jakarta-persistence}</version>
+            </dependency>
+
+            <!--
+            Hibernate and its JAXB runtime (4.0.x) need the JAXB 4 API, but jackson-module-jakarta-xmlbind-annotations
+            asks for 3.0.1 and, being declared first in the hibernate module, won Maven's nearest match.  Pin the API
+            version so every module resolves the same, compatible, version.
+            -->
+            <dependency>
+                <groupId>jakarta.xml.bind</groupId>
+                <artifactId>jakarta.xml.bind-api</artifactId>
+                <version>${dependency.jakarta-xml-bind}</version>
             </dependency>
 
             <dependency>
@@ -198,20 +210,28 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-dependency-plugin</artifactId>
                     <version>${plugin.dependency}</version>
-                    <configuration>
-                        <ignoredUnusedDeclaredDependencies>
-                            <ignoredUnusedDeclaredDependency>org.postgresql:postgresql</ignoredUnusedDeclaredDependency>
-                            <ignoredUnusedDeclaredDependency>com.h2database:h2</ignoredUnusedDeclaredDependency>
-                            <ignoredUnusedDeclaredDependency>org.flywaydb:flyway-database-postgresql</ignoredUnusedDeclaredDependency>
-                            <ignoredUnusedDeclaredDependency>org.hibernate.orm:hibernate-hikaricp</ignoredUnusedDeclaredDependency>
-                            <ignoredUnusedDeclaredDependency>com.fasterxml.jackson.core:jackson-databind</ignoredUnusedDeclaredDependency>
-                            <ignoredUnusedDeclaredDependency>com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations</ignoredUnusedDeclaredDependency>
-                            <ignoredUnusedDeclaredDependency>tools.jackson.core:jackson-databind</ignoredUnusedDeclaredDependency>
-                            <ignoredUnusedDeclaredDependency>org.eclipse.jetty:jetty-server</ignoredUnusedDeclaredDependency>
-                            <ignoredUnusedDeclaredDependency>ch.qos.logback:logback-classic</ignoredUnusedDeclaredDependency>
-                        </ignoredUnusedDeclaredDependencies>
-                    </configuration>
                     <executions>
+                        <!--
+                        The Smart Caches parent configures the analyze execution with its own ignore lists, and
+                        execution configuration takes precedence over plugin level configuration, so these must be set
+                        on the execution itself.  combine.children="append" adds them to the parent's list.
+                        -->
+                        <execution>
+                            <id>analyze</id>
+                            <configuration>
+                                <ignoredUnusedDeclaredDependencies combine.children="append">
+                                    <ignoredUnusedDeclaredDependency>org.postgresql:postgresql</ignoredUnusedDeclaredDependency>
+                                    <ignoredUnusedDeclaredDependency>com.h2database:h2</ignoredUnusedDeclaredDependency>
+                                    <ignoredUnusedDeclaredDependency>org.flywaydb:flyway-database-postgresql</ignoredUnusedDeclaredDependency>
+                                    <ignoredUnusedDeclaredDependency>org.hibernate.orm:hibernate-hikaricp</ignoredUnusedDeclaredDependency>
+                                    <ignoredUnusedDeclaredDependency>com.fasterxml.jackson.core:jackson-databind</ignoredUnusedDeclaredDependency>
+                                    <ignoredUnusedDeclaredDependency>com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations</ignoredUnusedDeclaredDependency>
+                                    <ignoredUnusedDeclaredDependency>tools.jackson.core:jackson-databind</ignoredUnusedDeclaredDependency>
+                                    <ignoredUnusedDeclaredDependency>org.eclipse.jetty:jetty-server</ignoredUnusedDeclaredDependency>
+                                    <ignoredUnusedDeclaredDependency>ch.qos.logback:logback-classic</ignoredUnusedDeclaredDependency>
+                                </ignoredUnusedDeclaredDependencies>
+                            </configuration>
+                        </execution>
                         <execution>
                             <goals>
                                 <goal>go-offline</goal>
@@ -261,6 +281,7 @@
 
                                 <!-- Config -->
                                 <exclude>**/*.yml</exclude>
+                                <exclude>.mvn/maven.config</exclude>
 
                                 <!-- Trivy Cache -->
                                 <exclude>.trivy/**</exclude>
@@ -300,6 +321,23 @@
                         <exclude>.trivy/**</exclude>
                         <exclude>*-trivy-*</exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+
+            <!-- Compiler Plugin, adds to the configuration inherited from the Smart Caches parent -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <!--
+                    Report each deprecation and unchecked warning individually rather than javac's summary notes,
+                    which only say that some input files have them
+                    -->
+                    <showWarnings>true</showWarnings>
+                    <compilerArgs combine.children="append">
+                        <arg>-Xlint:deprecation</arg>
+                        <arg>-Xlint:unchecked</arg>
+                    </compilerArgs>
                 </configuration>
             </plugin>
 
@@ -344,7 +382,6 @@
                     generated types/methods
                     -->
                     <sourcepath>${project.build.directory}/delombok/</sourcepath>
-                    <javadocVersion>${java.version}</javadocVersion>
                     <additionalJOption>-Xdoclint:all,-missing</additionalJOption>
                 </configuration>
             </plugin>
@@ -364,5 +401,42 @@
         </plugins>
 
     </build>
+
+    <profiles>
+        <!--
+        Aggregator modules (this POM and label-stores) have no src/main/java, so there is nothing to delombok and the
+        plugin would only warn that there is no source to process.
+        -->
+        <profile>
+            <id>no-main-sources</id>
+            <activation>
+                <file>
+                    <missing>${basedir}/src/main/java</missing>
+                </file>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.projectlombok</groupId>
+                        <artifactId>lombok-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>default</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!--
+        CI builds every module with -Pdocker, but only the modules with Docker based tests define a docker profile.
+        This empty one stops Maven warning that the requested profile doesn't exist in the other modules.
+        -->
+        <profile>
+            <id>docker</id>
+        </profile>
+    </profiles>
 
 </project>
