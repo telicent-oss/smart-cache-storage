@@ -12,6 +12,7 @@ The following modules are currently provided
 - [`hibernate`](hibernate.md)
 - [`mongodb`](mongodb.md)
 - [`rocksdb`](rocksdb.md)
+- [`rdf`](rdf.md)
 - [`label-stores`](label-stores.md)
 - [`distribution-state-hibernate`](distribution-state-hibernate.md)
 
