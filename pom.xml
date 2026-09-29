@@ -21,6 +21,7 @@
         <module>label-stores</module>
         <module>rocksdb</module>
         <module>distribution-state-hibernate</module>
+        <module>rdf</module>
     </modules>
 
     <distributionManagement>
