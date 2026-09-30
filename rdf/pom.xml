@@ -6,13 +6,14 @@
         <artifactId>parent</artifactId>
         <version>0.15.0-SNAPSHOT</version>
     </parent>
-    <artifactId>common</artifactId>
-    <name>Telicent Smart Caches - Storage - Common Utilities</name>
-    <description>Library providing common utilities for Smart Cache storage layers</description>
+    <artifactId>rdf</artifactId>
+    <name>Telicent Smart Caches - Storage - RDF</name>
+    <description>Library providing common RDF storage layer utilities</description>
 
     <properties>
         <license.header.path>${project.parent.basedir}</license.header.path>
-        <skip.testJars>false</skip.testJars>
+        <skip.testJars>true</skip.testJars>
+        <coverage.minimum>0.95</coverage.minimum>
     </properties>
 
     <dependencies>
@@ -27,14 +28,9 @@
         </dependency>
 
         <dependency>
-            <groupId>commons-codec</groupId>
-            <artifactId>commons-codec</artifactId>
-            <version>${dependency.commons-codec}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.github.ben-manes.caffeine</groupId>
-            <artifactId>caffeine</artifactId>
+            <groupId>org.apache.jena</groupId>
+            <artifactId>jena-arq</artifactId>
+            <version>${dependency.jena}</version>
         </dependency>
 
         <dependency>

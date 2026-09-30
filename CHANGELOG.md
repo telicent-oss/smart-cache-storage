@@ -1,5 +1,12 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.15.0
+
+- New `rdf` module
+    - Added a new `rdf` module which will act as the home for common RDF storage related code
+    - Contains a single class `DatasetGraphFilteredUnionView` which extends the standard Apache Jena
+      `DatasetGraphFilteredView` with improved union graph handling
+
 # 0.14.1
 
 - Distribution State Hibernate improvements:
