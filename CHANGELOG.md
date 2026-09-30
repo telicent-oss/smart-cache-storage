@@ -6,6 +6,17 @@
     - Added a new `rdf` module which will act as the home for common RDF storage related code
     - Contains a single class `DatasetGraphFilteredUnionView` which extends the standard Apache Jena
       `DatasetGraphFilteredView` with improved union graph handling
+- Build improvements:
+    - Flyway upgraded to 13.8.0
+    - H2 upgraded to 2.5.250
+    - Hibernate upgraded to 7.4.10.Final
+    - Hypersistence Utils upgraded to 3.16.0
+    - Jackson 3 upgraded to 3.2.3
+    - Jakarta XML Bind upgraded to 4.0.4
+    - MongoDB upgraded to 5.12.0
+    - OpenTelemetry Semantic Conventions upgraded to 1.44.0
+    - Smart Caches Core upgraded to 1.7.0
+    - Various build and test dependencies upgraded to latest available
 
 # 0.14.1
 
