@@ -169,6 +169,20 @@ public class TestReadOnlyTransactionContext {
     }
 
     @Test(expectedExceptions = UnsupportedOperationException.class)
+    public void givenReadOnlyContext_whenWritingUntracked_thenUnsupported() throws RocksDBException {
+        // Given
+        TransactionDB db = mock(TransactionDB.class);
+        MetricsHolder metrics = mock(MetricsHolder.class);
+        ReadOptions readOptions = mock(ReadOptions.class);
+        ColumnFamilyHandle handle = mock(ColumnFamilyHandle.class);
+
+        // When
+        try (ReadOnlyTransactionContext context = new ReadOnlyTransactionContext(db, readOptions, false, metrics)) {
+            context.putUntracked(handle, "key".getBytes(), "value".getBytes());
+        }
+    }
+
+    @Test(expectedExceptions = UnsupportedOperationException.class)
     public void givenReadOnlyContext_whenDeleting_thenUnsupported() {
         // Given
         TransactionDB db = mock(TransactionDB.class);

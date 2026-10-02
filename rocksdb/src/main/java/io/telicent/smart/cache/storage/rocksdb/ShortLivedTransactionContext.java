@@ -85,6 +85,12 @@ public class ShortLivedTransactionContext implements TransactionContext {
     }
 
     @Override
+    public void putUntracked(ColumnFamilyHandle cfHandle, byte[] key, byte[] value) throws RocksDBException {
+        ensureNotClosed();
+        this.rocksTransaction.putUntracked(cfHandle, key, value);
+    }
+
+    @Override
     public List<byte[]> multiGetAsList(List<ColumnFamilyHandle> cfHandles, List<byte[]> queryKeys) throws
             RocksDBException {
         ensureNotClosed();
