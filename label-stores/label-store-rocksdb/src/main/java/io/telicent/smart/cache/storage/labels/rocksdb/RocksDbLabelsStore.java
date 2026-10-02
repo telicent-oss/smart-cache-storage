@@ -263,6 +263,17 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
         }
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Key-to-label assignments are written untracked: they stay inside the transaction, so commit/rollback semantics
+     * are unchanged, but RocksDB doesn't lock and track every key until commit.
+     * This relies on consumers serialising label-assignment writes across concurrent transactions; it is not
+     * enough for each individual transaction to have only one writer.  SC ingestion provides that single-writer
+     * guarantee, and avoiding per-key tracking removes the dominant write cost in batch ingest.  Label dictionary
+     * entries (idForLabel) remain tracked.
+     * </p>
+     */
     @Override
     public void setLabels(Map<byte[], Long> keysToLabels) {
         this.ensureNotClosed();
@@ -270,12 +281,6 @@ public class RocksDbLabelsStore extends AbstractRocksDBStorage implements Labels
             return;
         }
 
-        // Key-to-label assignments are written untracked: they stay inside the transaction, so commit/rollback semantics
-        // are unchanged, but RocksDB doesn't lock and track every key until commit.
-        // This relies on consumers serialising label-assignment writes across concurrent transactions; it is not
-        // enough for each individual transaction to have only one writer.  SC ingestion provides that single-writer
-        // guarantee, and avoiding per-key tracking removes the dominant write cost in batch ingest.  Label dictionary
-        // entries (idForLabel) remain tracked.
         ColumnFamilyHandle keysToLabelsHandle = this.getHandle(KEYS_TO_LABELS_CF);
         try (TransactionContext transaction = this.begin()) {
             for (Map.Entry<byte[], Long> entry : keysToLabels.entrySet()) {
