@@ -1,5 +1,9 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.15.1
+- Build improvements:
+  - Performance improvements - use Rocks DB untracked puts
+
 # 0.15.0
 
 - New `rdf` module
