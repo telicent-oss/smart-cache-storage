@@ -56,7 +56,7 @@ public interface TransactionContext extends AutoCloseable {
      * tracking overhead that dominates large write transactions.
      * </p>
      * <p>
-     * The default implementation delegates to previous behaviour
+     * The default implementation delegates to {@link #put}
      * </p>
      *
      * @param cfHandle Column family handle
