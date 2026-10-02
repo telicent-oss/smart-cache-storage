@@ -108,6 +108,15 @@ public class TestShortLivedTransactionContext {
                 {
                         consumer(t -> {
                             try {
+                                t.putUntracked(handle, new byte[0], new byte[0]);
+                            } catch (RocksDBException e) {
+                                // Ignore
+                            }
+                        })
+                },
+                {
+                        consumer(t -> {
+                            try {
                                 t.multiGetAsList(List.of(handle), List.of(new byte[0]));
                             } catch (RocksDBException e) {
                                 // Ignore
@@ -139,6 +148,29 @@ public class TestShortLivedTransactionContext {
 
             // Then
             consumer.accept(context);
+        }
+    }
+
+    @Test
+    public void givenMockTransaction_whenPuttingUntracked_thenDelegatesToUntrackedPut() throws RocksDBException {
+        // Given
+        TransactionDB db = mock(TransactionDB.class);
+        Transaction transaction = mock(Transaction.class);
+        when(db.beginTransaction(any())).thenReturn(transaction);
+        MetricsHolder metrics = mock(MetricsHolder.class);
+        ReadOptions readOptions = mock(ReadOptions.class);
+        WriteOptions writeOptions = mock(WriteOptions.class);
+        ColumnFamilyHandle handle = mock(ColumnFamilyHandle.class);
+        byte[] key = "key".getBytes();
+        byte[] value = "value".getBytes();
+        try (ShortLivedTransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions,
+                                                                                     metrics)) {
+            // When
+            context.putUntracked(handle, key, value);
+
+            // Then
+            verify(transaction, times(1)).putUntracked(handle, key, value);
+            verify(transaction, never()).put(any(ColumnFamilyHandle.class), any(byte[].class), any(byte[].class));
         }
     }
 

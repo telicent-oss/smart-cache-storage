@@ -47,6 +47,28 @@ public interface TransactionContext extends AutoCloseable {
     void put(ColumnFamilyHandle cfHandle, byte[] key, byte[] value) throws RocksDBException;
 
     /**
+     * Puts a single key within the transaction context without locking the key or tracking it for conflict detection
+     * <p>
+     * The write remains part of this transaction: it is visible to reads made within the transaction, applied when
+     * the transaction is committed and discarded if it is rolled back.  However, it does not take a lock on the key, so
+     * a concurrent transaction writing the same key is neither blocked nor detected as a conflict.  Use this only where
+     * the caller already guarantees a single writer for the keys concerned, where it avoids the per-key locking and
+     * tracking overhead that dominates large write transactions.
+     * </p>
+     * <p>
+     * The default implementation delegates to {@link #put}
+     * </p>
+     *
+     * @param cfHandle Column family handle
+     * @param key      Key
+     * @param value    Value
+     * @throws RocksDBException Thrown if RocksDB is unable to process the write operation
+     */
+    default void putUntracked(ColumnFamilyHandle cfHandle, byte[] key, byte[] value) throws RocksDBException {
+        put(cfHandle, key, value);
+    }
+
+    /**
      * Performs a multi-get operation allowing for multiple keys to be looked up in a single operation (from the
      * callers' perspective)
      * <p>

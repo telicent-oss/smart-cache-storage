@@ -17,7 +17,9 @@ package io.telicent.smart.cache.storage.labels.rocksdb;
 
 import io.telicent.smart.cache.storage.labels.AbstractLabelStoreTests;
 import io.telicent.smart.cache.storage.labels.LabelsStore;
+import io.telicent.smart.cache.storage.rocksdb.TransactionContext;
 import org.apache.commons.io.FileUtils;
+import org.rocksdb.RocksDBException;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -208,6 +210,67 @@ public class TestRocksDBLabelStore extends AbstractLabelStoreTests {
     public void givenEmptyKey_whenRemoving_thenNPE() {
         try (RocksDbLabelsStore store = newRocksStore()) {
             store.removeLabel(new byte[0]);
+        }
+    }
+
+    @Test
+    public void givenOuterTransaction_whenSettingLabelsAndRollingBack_thenAssignmentsVisibleUntilRollbackThenDiscarded()
+            throws Exception {
+        // Given
+        byte[] otherKey = "other-key".getBytes(StandardCharsets.UTF_8);
+        try (NestableRocksDbLabelsStore store = new NestableRocksDbLabelsStore(rocksDir.getAbsoluteFile())) {
+            TransactionContext outer = store.beginOuter();
+            long id = store.idForLabel(label("public"));
+
+            // When
+            store.setLabels(Map.of(KEY, id, otherKey, id));
+
+            // Then (untracked writes are still read-your-writes within the transaction)
+            Assert.assertEquals(store.getLabel(KEY), (Long) id);
+            Assert.assertEquals(store.getLabel(otherKey), (Long) id);
+
+            // And (closing without commit rolls the untracked writes back)
+            outer.close();
+            Assert.assertNull(store.getLabel(KEY));
+            Assert.assertNull(store.getLabel(otherKey));
+        }
+    }
+
+    @Test
+    public void givenOuterTransaction_whenSettingLabelsAndCommitting_thenAssignmentsPersistAcrossReopen()
+            throws Exception {
+        // Given
+        byte[] singleKey = "single-key".getBytes(StandardCharsets.UTF_8);
+        long id;
+        try (NestableRocksDbLabelsStore store = new NestableRocksDbLabelsStore(rocksDir.getAbsoluteFile())) {
+            try (TransactionContext outer = store.beginOuter()) {
+                id = store.idForLabel(label("public"));
+
+                // When
+                store.setLabels(Map.of(KEY, id));
+                store.setLabel(singleKey, id);
+                outer.commit();
+            }
+        }
+
+        // Then
+        try (RocksDbLabelsStore reopened = newRocksStore()) {
+            Assert.assertEquals(reopened.getLabel(KEY), (Long) id);
+            Assert.assertEquals(reopened.getLabel(singleKey), (Long) id);
+        }
+    }
+
+    /**
+     * Exposes the protected nested transaction API so tests can drive a long-running outer transaction in the same way
+     * that callers such as RDF-ABAC do
+     */
+    private static final class NestableRocksDbLabelsStore extends RocksDbLabelsStore {
+        NestableRocksDbLabelsStore(File dbDir) throws IOException, RocksDBException {
+            super(dbDir);
+        }
+
+        TransactionContext beginOuter() {
+            return this.beginNested();
         }
     }
 
