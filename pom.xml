@@ -10,7 +10,7 @@
     <parent>
         <groupId>io.telicent.smart-caches</groupId>
         <artifactId>parent</artifactId>
-        <version>1.7.0</version>
+        <version>1.7.1</version>
     </parent>
     <description>Libraries to simplify using common storage layers across Smart Caches</description>
 
@@ -80,21 +80,21 @@
 
         <!-- Dependency Versions -->
         <dependency.commons-codec>1.22.1</dependency.commons-codec>
-        <dependency.flyway>13.8.0</dependency.flyway>
-        <dependency.h2>2.5.250</dependency.h2>
-        <dependency.hibernate>7.4.10.Final</dependency.hibernate>
+        <dependency.flyway>13.9.0</dependency.flyway>
+        <dependency.h2>2.5.252</dependency.h2>
+        <dependency.hibernate>7.4.11.Final</dependency.hibernate>
         <dependency.hypersistence>3.16.0</dependency.hypersistence>
         <dependency.jakarta-persistence>3.2.0</dependency.jakarta-persistence>
-        <dependency.jakarta-xml-bind>4.0.4</dependency.jakarta-xml-bind>
+        <dependency.jakarta-xml-bind>4.0.5</dependency.jakarta-xml-bind>
         <dependency.jackson3>3.2.3</dependency.jackson3>
         <dependency.jetty>12.1.13</dependency.jetty>
         <dependency.jmh>1.37</dependency.jmh>
         <dependency.otel-semconv>1.44.0</dependency.otel-semconv>
-        <dependency.mongodb>5.12.0</dependency.mongodb>
+        <dependency.mongodb>5.13.0</dependency.mongodb>
         <dependency.mongojack>6.0.0</dependency.mongojack>
         <dependency.postgres>42.7.13</dependency.postgres>
         <dependency.rocksdb>10.10.1.1</dependency.rocksdb>
-        <dependency.smart-caches>1.7.0</dependency.smart-caches>
+        <dependency.smart-caches>1.7.1</dependency.smart-caches>
     </properties>
 
     <dependencyManagement>
