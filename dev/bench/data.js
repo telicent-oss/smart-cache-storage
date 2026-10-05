@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1774972203857,
+  "lastUpdate": 1791208792826,
   "repoUrl": "https://github.com/telicent-oss/smart-cache-storage",
   "entries": {
     "Label Store Benchmarks": [
@@ -848,6 +848,856 @@ window.BENCHMARK_DATA = {
           {
             "name": "io.telicent.smart.cache.storage.labels.benchmarks.ToyBenchmark.getIdForUniqueLabel_toy ( {\"cacheSize\":\"10000\",\"implementation\":\"RocksDB\"} )",
             "value": 0.233054,
+            "unit": "ms/op",
+            "extra": "iterations: 1\nforks: 1\nthreads: 1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "Rob Walpole",
+            "username": "robwtelicent",
+            "email": "183595007+robwtelicent@users.noreply.github.com"
+          },
+          "committer": {
+            "name": "GitHub",
+            "username": "web-flow",
+            "email": "noreply@github.com"
+          },
+          "id": "c102f3963e8a2ca56e1a59ed5042cd3d27d454e1",
+          "message": "Merge pull request #182 from telicent-oss/fix-weekly-benchmarks\n\nFix weekly-benchmarks.yml",
+          "timestamp": "2026-10-05T09:09:56Z",
+          "url": "https://github.com/telicent-oss/smart-cache-storage/commit/c102f3963e8a2ca56e1a59ed5042cd3d27d454e1"
+        },
+        "date": 1791208791902,
+        "tool": "jmh",
+        "benches": [
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.BasicBenchmark.getIdForRepeatedLabels ( {\"cacheSize\":\"0\",\"implementation\":\"Memory\"} )",
+            "value": 8645.264461827079,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.BasicBenchmark.getIdForRepeatedLabels ( {\"cacheSize\":\"0\",\"implementation\":\"Postgres\"} )",
+            "value": 1.778967143498694,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.BasicBenchmark.getIdForRepeatedLabels ( {\"cacheSize\":\"0\",\"implementation\":\"MongoDB\"} )",
+            "value": 0.5197224027822782,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.BasicBenchmark.getIdForRepeatedLabels ( {\"cacheSize\":\"0\",\"implementation\":\"RocksDB\"} )",
+            "value": 408.38116905385704,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.BasicBenchmark.getIdForRepeatedLabels ( {\"cacheSize\":\"500\",\"implementation\":\"Memory\"} )",
+            "value": 3358.101882405868,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.BasicBenchmark.getIdForRepeatedLabels ( {\"cacheSize\":\"500\",\"implementation\":\"Postgres\"} )",
+            "value": 1.747575436753149,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.BasicBenchmark.getIdForRepeatedLabels ( {\"cacheSize\":\"500\",\"implementation\":\"MongoDB\"} )",
+            "value": 0.555643398195833,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.BasicBenchmark.getIdForRepeatedLabels ( {\"cacheSize\":\"500\",\"implementation\":\"RocksDB\"} )",
+            "value": 187.72488473974377,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.BasicBenchmark.getIdForRepeatedLabels ( {\"cacheSize\":\"10000\",\"implementation\":\"Memory\"} )",
+            "value": 5668.858242364384,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.BasicBenchmark.getIdForRepeatedLabels ( {\"cacheSize\":\"10000\",\"implementation\":\"Postgres\"} )",
+            "value": 1.7535937910092592,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.BasicBenchmark.getIdForRepeatedLabels ( {\"cacheSize\":\"10000\",\"implementation\":\"MongoDB\"} )",
+            "value": 0.5478369049958365,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.BasicBenchmark.getIdForRepeatedLabels ( {\"cacheSize\":\"10000\",\"implementation\":\"RocksDB\"} )",
+            "value": 5258.183142226625,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.BasicBenchmark.getIdForSameLabel ( {\"cacheSize\":\"0\",\"implementation\":\"Memory\"} )",
+            "value": 12418.832996320789,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.BasicBenchmark.getIdForSameLabel ( {\"cacheSize\":\"0\",\"implementation\":\"Postgres\"} )",
+            "value": 2.613675645840501,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.BasicBenchmark.getIdForSameLabel ( {\"cacheSize\":\"0\",\"implementation\":\"MongoDB\"} )",
+            "value": 3.9057511990220464,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.BasicBenchmark.getIdForSameLabel ( {\"cacheSize\":\"0\",\"implementation\":\"RocksDB\"} )",
+            "value": 541.4146677268393,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.BasicBenchmark.getIdForSameLabel ( {\"cacheSize\":\"500\",\"implementation\":\"Memory\"} )",
+            "value": 8854.679034727751,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.BasicBenchmark.getIdForSameLabel ( {\"cacheSize\":\"500\",\"implementation\":\"Postgres\"} )",
+            "value": 8327.730938261,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.BasicBenchmark.getIdForSameLabel ( {\"cacheSize\":\"500\",\"implementation\":\"MongoDB\"} )",
+            "value": 8810.27928549802,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.BasicBenchmark.getIdForSameLabel ( {\"cacheSize\":\"500\",\"implementation\":\"RocksDB\"} )",
+            "value": 8456.14990756647,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.BasicBenchmark.getIdForSameLabel ( {\"cacheSize\":\"10000\",\"implementation\":\"Memory\"} )",
+            "value": 8936.853498273078,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.BasicBenchmark.getIdForSameLabel ( {\"cacheSize\":\"10000\",\"implementation\":\"Postgres\"} )",
+            "value": 8025.679404268708,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.BasicBenchmark.getIdForSameLabel ( {\"cacheSize\":\"10000\",\"implementation\":\"MongoDB\"} )",
+            "value": 8529.00680360458,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.BasicBenchmark.getIdForSameLabel ( {\"cacheSize\":\"10000\",\"implementation\":\"RocksDB\"} )",
+            "value": 8680.104407335546,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.DigestBenchmark.digestHelper ( {\"algorithm\":\"SHA512\"} )",
+            "value": 2865.5910889296792,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 4"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.DigestBenchmark.digestHelper ( {\"algorithm\":\"SHA256\"} )",
+            "value": 12864.343220556104,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 4"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.DigestBenchmark.digestInstancePerComputation ( {\"algorithm\":\"SHA512\"} )",
+            "value": 2628.8090070049975,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 4"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.DigestBenchmark.digestInstancePerComputation ( {\"algorithm\":\"SHA256\"} )",
+            "value": 10331.87681030537,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 4"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.DigestBenchmark.digestInstancePerThread ( {\"algorithm\":\"SHA512\"} )",
+            "value": 2908.9023962627407,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 4"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.DigestBenchmark.digestInstancePerThread ( {\"algorithm\":\"SHA256\"} )",
+            "value": 13114.721831753614,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 4"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.LargeLabelsBenchmark.getIdForLargeLabel ( {\"cacheSize\":\"0\",\"implementation\":\"Memory\"} )",
+            "value": 209.73671697466324,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.LargeLabelsBenchmark.getIdForLargeLabel ( {\"cacheSize\":\"0\",\"implementation\":\"Postgres\"} )",
+            "value": 0.7258017914668284,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.LargeLabelsBenchmark.getIdForLargeLabel ( {\"cacheSize\":\"0\",\"implementation\":\"MongoDB\"} )",
+            "value": 0.4846056341655228,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.LargeLabelsBenchmark.getIdForLargeLabel ( {\"cacheSize\":\"0\",\"implementation\":\"RocksDB\"} )",
+            "value": 140.9413455588443,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.LargeLabelsBenchmark.getIdForLargeLabel ( {\"cacheSize\":\"500\",\"implementation\":\"Memory\"} )",
+            "value": 37.03316917967716,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.LargeLabelsBenchmark.getIdForLargeLabel ( {\"cacheSize\":\"500\",\"implementation\":\"Postgres\"} )",
+            "value": 0.7026053516305617,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.LargeLabelsBenchmark.getIdForLargeLabel ( {\"cacheSize\":\"500\",\"implementation\":\"MongoDB\"} )",
+            "value": 0.4875314742903405,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.LargeLabelsBenchmark.getIdForLargeLabel ( {\"cacheSize\":\"500\",\"implementation\":\"RocksDB\"} )",
+            "value": 25.699711586112578,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.LargeLabelsBenchmark.getIdForLargeLabel ( {\"cacheSize\":\"10000\",\"implementation\":\"Memory\"} )",
+            "value": 58.861853417280884,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.LargeLabelsBenchmark.getIdForLargeLabel ( {\"cacheSize\":\"10000\",\"implementation\":\"Postgres\"} )",
+            "value": 0.7097949555211679,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.LargeLabelsBenchmark.getIdForLargeLabel ( {\"cacheSize\":\"10000\",\"implementation\":\"MongoDB\"} )",
+            "value": 0.5062517996808217,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.LargeLabelsBenchmark.getIdForLargeLabel ( {\"cacheSize\":\"10000\",\"implementation\":\"RocksDB\"} )",
+            "value": 47.0827657975691,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.MultiThreadedBenchmark.ReadWrite ( {\"cacheSize\":\"0\",\"implementation\":\"Memory\"} )",
+            "value": 14486.610044958605,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 9"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.MultiThreadedBenchmark.ReadWrite ( {\"cacheSize\":\"0\",\"implementation\":\"Postgres\"} )",
+            "value": 4.16951906507264,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 9"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.MultiThreadedBenchmark.ReadWrite ( {\"cacheSize\":\"0\",\"implementation\":\"MongoDB\"} )",
+            "value": 5.973702771234768,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 9"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.MultiThreadedBenchmark.ReadWrite ( {\"cacheSize\":\"0\",\"implementation\":\"RocksDB\"} )",
+            "value": 1133.823695641007,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 9"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.MultiThreadedBenchmark.ReadWrite ( {\"cacheSize\":\"100\",\"implementation\":\"Memory\"} )",
+            "value": 20515.340310848595,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 9"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.MultiThreadedBenchmark.ReadWrite ( {\"cacheSize\":\"100\",\"implementation\":\"Postgres\"} )",
+            "value": 6.107138226346874,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 9"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.MultiThreadedBenchmark.ReadWrite ( {\"cacheSize\":\"100\",\"implementation\":\"MongoDB\"} )",
+            "value": 9.253695416877088,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 9"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.MultiThreadedBenchmark.ReadWrite ( {\"cacheSize\":\"100\",\"implementation\":\"RocksDB\"} )",
+            "value": 14667.61163482517,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 9"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.MultiThreadedBenchmark.ReadWrite ( {\"cacheSize\":\"500\",\"implementation\":\"Memory\"} )",
+            "value": 30415.97822236749,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 9"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.MultiThreadedBenchmark.ReadWrite ( {\"cacheSize\":\"500\",\"implementation\":\"Postgres\"} )",
+            "value": 25673.204917613923,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 9"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.MultiThreadedBenchmark.ReadWrite ( {\"cacheSize\":\"500\",\"implementation\":\"MongoDB\"} )",
+            "value": 29897.78229057748,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 9"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.MultiThreadedBenchmark.ReadWrite ( {\"cacheSize\":\"500\",\"implementation\":\"RocksDB\"} )",
+            "value": 28788.31692333312,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 9"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.PathologicalBenchmark.getIdForAlwaysUniqueLabel ( {\"cacheSize\":\"0\",\"implementation\":\"Memory\"} )",
+            "value": 769.8218507032692,
+            "unit": "ops/ms",
+            "extra": "iterations: 1\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.PathologicalBenchmark.getIdForAlwaysUniqueLabel ( {\"cacheSize\":\"0\",\"implementation\":\"Postgres\"} )",
+            "value": 1.4442864366240602,
+            "unit": "ops/ms",
+            "extra": "iterations: 1\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.PathologicalBenchmark.getIdForAlwaysUniqueLabel ( {\"cacheSize\":\"0\",\"implementation\":\"MongoDB\"} )",
+            "value": 0.5863312195954217,
+            "unit": "ops/ms",
+            "extra": "iterations: 1\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.PathologicalBenchmark.getIdForAlwaysUniqueLabel ( {\"cacheSize\":\"0\",\"implementation\":\"RocksDB\"} )",
+            "value": 49.29430278019774,
+            "unit": "ops/ms",
+            "extra": "iterations: 1\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.PathologicalBenchmark.getIdForAlwaysUniqueLabel ( {\"cacheSize\":\"500\",\"implementation\":\"Memory\"} )",
+            "value": 469.26769565739465,
+            "unit": "ops/ms",
+            "extra": "iterations: 1\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.PathologicalBenchmark.getIdForAlwaysUniqueLabel ( {\"cacheSize\":\"500\",\"implementation\":\"Postgres\"} )",
+            "value": 1.3438818373080201,
+            "unit": "ops/ms",
+            "extra": "iterations: 1\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.PathologicalBenchmark.getIdForAlwaysUniqueLabel ( {\"cacheSize\":\"500\",\"implementation\":\"MongoDB\"} )",
+            "value": 0.5597682056137357,
+            "unit": "ops/ms",
+            "extra": "iterations: 1\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.PathologicalBenchmark.getIdForAlwaysUniqueLabel ( {\"cacheSize\":\"500\",\"implementation\":\"RocksDB\"} )",
+            "value": 26.85308709349521,
+            "unit": "ops/ms",
+            "extra": "iterations: 1\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.PathologicalBenchmark.getIdForAlwaysUniqueLabel ( {\"cacheSize\":\"10000\",\"implementation\":\"Memory\"} )",
+            "value": 448.68888986228137,
+            "unit": "ops/ms",
+            "extra": "iterations: 1\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.PathologicalBenchmark.getIdForAlwaysUniqueLabel ( {\"cacheSize\":\"10000\",\"implementation\":\"Postgres\"} )",
+            "value": 1.3793659428417353,
+            "unit": "ops/ms",
+            "extra": "iterations: 1\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.PathologicalBenchmark.getIdForAlwaysUniqueLabel ( {\"cacheSize\":\"10000\",\"implementation\":\"MongoDB\"} )",
+            "value": 0.5886884909792518,
+            "unit": "ops/ms",
+            "extra": "iterations: 1\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.PathologicalBenchmark.getIdForAlwaysUniqueLabel ( {\"cacheSize\":\"10000\",\"implementation\":\"RocksDB\"} )",
+            "value": 26.95018057439948,
+            "unit": "ops/ms",
+            "extra": "iterations: 1\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.ReadOnlyBenchmark.readOnly ( {\"cacheSize\":\"0\",\"implementation\":\"Memory\"} )",
+            "value": 6169.482890208064,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.ReadOnlyBenchmark.readOnly ( {\"cacheSize\":\"0\",\"implementation\":\"Postgres\"} )",
+            "value": 1.311261712187649,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.ReadOnlyBenchmark.readOnly ( {\"cacheSize\":\"0\",\"implementation\":\"MongoDB\"} )",
+            "value": 1.8514952704794925,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.ReadOnlyBenchmark.readOnly ( {\"cacheSize\":\"0\",\"implementation\":\"RocksDB\"} )",
+            "value": 306.35596797292686,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.ReadOnlyBenchmark.readOnly ( {\"cacheSize\":\"100\",\"implementation\":\"Memory\"} )",
+            "value": 1218.9447097706889,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.ReadOnlyBenchmark.readOnly ( {\"cacheSize\":\"100\",\"implementation\":\"Postgres\"} )",
+            "value": 1.5472811287354442,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.ReadOnlyBenchmark.readOnly ( {\"cacheSize\":\"100\",\"implementation\":\"MongoDB\"} )",
+            "value": 2.1099785561364572,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.ReadOnlyBenchmark.readOnly ( {\"cacheSize\":\"100\",\"implementation\":\"RocksDB\"} )",
+            "value": 118.93384960559843,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.ReadOnlyBenchmark.readOnly ( {\"cacheSize\":\"500\",\"implementation\":\"Memory\"} )",
+            "value": 2895.507999120868,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.ReadOnlyBenchmark.readOnly ( {\"cacheSize\":\"500\",\"implementation\":\"Postgres\"} )",
+            "value": 3767.992710649559,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.ReadOnlyBenchmark.readOnly ( {\"cacheSize\":\"500\",\"implementation\":\"MongoDB\"} )",
+            "value": 2930.705737971674,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.ReadOnlyBenchmark.readOnly ( {\"cacheSize\":\"500\",\"implementation\":\"RocksDB\"} )",
+            "value": 2776.48976232856,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.bulkIdsForLabels ( {\"cacheSize\":\"0\",\"implementation\":\"Memory\"} )",
+            "value": 0.7617926364111789,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.bulkIdsForLabels ( {\"cacheSize\":\"0\",\"implementation\":\"Postgres\"} )",
+            "value": 0.00916797607173214,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.bulkIdsForLabels ( {\"cacheSize\":\"0\",\"implementation\":\"MongoDB\"} )",
+            "value": 0.004834470206841514,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.bulkIdsForLabels ( {\"cacheSize\":\"0\",\"implementation\":\"RocksDB\"} )",
+            "value": 0.08059919246345457,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.bulkIdsForLabels ( {\"cacheSize\":\"500\",\"implementation\":\"Memory\"} )",
+            "value": 0.40643325182130174,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.bulkIdsForLabels ( {\"cacheSize\":\"500\",\"implementation\":\"Postgres\"} )",
+            "value": 0.4345438014727926,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.bulkIdsForLabels ( {\"cacheSize\":\"500\",\"implementation\":\"MongoDB\"} )",
+            "value": 0.3588946521297518,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.bulkIdsForLabels ( {\"cacheSize\":\"500\",\"implementation\":\"RocksDB\"} )",
+            "value": 0.43055545827643593,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.bulkIdsForLabels ( {\"cacheSize\":\"10000\",\"implementation\":\"Memory\"} )",
+            "value": 0.40533119099982573,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.bulkIdsForLabels ( {\"cacheSize\":\"10000\",\"implementation\":\"Postgres\"} )",
+            "value": 0.4080473445525592,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.bulkIdsForLabels ( {\"cacheSize\":\"10000\",\"implementation\":\"MongoDB\"} )",
+            "value": 0.3456426990436019,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.bulkIdsForLabels ( {\"cacheSize\":\"10000\",\"implementation\":\"RocksDB\"} )",
+            "value": 0.39395655153913683,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.getIdForLabel ( {\"cacheSize\":\"0\",\"implementation\":\"Memory\"} )",
+            "value": 9071.510978915447,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.getIdForLabel ( {\"cacheSize\":\"0\",\"implementation\":\"Postgres\"} )",
+            "value": 2.47258341685463,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.getIdForLabel ( {\"cacheSize\":\"0\",\"implementation\":\"MongoDB\"} )",
+            "value": 2.409322050032788,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.getIdForLabel ( {\"cacheSize\":\"0\",\"implementation\":\"RocksDB\"} )",
+            "value": 465.1089421469741,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.getIdForLabel ( {\"cacheSize\":\"500\",\"implementation\":\"Memory\"} )",
+            "value": 4369.12802555842,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.getIdForLabel ( {\"cacheSize\":\"500\",\"implementation\":\"Postgres\"} )",
+            "value": 4098.9655838642475,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.getIdForLabel ( {\"cacheSize\":\"500\",\"implementation\":\"MongoDB\"} )",
+            "value": 3788.052552751672,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.getIdForLabel ( {\"cacheSize\":\"500\",\"implementation\":\"RocksDB\"} )",
+            "value": 3956.1698878638335,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.getIdForLabel ( {\"cacheSize\":\"10000\",\"implementation\":\"Memory\"} )",
+            "value": 4032.5668268335417,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.getIdForLabel ( {\"cacheSize\":\"10000\",\"implementation\":\"Postgres\"} )",
+            "value": 4100.793086822492,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.getIdForLabel ( {\"cacheSize\":\"10000\",\"implementation\":\"MongoDB\"} )",
+            "value": 3641.1321922839975,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.getIdForLabel ( {\"cacheSize\":\"10000\",\"implementation\":\"RocksDB\"} )",
+            "value": 3995.969492768664,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.getIdForLabel_andResolveIdToLabel ( {\"cacheSize\":\"0\",\"implementation\":\"Memory\"} )",
+            "value": 5221.284379409289,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.getIdForLabel_andResolveIdToLabel ( {\"cacheSize\":\"0\",\"implementation\":\"Postgres\"} )",
+            "value": 1.283765993674189,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.getIdForLabel_andResolveIdToLabel ( {\"cacheSize\":\"0\",\"implementation\":\"MongoDB\"} )",
+            "value": 1.5296246778114093,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.getIdForLabel_andResolveIdToLabel ( {\"cacheSize\":\"0\",\"implementation\":\"RocksDB\"} )",
+            "value": 309.1491734627807,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.getIdForLabel_andResolveIdToLabel ( {\"cacheSize\":\"500\",\"implementation\":\"Memory\"} )",
+            "value": 2666.7233405590314,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.getIdForLabel_andResolveIdToLabel ( {\"cacheSize\":\"500\",\"implementation\":\"Postgres\"} )",
+            "value": 2831.5761687486493,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.getIdForLabel_andResolveIdToLabel ( {\"cacheSize\":\"500\",\"implementation\":\"MongoDB\"} )",
+            "value": 2202.126411191342,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.getIdForLabel_andResolveIdToLabel ( {\"cacheSize\":\"500\",\"implementation\":\"RocksDB\"} )",
+            "value": 2692.4927801049516,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.getIdForLabel_andResolveIdToLabel ( {\"cacheSize\":\"10000\",\"implementation\":\"Memory\"} )",
+            "value": 2792.956937357453,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.getIdForLabel_andResolveIdToLabel ( {\"cacheSize\":\"10000\",\"implementation\":\"Postgres\"} )",
+            "value": 5484.049325502404,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.getIdForLabel_andResolveIdToLabel ( {\"cacheSize\":\"10000\",\"implementation\":\"MongoDB\"} )",
+            "value": 2190.074584725117,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.RealWorldBenchmark.getIdForLabel_andResolveIdToLabel ( {\"cacheSize\":\"10000\",\"implementation\":\"RocksDB\"} )",
+            "value": 2627.345526003246,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.VeryLargeLabelBenchmark.getIdForVeryLargeLabel ( {\"cacheSize\":\"0\",\"implementation\":\"Memory\"} )",
+            "value": 0.07717117135557819,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.VeryLargeLabelBenchmark.getIdForVeryLargeLabel ( {\"cacheSize\":\"0\",\"implementation\":\"Postgres\"} )",
+            "value": 0.012561405166001202,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.VeryLargeLabelBenchmark.getIdForVeryLargeLabel ( {\"cacheSize\":\"0\",\"implementation\":\"MongoDB\"} )",
+            "value": 0.011205358106788176,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.VeryLargeLabelBenchmark.getIdForVeryLargeLabel ( {\"cacheSize\":\"0\",\"implementation\":\"RocksDB\"} )",
+            "value": 0.381489550103356,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.VeryLargeLabelBenchmark.getIdForVeryLargeLabel ( {\"cacheSize\":\"500\",\"implementation\":\"Memory\"} )",
+            "value": 0.06249353487731507,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.VeryLargeLabelBenchmark.getIdForVeryLargeLabel ( {\"cacheSize\":\"500\",\"implementation\":\"Postgres\"} )",
+            "value": 0.06120148763046014,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.VeryLargeLabelBenchmark.getIdForVeryLargeLabel ( {\"cacheSize\":\"500\",\"implementation\":\"MongoDB\"} )",
+            "value": 0.06082967726663635,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.VeryLargeLabelBenchmark.getIdForVeryLargeLabel ( {\"cacheSize\":\"500\",\"implementation\":\"RocksDB\"} )",
+            "value": 0.062940728874329,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.VeryLargeLabelBenchmark.getIdForVeryLargeLabel ( {\"cacheSize\":\"10000\",\"implementation\":\"Memory\"} )",
+            "value": 0.06273089055929093,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.VeryLargeLabelBenchmark.getIdForVeryLargeLabel ( {\"cacheSize\":\"10000\",\"implementation\":\"Postgres\"} )",
+            "value": 0.06213819357736435,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.VeryLargeLabelBenchmark.getIdForVeryLargeLabel ( {\"cacheSize\":\"10000\",\"implementation\":\"MongoDB\"} )",
+            "value": 0.060637682284690776,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.VeryLargeLabelBenchmark.getIdForVeryLargeLabel ( {\"cacheSize\":\"10000\",\"implementation\":\"RocksDB\"} )",
+            "value": 0.06275452876930214,
+            "unit": "ops/ms",
+            "extra": "iterations: 5\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.ToyBenchmark.getIdForUniqueLabel_toy ( {\"cacheSize\":\"0\",\"implementation\":\"Memory\"} )",
+            "value": 0.023804,
+            "unit": "ms/op",
+            "extra": "iterations: 1\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.ToyBenchmark.getIdForUniqueLabel_toy ( {\"cacheSize\":\"0\",\"implementation\":\"Postgres\"} )",
+            "value": 4.691587,
+            "unit": "ms/op",
+            "extra": "iterations: 1\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.ToyBenchmark.getIdForUniqueLabel_toy ( {\"cacheSize\":\"0\",\"implementation\":\"MongoDB\"} )",
+            "value": 4.977136,
+            "unit": "ms/op",
+            "extra": "iterations: 1\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.ToyBenchmark.getIdForUniqueLabel_toy ( {\"cacheSize\":\"0\",\"implementation\":\"RocksDB\"} )",
+            "value": 0.181589,
+            "unit": "ms/op",
+            "extra": "iterations: 1\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.ToyBenchmark.getIdForUniqueLabel_toy ( {\"cacheSize\":\"500\",\"implementation\":\"Memory\"} )",
+            "value": 0.061826,
+            "unit": "ms/op",
+            "extra": "iterations: 1\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.ToyBenchmark.getIdForUniqueLabel_toy ( {\"cacheSize\":\"500\",\"implementation\":\"Postgres\"} )",
+            "value": 4.765338,
+            "unit": "ms/op",
+            "extra": "iterations: 1\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.ToyBenchmark.getIdForUniqueLabel_toy ( {\"cacheSize\":\"500\",\"implementation\":\"MongoDB\"} )",
+            "value": 5.003596,
+            "unit": "ms/op",
+            "extra": "iterations: 1\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.ToyBenchmark.getIdForUniqueLabel_toy ( {\"cacheSize\":\"500\",\"implementation\":\"RocksDB\"} )",
+            "value": 0.297316,
+            "unit": "ms/op",
+            "extra": "iterations: 1\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.ToyBenchmark.getIdForUniqueLabel_toy ( {\"cacheSize\":\"10000\",\"implementation\":\"Memory\"} )",
+            "value": 0.074108,
+            "unit": "ms/op",
+            "extra": "iterations: 1\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.ToyBenchmark.getIdForUniqueLabel_toy ( {\"cacheSize\":\"10000\",\"implementation\":\"Postgres\"} )",
+            "value": 5.261586,
+            "unit": "ms/op",
+            "extra": "iterations: 1\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.ToyBenchmark.getIdForUniqueLabel_toy ( {\"cacheSize\":\"10000\",\"implementation\":\"MongoDB\"} )",
+            "value": 5.344667,
+            "unit": "ms/op",
+            "extra": "iterations: 1\nforks: 1\nthreads: 1"
+          },
+          {
+            "name": "io.telicent.smart.cache.storage.labels.benchmarks.ToyBenchmark.getIdForUniqueLabel_toy ( {\"cacheSize\":\"10000\",\"implementation\":\"RocksDB\"} )",
+            "value": 0.29414,
             "unit": "ms/op",
             "extra": "iterations: 1\nforks: 1\nthreads: 1"
           }
