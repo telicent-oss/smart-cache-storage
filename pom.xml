@@ -93,7 +93,7 @@
         <dependency.mongodb>5.13.0</dependency.mongodb>
         <dependency.mongojack>6.0.0</dependency.mongojack>
         <dependency.postgres>42.7.13</dependency.postgres>
-        <dependency.rocksdb>10.10.1.1</dependency.rocksdb>
+        <dependency.rocksdb>11.1.1</dependency.rocksdb>
         <dependency.smart-caches>1.7.1</dependency.smart-caches>
     </properties>
 
