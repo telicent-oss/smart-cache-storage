@@ -273,7 +273,7 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
             DistributionLifecycleState current = distributionState.getState();
             DistributionLifecycleState target = action.getState().getTo();
             if (!current.canTransition(target)) {
-                throw new IllegalStateException(
+                throw new LifecycleEventRejectedException(
                         "Distribution Lifecycle state transition from " + current + " to " + target + " is not permitted");
             }
             if (target != current) {
