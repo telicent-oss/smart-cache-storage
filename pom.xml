@@ -82,7 +82,7 @@
         <dependency.commons-codec>1.23.0</dependency.commons-codec>
         <dependency.flyway>13.10.0</dependency.flyway>
         <dependency.h2>2.5.252</dependency.h2>
-        <dependency.hibernate>7.4.12.Final</dependency.hibernate>
+        <dependency.hibernate>7.4.13.Final</dependency.hibernate>
         <dependency.hypersistence>3.16.0</dependency.hypersistence>
         <dependency.jakarta-persistence>3.2.0</dependency.jakarta-persistence>
         <dependency.jakarta-xml-bind>4.0.5</dependency.jakarta-xml-bind>
