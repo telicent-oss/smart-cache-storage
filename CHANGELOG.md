@@ -1,6 +1,6 @@
 # Smart Cache - Storage Libraries - Change Log
 
-# 0.16.1
+# 0.15.2
 
 - Build improvements:
     - Upgraded Central Publishing plugin to fix incompatibility with Maven 3.10.x that could prevent release to Maven
