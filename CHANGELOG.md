@@ -1,6 +1,21 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.16.1
+
+- Build improvements:
+    - Upgraded Central Publishing plugin to fix incompatibility with Maven 3.10.x that could prevent release to Maven
+      Central
+    - Apache Commons Codec upgraded to 1.23.0
+    - Flyway upgraded to 13.10.0
+    - H2 upgraded to 2.5.252
+    - Hibernate upgraded to 7.4.13.Final
+    - MongoDB upgraded to 5.13.0
+    - Postgres upgraded to 42.7.14
+    - RocksDB upgraded to 11.1.1
+    - Smart Caches Core upgraded to 1.8.0
+
 # 0.15.1
+
 - Build improvements:
   - Performance improvements - use Rocks DB untracked puts
 
