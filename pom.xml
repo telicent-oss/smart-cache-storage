@@ -80,7 +80,7 @@
 
         <!-- Dependency Versions -->
         <dependency.commons-codec>1.23.0</dependency.commons-codec>
-        <dependency.flyway>13.10.0</dependency.flyway>
+        <dependency.flyway>13.10.3</dependency.flyway>
         <dependency.h2>2.5.252</dependency.h2>
         <dependency.hibernate>7.4.13.Final</dependency.hibernate>
         <dependency.hypersistence>3.16.0</dependency.hypersistence>
@@ -93,7 +93,7 @@
         <dependency.mongodb>5.13.0</dependency.mongodb>
         <dependency.mongojack>6.0.0</dependency.mongojack>
         <dependency.postgres>42.7.14</dependency.postgres>
-        <dependency.rocksdb>11.1.1</dependency.rocksdb>
+        <dependency.rocksdb>11.8.1</dependency.rocksdb>
         <dependency.smart-caches>1.8.0</dependency.smart-caches>
     </properties>
 
