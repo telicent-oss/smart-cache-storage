@@ -36,6 +36,7 @@ public class ReadOnlyTransactionContext implements TransactionContext {
     private final boolean ownsOptions;
     private boolean closed = false;
     private MetricsHolder metrics;
+    private final Runnable onReleased;
 
     /**
      * Creates a new read-only context that owns the supplied options.
@@ -55,10 +56,29 @@ public class ReadOnlyTransactionContext implements TransactionContext {
      * @param ownsOptions Whether this context owns the supplied options
      */
     public ReadOnlyTransactionContext(TransactionDB db, ReadOptions readOptions, boolean ownsOptions, MetricsHolder metrics) {
+        this(db, readOptions, ownsOptions, metrics, null);
+    }
+
+    /**
+     * Creates a new read-only context.
+     *
+     * @param db          Transactional Rocks DB
+     * @param readOptions Read options
+     * @param ownsOptions Whether this context owns the supplied options
+     * @param metrics     Metrics
+     * @param onReleased  Optional callback invoked exactly once when this context is closed.  Used by
+     *                    {@link AbstractRocksDBStorage} to know when it no longer has any transactions outstanding,
+     *                    see {@link ActiveTransactionsException} for why that matters.  May be {@code null}.
+     */
+    public ReadOnlyTransactionContext(TransactionDB db, ReadOptions readOptions, boolean ownsOptions,
+                                      MetricsHolder metrics, Runnable onReleased) {
         this.db = Objects.requireNonNull(db, "db cannot be null");
         this.readOptions = Objects.requireNonNull(readOptions, "readOptions cannot be null");
         this.ownsOptions = ownsOptions;
         this.metrics = Objects.requireNonNull(metrics, "Metrics cannot be null");
+        this.onReleased = onReleased != null ? onReleased : () -> {
+            // No-op, caller does not care when this context is released
+        };
     }
 
     private void ensureNotClosed() {
@@ -100,6 +120,7 @@ public class ReadOnlyTransactionContext implements TransactionContext {
                 closeOwnedOptions();
             } finally {
                 this.metrics.decrementActiveTransactions();
+                this.onReleased.run();
             }
         }
     }

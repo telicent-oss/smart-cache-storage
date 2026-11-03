@@ -32,6 +32,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -73,6 +75,18 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
     private final Map<String, ColumnFamilyHandle> columnFamilyHandles = new HashMap<>();
     private final Map<String, RocksDBCounter> counters = new HashMap<>();
     private final ThreadLocal<NestedTransactionContext> nestedTransactions = ThreadLocal.withInitial(() -> null);
+    /**
+     * Number of transactions that have been handed out by {@link #begin()}, {@link #beginReadOnly()} and
+     * {@link #beginNested()} and not yet committed/closed.
+     * <p>
+     * This, and the per-thread view of it below, are only ever read/written while holding this storage's monitor,
+     * which is what makes {@link #restore(RestoreConfig)} and the {@code begin*()} methods mutually exclusive.  See
+     * {@link ActiveTransactionsException} for why a restore must never close the database while any of these remain
+     * outstanding.
+     * </p>
+     */
+    private int activeTransactions = 0;
+    private final ThreadLocal<AtomicInteger> threadActiveTransactions = ThreadLocal.withInitial(AtomicInteger::new);
     protected MetricsHolder metrics;
     protected final File dbDir;
     private Statistics stats;
@@ -348,6 +362,13 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
             }
             columnFamilyHandles.clear();
             counters.clear();
+
+            // Discard this thread's cached nested transaction context, it refers to a native transaction belonging to
+            // the database we are about to close so it must never be reused against a reopened database.  Other
+            // threads' contexts need no such treatment, begin*() only reuses a cached context while it is still
+            // active, and we are guaranteed by beginRestore()/close() that none are.
+            this.nestedTransactions.remove();
+
             metrics.close();
             db.close();
             cache.close();
@@ -368,10 +389,13 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
         }
     }
 
-    private void persistCounters() {
+    private synchronized void persistCounters() {
         if (!this.counters.isEmpty()) {
             LOGGER.info("Persisting counters to ensure their values are up to date...");
-            try (TransactionContext context = this.begin()) {
+            // NB - Deliberately uses beginUnchecked() rather than begin() because this runs as part of
+            //      closeInternal(), which during a restore() happens with the restoring flag already set, and begin()
+            //      refuses to start a transaction at that point
+            try (TransactionContext context = this.beginUnchecked()) {
                 for (Map.Entry<String, RocksDBCounter> counter : this.counters.entrySet()) {
                     counter.getValue().update(context);
                     LOGGER.info("Counter {} persisted with value {}", counter.getKey(), counter.getValue().get());
@@ -532,16 +556,69 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
      *
      * @return New transaction
      */
-    protected final TransactionContext begin() {
+    protected final synchronized TransactionContext begin() {
         ensureNotClosed();
+        return beginUnchecked();
+    }
+
+    /**
+     * Begins a transaction <strong>without</strong> checking whether the storage is closed or restoring
+     * <p>
+     * Only for use by {@link #persistCounters()}, which runs as part of {@link #closeInternal()} and therefore has to
+     * be able to write while the restoring flag is set.
+     * </p>
+     * <p>
+     * <strong>NB:</strong> Must be called while holding this object's monitor, i.e. from a {@code synchronized}
+     * method or block on this storage.
+     * </p>
+     *
+     * @return New transaction
+     */
+    private TransactionContext beginUnchecked() {
         NestedTransactionContext context = this.nestedTransactions.get();
         if (context != null && context.isActive()) {
             return context.increment();
         }
         this.metrics.incrementTransactions();
         this.metrics.incrementActiveTransactions();
-        return new ShortLivedTransactionContext(this.db, this.sharedReadOptions, this.sharedWriteOptions, false,
-                                                this.metrics);
+        return trackedTransaction(
+                onReleased -> new ShortLivedTransactionContext(this.db, this.sharedReadOptions,
+                                                               this.sharedWriteOptions, false, this.metrics,
+                                                               onReleased));
+    }
+
+    /**
+     * Registers a transaction that is about to be handed out to a caller and wires it up so that this storage is told
+     * when the caller releases it
+     * <p>
+     * <strong>NB:</strong> Must be called while holding this object's monitor, i.e. from a {@code synchronized}
+     * method or block on this storage.
+     * </p>
+     *
+     * @param constructor Creates the transaction context, given the callback it must invoke when it releases its
+     *                    underlying native transaction
+     * @param <T>         Transaction context type
+     * @return Transaction context
+     */
+    private <T extends TransactionContext> T trackedTransaction(Function<Runnable, T> constructor) {
+        // NB - The callback deliberately captures the counter belonging to the thread that *opens* the transaction, a
+        //      context may in principle be closed by a different thread and the bookkeeping must still balance
+        final AtomicInteger owner = this.threadActiveTransactions.get();
+        owner.incrementAndGet();
+        this.activeTransactions++;
+        final Runnable onReleased = () -> releaseTransaction(owner);
+        try {
+            return constructor.apply(onReleased);
+        } catch (RuntimeException e) {
+            // No context was created so nothing will ever invoke the callback, undo the bookkeeping ourselves
+            onReleased.run();
+            throw e;
+        }
+    }
+
+    private synchronized void releaseTransaction(AtomicInteger owner) {
+        owner.decrementAndGet();
+        this.activeTransactions--;
     }
 
     /**
@@ -549,7 +626,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
      *
      * @return New read-only transaction
      */
-    protected final TransactionContext beginReadOnly() {
+    protected final synchronized TransactionContext beginReadOnly() {
         ensureNotClosed();
         NestedTransactionContext context = this.nestedTransactions.get();
         if (context != null && context.isActive()) {
@@ -560,7 +637,11 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
         this.metrics.incrementTransactions();
         this.metrics.incrementActiveTransactions();
         // Standalone read - avoid RocksDB transaction and reuse the shared read options
-        return new ReadOnlyTransactionContext(this.db, this.sharedReadOptions, false, this.metrics);
+        // NB - Tracked just like a real transaction because it holds the database and the shared read options, all of
+        //      which a restore would free out from underneath it
+        return trackedTransaction(
+                onReleased -> new ReadOnlyTransactionContext(this.db, this.sharedReadOptions, false, this.metrics,
+                                                             onReleased));
     }
 
     /**
@@ -568,7 +649,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
      *
      * @return Nested transaction
      */
-    protected final TransactionContext beginNested() {
+    protected final synchronized TransactionContext beginNested() {
         ensureNotClosed();
         NestedTransactionContext context = this.nestedTransactions.get();
         if (context == null || !context.isActive()) {
@@ -576,8 +657,10 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
             // options rather than allocating fresh native option objects
             this.metrics.incrementTransactions();
             this.metrics.incrementActiveTransactions();
-            context = new NestedTransactionContext(this.db, this.sharedReadOptions, this.sharedWriteOptions, false,
-                                                   this.metrics);
+            context = trackedTransaction(
+                    onReleased -> new NestedTransactionContext(this.db, this.sharedReadOptions,
+                                                               this.sharedWriteOptions, false, this.metrics,
+                                                               onReleased));
             this.nestedTransactions.set(context);
             return context;
         } else {
@@ -667,23 +750,46 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
         }
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * A restore closes the underlying RocksDB database, replaces its files from the backup and reopens it.  Since a
+     * RocksDB {@link Transaction} is a native object owned by the database, closing the database beneath an open
+     * transaction frees memory that the transaction still points at, and any subsequent use of it - including merely
+     * closing it - aborts the JVM.  The contract is therefore:
+     * </p>
+     * <ul>
+     *     <li>If any transaction handed out by this storage is still open, whether on the calling thread or any
+     *     other, the restore is refused with an {@link ActiveTransactionsException} and the database is left open and
+     *     untouched.  In particular it is never valid to call this from inside a transaction on this storage.</li>
+     *     <li>Otherwise the storage is marked as restoring <em>before</em> the database is closed, so from that point
+     *     until the restore completes every {@code begin*()} call fails with a {@link RestoreException} rather than
+     *     handing out a transaction against a database that is about to be, or has already been, freed.</li>
+     *     <li>Only one restore may be in progress at a time, a concurrent restore is refused with a
+     *     {@link RestoreException}.</li>
+     * </ul>
+     *
+     * @param config Restore configuration
+     * @return Restore status
+     * @throws RestoreException Thrown if the restore cannot be performed, including when transactions remain open
+     */
     @Override
     public RestoreStatus restore(RestoreConfig config) throws RestoreException {
         if (config.getBackupLocation() == null) {
             throw new RestoreException("Backup directory must be specified for RocksDB restores");
         }
 
-        try {
-            // Close the storage first, this needs to happen before we set the restoring flag as otherwise logic in
-            // closeInternal() will fail when it tries to persist the counters.  While this error is generally harmless
-            // it does pollute the logs, and there is a failure scenario where the restore fails that leads to out of
-            // date counters.
-            // Since upon restore failure we try to reopen the storage as-is at which point the counter values would be
-            // wrong if we didn't allow them to be persisted prior to attempting the restore
-            closeInternal();
+        // NB - Takes the storage from "open" to "restoring" atomically, refusing outright if that would free the
+        //      database beneath a live transaction.  Nothing has been closed if this throws.
+        beginRestore();
 
-            this.restoring = true;
+        try {
             LOGGER.info("Starting restore of {}", config.getBackupLocation());
+
+            // NB - closeInternal() is deliberately called with the restoring flag already set so that there is no
+            //      window in which neither closed nor restoring is true.  persistCounters() copes with this, see the
+            //      comments there
+            closeInternal();
 
             File backupDir = new File(config.getBackupLocation());
             if (!backupDir.exists()) {
@@ -732,6 +838,34 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
         } finally {
             this.restoring = false;
         }
+    }
+
+    /**
+     * Marks the storage as restoring, refusing to do so if that would close the database out from underneath a
+     * transaction that is still open
+     *
+     * @throws ActiveTransactionsException Thrown if any transaction handed out by this storage is still open
+     * @throws RestoreException            Thrown if a restore is already in progress
+     * @throws IllegalStateException       Thrown if the storage has been closed
+     */
+    private synchronized void beginRestore() {
+        // NB - As well as rejecting a closed storage this rejects a concurrent restore, two restores racing each other
+        //      through close/reopen would be at least as destructive as a restore racing a transaction
+        ensureNotClosed();
+
+        if (this.activeTransactions > 0) {
+            throw new ActiveTransactionsException(String.format(
+                    "Cannot restore RocksDB storage at %s while %d transaction(s) remain open on it, %d of which are held by the calling thread (%s).  "
+                            + "Restoring closes the database, which would free native memory that those transactions still point at and abort the JVM, so the database has been left untouched.  "
+                            + "Commit or close all transactions on this storage before restoring it, in particular never call restore() from inside a transaction.",
+                    this.dbDir.getAbsolutePath(), this.activeTransactions,
+                    this.threadActiveTransactions.get().get(), Thread.currentThread().getName()));
+        }
+
+        // NB - Set before closeInternal() runs so there is never a window in which the database is closed but neither
+        //      the closed nor the restoring flag is set, i.e. a window in which begin*() would happily hand out a
+        //      transaction against a freed database
+        this.restoring = true;
     }
 
     @Override

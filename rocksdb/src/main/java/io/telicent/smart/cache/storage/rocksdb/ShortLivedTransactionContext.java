@@ -33,6 +33,8 @@ public class ShortLivedTransactionContext implements TransactionContext {
     private final boolean ownsOptions;
     private Transaction rocksTransaction;
     private final MetricsHolder metrics;
+    private final Runnable onReleased;
+    private boolean released = false;
 
     /**
      * Creates a new short-lived transaction context that <strong>owns</strong> the supplied options, and will close
@@ -57,11 +59,32 @@ public class ShortLivedTransactionContext implements TransactionContext {
      */
     public ShortLivedTransactionContext(TransactionDB db, ReadOptions readOptions, WriteOptions writeOptions,
                                         boolean ownsOptions, MetricsHolder metrics) {
+        this(db, readOptions, writeOptions, ownsOptions, metrics, null);
+    }
+
+    /**
+     * Creates a new short-lived transaction context.
+     *
+     * @param db           Transactional Rocks DB
+     * @param readOptions  Read options
+     * @param writeOptions Write options
+     * @param ownsOptions  Whether this context owns the supplied options
+     * @param metrics      Metrics
+     * @param onReleased   Optional callback invoked exactly once when the underlying native transaction is released,
+     *                     whether by {@link #commit()} or {@link #close()}.  Used by
+     *                     {@link AbstractRocksDBStorage} to know when it no longer has any transactions outstanding,
+     *                     see {@link ActiveTransactionsException} for why that matters.  May be {@code null}.
+     */
+    public ShortLivedTransactionContext(TransactionDB db, ReadOptions readOptions, WriteOptions writeOptions,
+                                        boolean ownsOptions, MetricsHolder metrics, Runnable onReleased) {
         Objects.requireNonNull(db, "db cannot be null");
         this.readOptions = Objects.requireNonNull(readOptions, "readOptions cannot be null");
         this.writeOptions = Objects.requireNonNull(writeOptions, "writeOptions cannot be null");
         this.ownsOptions = ownsOptions;
         this.metrics = Objects.requireNonNull(metrics, "metrics cannot be null");
+        this.onReleased = onReleased != null ? onReleased : () -> {
+            // No-op, caller does not care when this transaction is released
+        };
         this.rocksTransaction = db.beginTransaction(this.writeOptions);
         this.rocksTransaction.setSnapshot();
     }
@@ -113,6 +136,7 @@ public class ShortLivedTransactionContext implements TransactionContext {
                 this.rocksTransaction = null;
             } finally {
                 this.metrics.decrementActiveTransactions();
+                notifyReleased();
                 closeOwnedOptions();
             }
         }
@@ -131,12 +155,24 @@ public class ShortLivedTransactionContext implements TransactionContext {
                     this.rocksTransaction = null;
                 } finally {
                     this.metrics.decrementActiveTransactions();
+                    notifyReleased();
                 }
             }
         } catch (RocksDBException e) {
             throw new RuntimeException("Failed to rollback RocksDB transaction", e);
         } finally {
             closeOwnedOptions();
+        }
+    }
+
+    /**
+     * Invokes the release callback, at most once over the lifetime of this context however many times
+     * {@link #commit()} and/or {@link #close()} are called
+     */
+    private void notifyReleased() {
+        if (!this.released) {
+            this.released = true;
+            this.onReleased.run();
         }
     }
 
