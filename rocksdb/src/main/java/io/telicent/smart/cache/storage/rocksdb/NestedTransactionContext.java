@@ -60,6 +60,22 @@ public class NestedTransactionContext extends ShortLivedTransactionContext {
     }
 
     /**
+     * Creates a new nested transaction context.
+     *
+     * @param db           Transactional Rocks DB
+     * @param readOptions  Read options
+     * @param writeOptions Write options
+     * @param ownsOptions  Whether this context owns the supplied options
+     * @param metrics      Metrics
+     * @param onReleased   Optional callback invoked exactly once when the underlying native transaction is released,
+     *                     i.e. when the outermost level of nesting commits/closes
+     */
+    public NestedTransactionContext(TransactionDB db, ReadOptions readOptions, WriteOptions writeOptions,
+                                    boolean ownsOptions, MetricsHolder metrics, Runnable onReleased) {
+        super(db, readOptions, writeOptions, ownsOptions, metrics, onReleased);
+    }
+
+    /**
      * Increments the level of nesting
      *
      * @return Self
