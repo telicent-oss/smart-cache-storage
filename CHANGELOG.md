@@ -1,5 +1,20 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.15.3
+
+- RocksDB improvements:
+    - Restore is now refused with an `ActiveTransactionsException` if transactions are still open, leaving the database
+      open and intact rather than closing it beneath live transactions
+    - Calls to `begin*()` fail with a `RestoreException` while a restore is in progress
+- Build improvements:
+    - Flyway upgraded to 13.11.1
+    - Hibernate upgraded to 7.4.14.Final
+    - Jackson 3 upgraded to 3.2.4
+    - MongoDB upgraded to 5.14.0
+    - RocksDB upgraded to 11.8.1
+    - Smart Caches Core upgraded to 1.10.1
+    - Now uses shared Core SonarQube suppressions
+
 # 0.15.2
 
 - Build improvements:
