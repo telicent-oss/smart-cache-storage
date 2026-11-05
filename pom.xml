@@ -94,7 +94,7 @@
         <dependency.mongojack>6.0.0</dependency.mongojack>
         <dependency.postgres>42.7.14</dependency.postgres>
         <dependency.rocksdb>11.8.1</dependency.rocksdb>
-        <dependency.smart-caches>1.10.1</dependency.smart-caches>
+        <dependency.smart-caches>1.11.0-SNAPSHOT</dependency.smart-caches>
     </properties>
 
     <dependencyManagement>

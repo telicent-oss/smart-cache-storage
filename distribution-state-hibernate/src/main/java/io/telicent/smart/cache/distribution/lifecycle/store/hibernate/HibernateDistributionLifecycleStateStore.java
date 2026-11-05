@@ -27,28 +27,31 @@ import io.telicent.smart.cache.distribution.lifecycle.events.utils.DistributionO
 import io.telicent.smart.cache.distribution.lifecycle.events.utils.LifecycleActionFingerprint;
 import io.telicent.smart.cache.distribution.lifecycle.events.utils.PartitionOffsets;
 import io.telicent.smart.cache.distribution.lifecycle.store.DistributionLifecycleStateStore;
-import io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model.AppStateId;
-import io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model.IngestStateId;
-import io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model.StoredApplicationState;
-import io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model.StoredDistributionState;
-import io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model.StoredIngestState;
-import io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model.StoredLifecycleAction;
+import io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model.*;
+import io.telicent.smart.cache.projectors.utils.WriteOnceReference;
 import io.telicent.smart.cache.storage.hibernate.AbstractHibernateStorage;
 import io.telicent.smart.cache.storage.hibernate.TransactionContext;
 import io.telicent.smart.cache.storage.hibernate.configuration.HibernateConfiguration;
 import io.telicent.smart.cache.storage.hibernate.configuration.JpaConfiguration;
+import jakarta.persistence.FindOption;
+import jakarta.persistence.Query;
 import jakarta.persistence.RollbackException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.common.utils.LogContext;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.CoreLocationPrefix;
 import org.flywaydb.core.api.Location;
+import org.hibernate.KeyType;
 import org.hibernate.annotations.NaturalId;
 import org.hibernate.exception.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -56,10 +59,38 @@ import static io.telicent.smart.cache.distribution.lifecycle.store.AbstractDistr
 
 public class HibernateDistributionLifecycleStateStore extends AbstractHibernateStorage
         implements DistributionLifecycleStateStore {
+    private static final Logger LOGGER = LoggerFactory.getLogger(HibernateDistributionLifecycleStateStore.class);
 
+    /**
+     * The JPA persistence unit that defines our entities
+     */
     public static final String PERSISTENCE_UNIT = "hibernate-distribution-lifecycle-store";
+    /**
+     * The default cache size for recent events
+     */
     public static final int RECENT_CACHE_SIZE = 1_000;
+    /**
+     * The duration for which recent events live in the cache
+     */
     public static final Duration RECENT_CACHE_DURATION = Duration.ofMinutes(1);
+    
+    /**
+     * The array of tables that back the state store, used by {@link #clear()} to clear out the store
+     */
+    protected static final String[] TABLES = {
+            // From V1__Initial_Schema.sql
+            "LIFECYCLE_ACTIONS",
+            "LIFECYCLE_APPLICATION_STATES",
+            "DISTRIBUTION_STATES",
+            // From V2__Add_Ingest_Statuses.sql
+            "LIFECYCLE_INGEST_STATES",
+            // From V6__Add_Metadata_Table.sql
+            "METADATA"
+    };
+    /**
+     * Metadata key used by {@link #getSourceIdentity()}/{@link #setSourceIdentity(String)}
+     */
+    protected static final String SOURCE_IDENTITY = "sourceIdentity";
 
     /**
      * Keep a cache of recently received actions, this is used for duplicate checking and to avoid unnecessary database
@@ -69,6 +100,8 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
     private final Cache<String, DistributionLifecycleState> recentLifecycleStates;
     private final Cache<AppStateId, ApplicationState> recentAppStates;
     private final Cache<IngestStateId, PartitionOffsets> recentIngestStates;
+
+    private AtomicReference<String> sourceIdentity = new AtomicReference<>();
 
     /**
      * Creates a new hibernate backed distribution lifecycle state store
@@ -591,6 +624,58 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
                 this.recentIngestStates.put(state.getId(), copyOffsets(copy));
             }
             return allStatuses;
+        }
+    }
+
+    @Override
+    public void setSourceIdentity(String sourceId) {
+        String currentId = this.getSourceIdentity();
+        if (currentId != null && !Objects.equals(currentId, sourceId)) {
+            throw new IllegalStateException(
+                    "Cannot change source identity from " + currentId + " to " + sourceId + " without first clearing the store to discard all the state the source change invalidates");
+        } else if (Objects.equals(currentId, sourceId)) {
+            // Nothing to do, source identity already set to provided source identity
+            return;
+        }
+        try (TransactionContext context = this.begin()) {
+            Metadata stored = context.getEntityManager().find(Metadata.class, SOURCE_IDENTITY, KeyType.NATURAL);
+            if (stored == null) {
+                stored = Metadata.of(SOURCE_IDENTITY, sourceId);
+                context.getEntityManager().persist(stored);
+            } else {
+                stored.setValue(sourceId);
+                context.getEntityManager().merge(stored);
+            }
+            context.commit();
+        }
+    }
+
+    @Override
+    public String getSourceIdentity() {
+        ensureNotClosed();
+        String id = this.sourceIdentity.get();
+        if (StringUtils.isNotBlank(id)) {
+            return id;
+        }
+        try (TransactionContext context = this.begin()) {
+            Metadata metadata = context.getEntityManager().find(Metadata.class, SOURCE_IDENTITY, KeyType.NATURAL);
+            this.sourceIdentity.set(metadata != null ? metadata.getValue() : null);
+            return this.sourceIdentity.get();
+        }
+    }
+
+    @Override
+    public void clear() {
+        try (TransactionContext context = this.begin()) {
+            int deleted = 0;
+            for (String table : TABLES) {
+                Query query = context.getEntityManager().createNativeQuery("DELETE FROM " + table);
+                deleted += query.executeUpdate();
+            }
+            context.commit();
+            LOGGER.info("Deleted {} rows from the underlying state store, state store is now empty", deleted);
+            this.sourceIdentity.set(null);
+            this.clearCaches();
         }
     }
 
