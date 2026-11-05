@@ -28,6 +28,7 @@
         <class>io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model.StoredDistributionState</class>
         <class>io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model.StoredApplicationState</class>
         <class>io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model.StoredIngestState</class>
+        <class>io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model.Metadata</class>
 
         <properties>
             <!--
