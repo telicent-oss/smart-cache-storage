@@ -1,5 +1,14 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.16.0
+
+- Distribution State Hibernate improvements:
+    - Added support for new `DistributionLifecycleStateStore` methods introduced by SC-Core 1.11.0 release
+- Build improvements:
+    - Upgraded Flyway to 13.12.1
+    - Upgraded OpenTelemetry Semantic Conventions to 1.45.0
+    - Upgraded Smart Caches Core to 1.11.0
+
 # 0.15.3
 
 - RocksDB improvements:
