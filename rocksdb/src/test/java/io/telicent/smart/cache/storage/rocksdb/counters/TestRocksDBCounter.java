@@ -18,6 +18,7 @@ package io.telicent.smart.cache.storage.rocksdb.counters;
 import io.telicent.smart.cache.storage.CompactStatus;
 import io.telicent.smart.cache.storage.rocksdb.AbstractRocksDBTests;
 import io.telicent.smart.cache.storage.rocksdb.RocksDBCounter;
+import io.telicent.smart.cache.storage.rocksdb.TransactionContext;
 import org.apache.commons.lang3.RandomUtils;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
@@ -30,6 +31,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.mockito.Mockito.mock;
 
@@ -198,6 +200,26 @@ public class TestRocksDBCounter extends AbstractRocksDBTests {
         try (NoCounters none = new NoCounters(this.dbDir)) {
             // When and Then
             none.get("test".getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    @Test
+    public void givenCounterIncrementedInActiveTransaction_whenClosing_thenCounterPersisted() throws
+            RocksDBException, IOException {
+        // Given
+        AtomicLong expected = new AtomicLong();
+        try (SingleCounter counters = new SingleCounter(this.dbDir)) {
+            try (TransactionContext context = counters.beginForTest()) {
+                expected.set(counters.next(SingleCounter.NAME, false));
+
+                // When
+                counters.close();
+            }
+        }
+
+        // Then
+        try (SingleCounter counters = new SingleCounter(this.dbDir)) {
+            Assert.assertEquals(counters.get(SingleCounter.NAME), expected.incrementAndGet());
         }
     }
 }

@@ -49,9 +49,9 @@ public interface TransactionContext extends AutoCloseable {
     /**
      * Puts a single key within the transaction context without locking the key or tracking it for conflict detection
      * <p>
-     * The write remains part of this transaction: it is visible to reads made within the transaction, applied when
-     * the transaction is committed and discarded if it is rolled back.  However, it does not take a lock on the key, so
-     * a concurrent transaction writing the same key is neither blocked nor detected as a conflict.  Use this only where
+     * The write remains part of this transaction: it is visible to reads made within the transaction, applied when the
+     * transaction is committed and discarded if it is rolled back.  However, it does not take a lock on the key, so a
+     * concurrent transaction writing the same key is neither blocked nor detected as a conflict.  Use this only where
      * the caller already guarantees a single writer for the keys concerned, where it avoids the per-key locking and
      * tracking overhead that dominates large write transactions.
      * </p>
@@ -84,6 +84,20 @@ public interface TransactionContext extends AutoCloseable {
      */
     List<byte[]> multiGetAsList(List<ColumnFamilyHandle> cfHandles, List<byte[]> queryKeys) throws
             RocksDBException;
+
+    /**
+     * Informs the transaction that is has been invalidated
+     * <p>
+     * This is intended primarily for the case where the {@link AbstractRocksDBStorage} has
+     * {@link AbstractRocksDBStorage#close()} called upon it which destroys all RocksDB objects and means that if the
+     * transaction were to then {@link #commit()}/{@link #close()} would most likely crash the JVM with a memory fault.
+     * Upon this being called the implementation <strong>MUST</strong> immediately {@code null} any references it holds
+     * to RocksDB objects.  They should ensure that any subsequent method called on the transaction context either fail
+     * visibly due to the lack of RocksDB objects.  If they can still partly function the parts that would have touched
+     * RocksDB must be skipped and any other side effects from the method apply as normal.
+     * </p>
+     */
+    void invalidate();
 
     /**
      * Commits any changes in the transaction releasing any resources it was holding

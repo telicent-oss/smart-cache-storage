@@ -63,7 +63,7 @@ public abstract class AbstractCounterTester extends AbstractRocksDBStorage {
     }
 
     /**
-     * Gets the current value of the given counter without increment it
+     * Gets the current value of the given counter without incrementing it
      *
      * @param counterName Counter name
      * @return Current value
@@ -79,7 +79,7 @@ public abstract class AbstractCounterTester extends AbstractRocksDBStorage {
     }
 
     /**
-     * Gets the current value of the given counter without increment it
+     * Gets the current value of the given counter without incrementing it
      *
      * @param counterName Counter name
      * @return Current value
