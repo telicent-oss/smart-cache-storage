@@ -635,7 +635,7 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
             return;
         }
         try (TransactionContext context = this.begin()) {
-            Metadata stored = context.getEntityManager().find(Metadata.class, SOURCE_IDENTITY, KeyType.NATURAL);
+            Metadata stored = this.loadByNaturalId(context, SOURCE_IDENTITY, Metadata.class);
             if (stored == null) {
                 stored = Metadata.of(SOURCE_IDENTITY, sourceId);
                 context.getEntityManager().persist(stored);
@@ -655,7 +655,7 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
             return id;
         }
         try (TransactionContext context = this.begin()) {
-            Metadata metadata = context.getEntityManager().find(Metadata.class, SOURCE_IDENTITY, KeyType.NATURAL);
+            Metadata metadata = this.loadByNaturalId(context, SOURCE_IDENTITY, Metadata.class);
             this.sourceIdentity.set(metadata != null ? metadata.getValue() : null);
             return this.sourceIdentity.get();
         }

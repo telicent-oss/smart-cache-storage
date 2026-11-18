@@ -19,11 +19,13 @@ import io.telicent.smart.cache.storage.hibernate.AbstractHibernateStorage;
 import io.telicent.smart.cache.storage.hibernate.TransactionContext;
 import io.telicent.smart.cache.storage.hibernate.configuration.JpaConfiguration;
 import org.flywaydb.core.Flyway;
+import org.hibernate.query.Order;
+import org.hibernate.query.Page;
+import org.hibernate.query.sqm.tree.expression.SqmExpression;
+import org.hibernate.query.sqm.tree.select.SqmSortSpecification;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 @SuppressWarnings({ "unused", "UnusedReturnValue" })
 public class OrderManager extends AbstractHibernateStorage {
@@ -100,6 +102,23 @@ public class OrderManager extends AbstractHibernateStorage {
         }
     }
 
+    public Iterator<Product> iterateProducts(Page page) {
+        ensureNotClosed();
+        TransactionContext context = this.begin();
+        return this.<Product, Product>scrollAll(context, Product.class, page != null ? page : Page.first(10),
+                                                List.of("id"), x -> x, true);
+    }
+
+    public Iterator<Product> badIterateProducts(Page page) {
+        ensureNotClosed();
+        try (TransactionContext context = this.begin()) {
+            // BAD: The iterator needs to hold a reference to the active transaction, when returned in this way the
+            // transaction is closed by the time the caller tries to iterate and nothing will be returned
+            return this.scrollAll(context, Product.class, page != null ? page : Page.first(10), List.of("id"), x -> x,
+                                  true);
+        }
+    }
+
     public List<Product> listProducts(boolean inStock) {
         ensureNotClosed();
         try (TransactionContext transaction = this.begin()) {
@@ -139,6 +158,25 @@ public class OrderManager extends AbstractHibernateStorage {
             }
             transaction.getEntityManager().merge(product);
             transaction.commit();
+        }
+    }
+
+    public void restockAll(long diff) {
+        try (TransactionContext context = this.begin()) {
+            Iterator<Product> products =
+                    this.scrollAll(context, Product.class, Page.first(25), List.of("id"), x -> x, false);
+            int i = 0;
+            while (products.hasNext()) {
+                Product product = products.next();
+                product.setAvailable(product.getAvailable() + diff);
+                context.getEntityManager().merge(product);
+                i++;
+                if (i % 25 == 0) {
+                    context.getEntityManager().flush();
+                }
+            }
+            context.getEntityManager().flush();
+            context.commit();
         }
     }
 }

@@ -66,6 +66,7 @@ public class TestShortLivedTransactionContext {
         when(entityManagerFactory.createEntityManager()).thenReturn(entityManager);
         when(entityManager.unwrap(Session.class)).thenReturn(session);
         when(entityManager.getTransaction()).thenReturn(transaction);
+        when(entityManager.isOpen()).thenReturn(true);
         return entityManagerFactory;
     }
 

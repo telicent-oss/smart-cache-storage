@@ -18,12 +18,17 @@ package io.telicent.smart.cache.storage.hibernate;
 import io.telicent.smart.cache.storage.hibernate.model.Address;
 import io.telicent.smart.cache.storage.hibernate.model.OrderManager;
 import io.telicent.smart.cache.storage.hibernate.model.Product;
+import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.hibernate.query.Page;
 import org.testng.Assert;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.math.BigDecimal;
+import java.util.Iterator;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Abstract test suite that exercise the {@link OrderManager} which is an exemplar implementation of deriving from the
@@ -333,6 +338,157 @@ public abstract class AbstractOrderManagerTests {
             // Then
             Product product = orderManager.getProduct("A1");
             Assert.assertEquals(product.getAvailable(), 100);
+        }
+    }
+
+    private static void generateProducts(OrderManager orderManager, int numProducts) {
+        generateProducts(orderManager, numProducts, 10_000);
+    }
+
+    private static void generateProducts(OrderManager orderManager, int numProducts, int maxAvailable) {
+        for (int i = 1; i <= numProducts; i++) {
+            orderManager.saveProduct("X" + i, "Item " + i, null, BigDecimal.valueOf(1.0),
+                                     maxAvailable > 0 ? RandomUtils.insecure().randomInt(0, maxAvailable) :
+                                     maxAvailable);
+        }
+    }
+
+    private static void verifyIterator(Iterator<Product> products, int expected) {
+        verifyIterator(products, Assert::assertNotNull, expected);
+    }
+
+    private static void verifyIterator(Iterator<Product> products, Consumer<Product> productVerifier, int expected) {
+        int count = 0;
+        while (products.hasNext()) {
+            Product product = products.next();
+            productVerifier.accept(product);
+            count++;
+        }
+        Assert.assertEquals(count, expected);
+    }
+
+    @Test
+    public void givenPopulatedStore_whenIteratingProducts_thenAllProductsReturned() {
+        // Given
+        try (OrderManager orderManager = createOrderManager()) {
+            generateProducts(orderManager, 100);
+
+            // When
+            Iterator<Product> products = orderManager.iterateProducts(null);
+
+            // Then
+            verifyIterator(products, 100);
+        }
+    }
+
+    @DataProvider(name = "pageSizes")
+    public Object[][] pageSizes() {
+        return new Object[][] {
+                { 1 }, { 5 }, { 7 }, { 20 }, { 33 }, { 40 }, { 75 }, { 100 }, { 250 }, { 1000 }
+        };
+    }
+
+    @Test(dataProvider = "pageSizes")
+    public void givenPopulatedStore_whenIteratingProductsWithVariousPageSizes_thenAllProductsReturned(int pageSize) {
+        // Given
+        try (OrderManager orderManager = createOrderManager()) {
+            generateProducts(orderManager, 100);
+
+            // When
+            Iterator<Product> products = orderManager.iterateProducts(Page.first(pageSize));
+
+            // Then
+            verifyIterator(products, 100);
+        }
+    }
+
+    @Test
+    public void givenPopulatedStore_whenIteratingProductsWithPageBeyondEnd_thenNoProductsReturned() {
+        // Given
+        try (OrderManager orderManager = createOrderManager()) {
+            generateProducts(orderManager, 100);
+
+            // When
+            Iterator<Product> products = orderManager.iterateProducts(Page.page(10, 50));
+
+            // Then
+            verifyIterator(products, 0);
+        }
+    }
+
+    @Test
+    public void givenLargePopulatedStore_whenIteratingProducts_thenAllProductsReturned() {
+        // Given
+        try (OrderManager orderManager = createOrderManager()) {
+            generateProducts(orderManager, 10_000);
+
+            // When
+            Iterator<Product> products = orderManager.iterateProducts(Page.first(100));
+
+            // Then
+            verifyIterator(products, 10_000);
+        }
+    }
+
+    @Test
+    public void givenPopulatedStore_whenBadlyIteratingProducts_thenNoProductsReturned() {
+        // Given
+        try (OrderManager orderManager = createOrderManager()) {
+            generateProducts(orderManager, 100);
+
+            // When
+            Iterator<Product> products = orderManager.badIterateProducts(null);
+
+            // Then
+            verifyIterator(products, 0);
+        }
+    }
+
+    @Test
+    public void givenPopulatedStore_whenIteratingProductsAfterStorageClosed_thenNoProductsReturned() {
+        // Given
+        Iterator<Product> products;
+        try (OrderManager orderManager = createOrderManager()) {
+            generateProducts(orderManager, 100);
+
+            // When
+            products = orderManager.iterateProducts(null);
+        }
+        // Then
+        verifyIterator(products, 0);
+    }
+
+    @Test
+    public void givenPopulatedStore_whenIteratingProductsAfterStorageClosed_thenInMemoryProductsReturned() {
+        // Given
+        Iterator<Product> products;
+        try (OrderManager orderManager = createOrderManager()) {
+            generateProducts(orderManager, 100);
+
+            // When
+            products = orderManager.iterateProducts(Page.first(25));
+            Assert.assertTrue(products.hasNext());
+        }
+        // Then
+        verifyIterator(products, 25);
+    }
+
+    @Test
+    public void givenPopulatedStore_whenRestockingProducts_thenRestockedSuccessfully() {
+        // Given
+        try (OrderManager orderManager = createOrderManager()) {
+            generateProducts(orderManager, 100, 0);
+            verifyIterator(orderManager.iterateProducts(Page.first(25)), p -> Assert.assertEquals(p.getAvailable(), 0),
+                           100);
+
+            // When
+            orderManager.restockAll(100);
+
+            // Then
+            List<Product> ps = orderManager.listProducts();
+            verifyIterator(orderManager.iterateProducts(Page.first(25)),
+                           p -> Assert.assertEquals(p.getAvailable(), 100,
+                                                    "Product " + p.getCode() + " has wrong stock"), 100);
         }
     }
 }
