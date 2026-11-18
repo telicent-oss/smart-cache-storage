@@ -69,6 +69,6 @@ public class ActiveTransactions {
         //      invalidate() implementation is supposed to call release() which removes the transaction from the list.
         //      So without a copy we'd get a ConcurrentModificationException
         new ArrayList<>(this.active).forEach(TransactionContext::invalidate);
-        this.active.clear()
+        this.active.clear();
     }
 }
