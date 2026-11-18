@@ -59,7 +59,7 @@ public class JsonStore extends AbstractHibernateStorage {
 
     public JsonHolder load(String id) {
         try (TransactionContext transaction = this.begin()) {
-            return transaction.getSession().find(JsonHolder.class, id, KeyType.NATURAL);
+            return this.loadByNaturalId(transaction, id, JsonHolder.class);
         }
     }
 
@@ -71,7 +71,7 @@ public class JsonStore extends AbstractHibernateStorage {
 
     public boolean delete(String id) {
         try (TransactionContext transaction = this.begin()) {
-            JsonHolder json = transaction.getSession().find(JsonHolder.class, id, KeyType.NATURAL);
+            JsonHolder json = this.loadByNaturalId(transaction, id, JsonHolder.class);
             if (json != null) {
                 transaction.getEntityManager().remove(json);
                 transaction.commit();

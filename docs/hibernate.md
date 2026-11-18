@@ -10,16 +10,23 @@ The API consists of two core classes:
 - `TransactionContext` - A transaction context.
 
 Developers using this API should have their storage classes extend `AbstractHibernateStorage`, and then use the various
-protected methods to implement their actual storage. See the test [`OrderManager`][OrderManager] or 
-[`HibernateLabelsStore`][HibLabelsStore] implementations for exemplars of this pattern.
+protected methods to implement their actual storage.  These methods are designed to parameterise common patterns of
+interaction with Hibernate/JPA so developer code can focus on domain concerns, not storage concerns.
+
+See the test [`OrderManager`][OrderManager] or [`HibernateLabelsStore`][HibLabelsStore] implementations for exemplars of
+this pattern.
 
 ## Transaction Contexts
 
 `TransactionContext` is an internal helper interface used to allow developers to access the Hibernate `Session` and JPA
 `EntityManager` in a transactionally safe manner with minimal fuss. A `TransactionContext` can be obtained by calling
 the `AbstractHibernateStorage.begin()` method. It is `AutoCloseable` meaning it **SHOULD** be used in a
-try-with-resources block and the transaction will be rolled back if the developer does not explicitly `commit()` it in
-their code. Again refer to the test [`OrderManager`][OrderManager] class to see this pattern in use.
+try-with-resources block, and the transaction will be rolled back if the developer does not explicitly `commit()` it in
+their code.
+
+Many of the protected helper methods that `AbstractHibernateStorage` provides expect to receive a `TransactionContext`
+instance to allow them to function.  Again refer to the test [`OrderManager`][OrderManager] class to see this pattern in
+use.
 
 ## Hibernate Configuration
 
@@ -157,6 +164,21 @@ fields are automatically deserialized from the underlying JSON.
 some unnecessary `UPDATE` statements may be issued to the underlying database in some scenarios.
 
 Please refer to [JsonStore][JsonStore] and [JsonHolder][JsonHolder] for exemplars of JSON typed fields.
+
+## Pagination
+
+As this module is based on standard JPA and Hibernate you can use the standardised capabilities for paging where needed.
+In particular from `0.17.0` onwards we added a `Page` typed parameter to a number of helper methods to allow developers
+to supply their desired page of results.
+
+Additionally `0.17.0` added new `scrollAll()` and `scrollByNamedQuery()` helper methods that allow developers to obtain
+an `Iterator` over the entities.  The iterator only ever holds at most the given page size of entities in-memory itself
+keeping memory usage low and allowing processing of very large databases.  Note that for iteration to be consistent a
+stable sort order must be defined, either by the caller for `scrollAll()`, or by the named query used for
+`scrollByNamedQuery()`.  If a stable sort order is not defined then its possible for the iterator to return the same
+entities multiple times even as it advances the page internally, this is particularly likely to happen if the caller is
+updating the database as they iterate it.  For scenarios like that we would strongly recommend using the primary key of
+the entities, especially if its a `@Generated` auto-incrementing `@Id` value.
 
 [OrderManager]: ../hibernate/src/test/java/io/telicent/smart/cache/storage/hibernate/model/OrderManager.java
 [HibExamples]: ../hibernate/src/test/java/io/telicent/smart/cache/storage/hibernate/

@@ -54,7 +54,7 @@ final class ShortLivedTransactionContext implements TransactionContext {
 
     @Override
     public boolean isActive() {
-        return this.entityManager.getTransaction().isActive();
+        return this.entityManager.isOpen() && this.entityManager.getTransaction().isActive();
     }
 
     /**
