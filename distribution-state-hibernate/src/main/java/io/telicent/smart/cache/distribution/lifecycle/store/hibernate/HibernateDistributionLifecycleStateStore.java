@@ -28,16 +28,13 @@ import io.telicent.smart.cache.distribution.lifecycle.events.utils.LifecycleActi
 import io.telicent.smart.cache.distribution.lifecycle.events.utils.PartitionOffsets;
 import io.telicent.smart.cache.distribution.lifecycle.store.DistributionLifecycleStateStore;
 import io.telicent.smart.cache.distribution.lifecycle.store.hibernate.model.*;
-import io.telicent.smart.cache.projectors.utils.WriteOnceReference;
 import io.telicent.smart.cache.storage.hibernate.AbstractHibernateStorage;
 import io.telicent.smart.cache.storage.hibernate.TransactionContext;
 import io.telicent.smart.cache.storage.hibernate.configuration.HibernateConfiguration;
 import io.telicent.smart.cache.storage.hibernate.configuration.JpaConfiguration;
-import jakarta.persistence.FindOption;
 import jakarta.persistence.Query;
 import jakarta.persistence.RollbackException;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.common.utils.LogContext;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.CoreLocationPrefix;
 import org.flywaydb.core.api.Location;

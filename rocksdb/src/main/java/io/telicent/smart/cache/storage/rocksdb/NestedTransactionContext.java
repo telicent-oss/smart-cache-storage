@@ -39,10 +39,10 @@ public class NestedTransactionContext extends ShortLivedTransactionContext {
      * @param db           Transactional Rocks DB
      * @param readOptions  Read options
      * @param writeOptions Write options
-     * @param metrics Metrics
+     * @param metrics      Metrics
      */
-    public NestedTransactionContext(TransactionDB db, ReadOptions readOptions,
-                                    WriteOptions writeOptions, MetricsHolder metrics) {
+    public NestedTransactionContext(TransactionDB db, ReadOptions readOptions, WriteOptions writeOptions,
+                                    MetricsHolder metrics) {
         super(db, readOptions, writeOptions, metrics);
     }
 
@@ -62,17 +62,16 @@ public class NestedTransactionContext extends ShortLivedTransactionContext {
     /**
      * Creates a new nested transaction context.
      *
-     * @param db           Transactional Rocks DB
-     * @param readOptions  Read options
-     * @param writeOptions Write options
-     * @param ownsOptions  Whether this context owns the supplied options
-     * @param metrics      Metrics
-     * @param onReleased   Optional callback invoked exactly once when the underlying native transaction is released,
-     *                     i.e. when the outermost level of nesting commits/closes
+     * @param db                 Transactional Rocks DB
+     * @param readOptions        Read options
+     * @param writeOptions       Write options
+     * @param ownsOptions        Whether this context owns the supplied options
+     * @param metrics            Metrics
+     * @param activeTransactions Active transactions tracker
      */
     public NestedTransactionContext(TransactionDB db, ReadOptions readOptions, WriteOptions writeOptions,
-                                    boolean ownsOptions, MetricsHolder metrics, Runnable onReleased) {
-        super(db, readOptions, writeOptions, ownsOptions, metrics, onReleased);
+                                    boolean ownsOptions, MetricsHolder metrics, ActiveTransactions activeTransactions) {
+        super(db, readOptions, writeOptions, ownsOptions, metrics, activeTransactions);
     }
 
     /**

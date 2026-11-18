@@ -32,8 +32,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -76,17 +74,19 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
     private final Map<String, RocksDBCounter> counters = new HashMap<>();
     private final ThreadLocal<NestedTransactionContext> nestedTransactions = ThreadLocal.withInitial(() -> null);
     /**
-     * Number of transactions that have been handed out by {@link #begin()}, {@link #beginReadOnly()} and
+     * Tracker of transactions that have been handed out by {@link #begin()}, {@link #beginReadOnly()} and
      * {@link #beginNested()} and not yet committed/closed.
      * <p>
-     * This, and the per-thread view of it below, are only ever read/written while holding this storage's monitor,
-     * which is what makes {@link #restore(RestoreConfig)} and the {@code begin*()} methods mutually exclusive.  See
-     * {@link ActiveTransactionsException} for why a restore must never close the database while any of these remain
-     * outstanding.
+     * This is only ever read/written while holding this storage's monitor (by means of {@code synchronized} on relevant
+     * methods), which is what makes {@link #restore(RestoreConfig)} and the {@code begin*()} methods mutually
+     * exclusive.
+     * </p>
+     * <p>
+     * See {@link ActiveTransactionsException} for why a restore must never close the database while any of these
+     * remain outstanding.
      * </p>
      */
-    private int activeTransactions = 0;
-    private final ThreadLocal<AtomicInteger> threadActiveTransactions = ThreadLocal.withInitial(AtomicInteger::new);
+    private final ActiveTransactions activeTransactions = new ActiveTransactions();
     protected MetricsHolder metrics;
     protected final File dbDir;
     private Statistics stats;
@@ -179,7 +179,7 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
      * @return Default options for creating/opening the database
      */
     // S2095 - Creating options are assigned to a field and cleaned up in closeInternal() method
-    @SuppressWarnings({"resource", "java:S2095"})
+    @SuppressWarnings({ "resource", "java:S2095" })
     protected Options createDefaultOptions() {
         // Always want to create the database and column families if missing, otherwise we can't open a new blank
         // location as a database
@@ -354,7 +354,15 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
     @Override
     protected final void closeInternal() {
         try {
-            // Ensure any updated counters are persisted at close time
+            // Invalidate any active transactions, this ensures those transactions don't continue to try and reference
+            // RocksDB objects we're about to close, which potentially leads to JVM crashes
+            // Any active transactions could also prevent us from obtaining a transaction to persist counters so do this
+            // as the first thing in our close processing
+            LOGGER.info("Invalidating {} active transactions to prevent further activity against the closed storage",
+                        this.activeTransactions.count());
+            this.activeTransactions.invalidateAll();
+
+            // Ensure any updated counters are persisted
             persistCounters();
 
             for (final ColumnFamilyHandle cfHandle : columnFamilyHandles.values()) {
@@ -392,10 +400,13 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
     private synchronized void persistCounters() {
         if (!this.counters.isEmpty()) {
             LOGGER.info("Persisting counters to ensure their values are up to date...");
-            // NB - Deliberately uses beginUnchecked() rather than begin() because this runs as part of
-            //      closeInternal(), which during a restore() happens with the restoring flag already set, and begin()
-            //      refuses to start a transaction at that point
-            try (TransactionContext context = this.beginUnchecked()) {
+            // NB - Deliberately creates its own independent transaction, otherwise if the caller had an outer
+            //      transaction open begin() would merely join that transaction.  Since we're only being invoked from
+            //      closeInternal() the storage is closing so the outer transaction won't be valid once that completes
+            //      and any writes here we made would be lost as a result
+            try (TransactionContext context = new ShortLivedTransactionContext(this.db, this.sharedReadOptions,
+                                                                               this.sharedWriteOptions, false,
+                                                                               this.metrics, this.activeTransactions)) {
                 for (Map.Entry<String, RocksDBCounter> counter : this.counters.entrySet()) {
                     counter.getValue().update(context);
                     LOGGER.info("Counter {} persisted with value {}", counter.getKey(), counter.getValue().get());
@@ -581,44 +592,8 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
         }
         this.metrics.incrementTransactions();
         this.metrics.incrementActiveTransactions();
-        return trackedTransaction(
-                onReleased -> new ShortLivedTransactionContext(this.db, this.sharedReadOptions,
-                                                               this.sharedWriteOptions, false, this.metrics,
-                                                               onReleased));
-    }
-
-    /**
-     * Registers a transaction that is about to be handed out to a caller and wires it up so that this storage is told
-     * when the caller releases it
-     * <p>
-     * <strong>NB:</strong> Must be called while holding this object's monitor, i.e. from a {@code synchronized}
-     * method or block on this storage.
-     * </p>
-     *
-     * @param constructor Creates the transaction context, given the callback it must invoke when it releases its
-     *                    underlying native transaction
-     * @param <T>         Transaction context type
-     * @return Transaction context
-     */
-    private <T extends TransactionContext> T trackedTransaction(Function<Runnable, T> constructor) {
-        // NB - The callback deliberately captures the counter belonging to the thread that *opens* the transaction, a
-        //      context may in principle be closed by a different thread and the bookkeeping must still balance
-        final AtomicInteger owner = this.threadActiveTransactions.get();
-        owner.incrementAndGet();
-        this.activeTransactions++;
-        final Runnable onReleased = () -> releaseTransaction(owner);
-        try {
-            return constructor.apply(onReleased);
-        } catch (RuntimeException e) {
-            // No context was created so nothing will ever invoke the callback, undo the bookkeeping ourselves
-            onReleased.run();
-            throw e;
-        }
-    }
-
-    private synchronized void releaseTransaction(AtomicInteger owner) {
-        owner.decrementAndGet();
-        this.activeTransactions--;
+        return new ShortLivedTransactionContext(this.db, this.sharedReadOptions, this.sharedWriteOptions, false,
+                                                this.metrics, this.activeTransactions);
     }
 
     /**
@@ -639,9 +614,8 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
         // Standalone read - avoid RocksDB transaction and reuse the shared read options
         // NB - Tracked just like a real transaction because it holds the database and the shared read options, all of
         //      which a restore would free out from underneath it
-        return trackedTransaction(
-                onReleased -> new ReadOnlyTransactionContext(this.db, this.sharedReadOptions, false, this.metrics,
-                                                             onReleased));
+        return new ReadOnlyTransactionContext(this.db, this.sharedReadOptions, false, this.metrics,
+                                              this.activeTransactions);
     }
 
     /**
@@ -657,10 +631,8 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
             // options rather than allocating fresh native option objects
             this.metrics.incrementTransactions();
             this.metrics.incrementActiveTransactions();
-            context = trackedTransaction(
-                    onReleased -> new NestedTransactionContext(this.db, this.sharedReadOptions,
-                                                               this.sharedWriteOptions, false, this.metrics,
-                                                               onReleased));
+            context = new NestedTransactionContext(this.db, this.sharedReadOptions, this.sharedWriteOptions, false,
+                                                   this.metrics, this.activeTransactions);
             this.nestedTransactions.set(context);
             return context;
         } else {
@@ -853,13 +825,10 @@ public abstract class AbstractRocksDBStorage extends AbstractStorage implements 
         //      through close/reopen would be at least as destructive as a restore racing a transaction
         ensureNotClosed();
 
-        if (this.activeTransactions > 0) {
+        if (this.activeTransactions.count() > 0) {
             throw new ActiveTransactionsException(String.format(
-                    "Cannot restore RocksDB storage at %s while %d transaction(s) remain open on it, %d of which are held by the calling thread (%s).  "
-                            + "Restoring closes the database, which would free native memory that those transactions still point at and abort the JVM, so the database has been left untouched.  "
-                            + "Commit or close all transactions on this storage before restoring it, in particular never call restore() from inside a transaction.",
-                    this.dbDir.getAbsolutePath(), this.activeTransactions,
-                    this.threadActiveTransactions.get().get(), Thread.currentThread().getName()));
+                    "Cannot restore RocksDB storage at %s while %d transaction(s) remain open on it.  " + "Restoring closes the database, which would free native memory that those transactions still point at and abort the JVM, so the database has been left untouched.  " + "Commit or close all transactions on this storage before restoring it, in particular never call restore() from inside a transaction.",
+                    this.dbDir.getAbsolutePath(), this.activeTransactions.count()));
         }
 
         // NB - Set before closeInternal() runs so there is never a window in which the database is closed but neither

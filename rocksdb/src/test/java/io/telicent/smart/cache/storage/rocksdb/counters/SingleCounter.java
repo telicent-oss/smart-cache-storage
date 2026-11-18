@@ -17,6 +17,7 @@ package io.telicent.smart.cache.storage.rocksdb.counters;
 
 import io.telicent.smart.cache.storage.rocksdb.AbstractCounterTester;
 import io.telicent.smart.cache.storage.rocksdb.RocksDBCounter;
+import io.telicent.smart.cache.storage.rocksdb.TransactionContext;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
@@ -35,6 +36,10 @@ public class SingleCounter extends AbstractCounterTester {
     @Override
     protected Map<String, RocksDBCounter> prepareCounters() throws RocksDBException {
         return Map.of(NAME, createCounter(RocksDB.DEFAULT_COLUMN_FAMILY, NAME));
+    }
+
+    TransactionContext beginForTest() {
+        return this.beginNested();
     }
 
 }

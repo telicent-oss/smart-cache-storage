@@ -260,6 +260,33 @@ public class TestRocksDBLabelStore extends AbstractLabelStoreTests {
         }
     }
 
+    @Test
+    public void givenOuterTransaction_whenSettingLabelsAndClosingBeforeCommitting_thenNoPersistedAssignment()
+            throws Exception {
+        // Given
+        byte[] singleKey = "single-key".getBytes(StandardCharsets.UTF_8);
+        long id;
+        try (NestableRocksDbLabelsStore store = new NestableRocksDbLabelsStore(rocksDir.getAbsoluteFile())) {
+            try (TransactionContext outer = store.beginOuter()) {
+                id = store.idForLabel(label("public"));
+
+                // When
+                store.setLabels(Map.of(KEY, id));
+                store.setLabel(singleKey, id);
+                store.close();
+                outer.commit();
+            }
+        }
+
+        // Then
+        try (LabelsStore reopened = newStore()) {
+            Assert.assertNull(reopened.getLabel(KEY));
+            Assert.assertNull(reopened.getLabel(singleKey));
+            long newId = reopened.idForLabel(label("public"));
+            Assert.assertNotEquals(newId, id, "close() always persists the counters so a new ID should be issued");
+        }
+    }
+
     /**
      * Exposes the protected nested transaction API so tests can drive a long-running outer transaction in the same way
      * that callers such as RDF-ABAC do

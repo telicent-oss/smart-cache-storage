@@ -211,4 +211,20 @@ public class TestReadOnlyTransactionContext {
         // Then
         consumer.accept(context);
     }
+
+    @Test(expectedExceptions = UnsupportedOperationException.class, dataProvider = "closedConsumers")
+    public void givenReadOnlyContext_whenUsedAfterInvalidate_thenUnsupported(
+            Consumer<ReadOnlyTransactionContext> consumer) {
+        // Given
+        TransactionDB db = mock(TransactionDB.class);
+        MetricsHolder metrics = mock(MetricsHolder.class);
+        ReadOptions readOptions = mock(ReadOptions.class);
+
+        // When
+        ReadOnlyTransactionContext context = new ReadOnlyTransactionContext(db, readOptions, false, metrics);
+        context.invalidate();
+
+        // Then
+        consumer.accept(context);
+    }
 }

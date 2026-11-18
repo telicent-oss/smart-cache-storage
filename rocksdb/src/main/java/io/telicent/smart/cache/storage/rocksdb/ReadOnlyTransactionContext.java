@@ -36,7 +36,7 @@ public class ReadOnlyTransactionContext implements TransactionContext {
     private final boolean ownsOptions;
     private boolean closed = false;
     private MetricsHolder metrics;
-    private final Runnable onReleased;
+    private final ActiveTransactions activeTransactions;
 
     /**
      * Creates a new read-only context that owns the supplied options.
@@ -55,30 +55,30 @@ public class ReadOnlyTransactionContext implements TransactionContext {
      * @param readOptions Read options
      * @param ownsOptions Whether this context owns the supplied options
      */
-    public ReadOnlyTransactionContext(TransactionDB db, ReadOptions readOptions, boolean ownsOptions, MetricsHolder metrics) {
+    public ReadOnlyTransactionContext(TransactionDB db, ReadOptions readOptions, boolean ownsOptions,
+                                      MetricsHolder metrics) {
         this(db, readOptions, ownsOptions, metrics, null);
     }
 
     /**
      * Creates a new read-only context.
      *
-     * @param db          Transactional Rocks DB
-     * @param readOptions Read options
-     * @param ownsOptions Whether this context owns the supplied options
-     * @param metrics     Metrics
-     * @param onReleased  Optional callback invoked exactly once when this context is closed.  Used by
-     *                    {@link AbstractRocksDBStorage} to know when it no longer has any transactions outstanding,
-     *                    see {@link ActiveTransactionsException} for why that matters.  May be {@code null}.
+     * @param db                 Transactional Rocks DB
+     * @param readOptions        Read options
+     * @param ownsOptions        Whether this context owns the supplied options
+     * @param metrics            Metrics
+     * @param activeTransactions Active transactions tracker
      */
     public ReadOnlyTransactionContext(TransactionDB db, ReadOptions readOptions, boolean ownsOptions,
-                                      MetricsHolder metrics, Runnable onReleased) {
+                                      MetricsHolder metrics, ActiveTransactions activeTransactions) {
         this.db = Objects.requireNonNull(db, "db cannot be null");
         this.readOptions = Objects.requireNonNull(readOptions, "readOptions cannot be null");
         this.ownsOptions = ownsOptions;
         this.metrics = Objects.requireNonNull(metrics, "Metrics cannot be null");
-        this.onReleased = onReleased != null ? onReleased : () -> {
-            // No-op, caller does not care when this context is released
-        };
+        this.activeTransactions = activeTransactions;
+        if (this.activeTransactions != null) {
+            this.activeTransactions.track(this);
+        }
     }
 
     private void ensureNotClosed() {
@@ -120,13 +120,20 @@ public class ReadOnlyTransactionContext implements TransactionContext {
                 closeOwnedOptions();
             } finally {
                 this.metrics.decrementActiveTransactions();
-                this.onReleased.run();
+                if (this.activeTransactions != null) {
+                    this.activeTransactions.release(this);
+                }
             }
         }
     }
 
     @Override
     public void close() {
+        commit();
+    }
+
+    @Override
+    public void invalidate() {
         commit();
     }
 
@@ -180,5 +187,10 @@ public class ReadOnlyTransactionContext implements TransactionContext {
     @Override
     public void delete(ColumnFamilyHandle handle, byte[] key) {
         throw new UnsupportedOperationException("Read-only transactions do not support deletes");
+    }
+
+    @Override
+    public void putUntracked(ColumnFamilyHandle cfHandle, byte[] key, byte[] value) {
+        throw new UnsupportedOperationException("Read-only transactions do not support puts");
     }
 }

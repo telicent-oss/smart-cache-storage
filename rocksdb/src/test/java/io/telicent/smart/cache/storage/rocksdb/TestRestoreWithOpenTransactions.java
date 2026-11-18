@@ -83,7 +83,7 @@ public class TestRestoreWithOpenTransactions {
                     expectThrows(ActiveTransactionsException.class, () -> this.storage.restore(restoreConfig()));
 
             // Then
-            assertTrue(e.getMessage().contains("1 of which are held by the calling thread"), e.getMessage());
+            assertTrue(e.getMessage().contains("1 transaction(s) remain open on it"), e.getMessage());
             assertTrue(context.isActive(), "Transaction should have been left alone by the refused restore");
             // The database must still be open, i.e. the restore refused before closing anything
             assertEquals(context.get(this.storage.getDefaultHandle(), RestoreHazardStorage.KEY), VALUE);
@@ -133,7 +133,7 @@ public class TestRestoreWithOpenTransactions {
                     expectThrows(ActiveTransactionsException.class, () -> this.storage.restore(restoreConfig()));
 
             // Then
-            assertTrue(e.getMessage().contains("0 of which are held by the calling thread"), e.getMessage());
+            assertTrue(e.getMessage().contains("1 transaction(s) remain open on it"), e.getMessage());
         } finally {
             release.countDown();
             other.join(TimeUnit.SECONDS.toMillis(10));

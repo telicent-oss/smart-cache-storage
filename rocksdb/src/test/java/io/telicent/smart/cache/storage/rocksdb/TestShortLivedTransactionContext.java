@@ -151,6 +151,25 @@ public class TestShortLivedTransactionContext {
         }
     }
 
+    @Test(expectedExceptions = UnsupportedOperationException.class, dataProvider = "consumers")
+    public void givenMockTransaction_whenInvalidated_thenOperationsAfterCloseThrowsIllegalState(
+            Consumer<TransactionContext> consumer) {
+        // Given
+        TransactionDB db = mock(TransactionDB.class);
+        Transaction transaction = mock(Transaction.class);
+        when(db.beginTransaction(any())).thenReturn(transaction);
+        MetricsHolder metrics = mock(MetricsHolder.class);
+        ReadOptions readOptions = mock(ReadOptions.class);
+        WriteOptions writeOptions = mock(WriteOptions.class);
+        try (TransactionContext context = new ShortLivedTransactionContext(db, readOptions, writeOptions, metrics)) {
+            // When
+            context.invalidate();
+
+            // Then
+            consumer.accept(context);
+        }
+    }
+
     @Test
     public void givenMockTransaction_whenPuttingUntracked_thenDelegatesToUntrackedPut() throws RocksDBException {
         // Given
