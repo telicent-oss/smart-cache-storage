@@ -32,7 +32,7 @@ public class ActiveTransactions {
      *
      * @return Active transactions count
      */
-    public int count() {
+    public synchronized int count() {
         return this.active.size();
     }
 
@@ -41,7 +41,7 @@ public class ActiveTransactions {
      *
      * @param transaction Transaction
      */
-    public void track(TransactionContext transaction) {
+    public synchronized void track(TransactionContext transaction) {
         if (transaction == null) {
             return;
         }
@@ -54,7 +54,7 @@ public class ActiveTransactions {
      *
      * @param transaction Transaction
      */
-    public void release(TransactionContext transaction) {
+    public synchronized void release(TransactionContext transaction) {
         if (transaction == null) {
             return;
         }
@@ -64,13 +64,11 @@ public class ActiveTransactions {
     /**
      * Invalidates all active transactions by calling {@link TransactionContext#invalidate()} on them
      */
-    public void invalidateAll() {
+    public synchronized void invalidateAll() {
         // NB - We take an explicit copy of the list before calling forEach() because a TransactionContext's
         //      invalidate() implementation is supposed to call release() which removes the transaction from the list.
         //      So without a copy we'd get a ConcurrentModificationException
         new ArrayList<>(this.active).forEach(TransactionContext::invalidate);
-        if (!this.active.isEmpty()) {
-            this.active.clear();
-        }
+        this.active.clear()
     }
 }
