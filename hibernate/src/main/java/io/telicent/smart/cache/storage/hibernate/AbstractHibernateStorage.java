@@ -31,6 +31,7 @@ import org.flywaydb.core.Flyway;
 import org.hibernate.KeyType;
 import org.hibernate.ScrollableResults;
 import org.hibernate.query.Page;
+import org.hibernate.query.criteria.JpaExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -565,6 +566,17 @@ public abstract class AbstractHibernateStorage extends AbstractStorage {
         return query;
     }
 
+    protected TypedQuery<Long> prepareNamedCountQuery(TransactionContext transaction,
+                                                      String queryName, Map<String, Object> queryParameters) {
+        TypedQuery<Long> query = transaction.getEntityManager().createNamedQuery(queryName, Long.class);
+        if (MapUtils.isNotEmpty(queryParameters)) {
+            for (Map.Entry<String, Object> entry : queryParameters.entrySet()) {
+                query.setParameter(entry.getKey(), entry.getValue());
+            }
+        }
+        return query;
+    }
+
     /**
      * Provides an iterator that allows scrolling through all entities of a given type, at most the specified
      * {@code page} size is held in-memory at any one time.
@@ -675,6 +687,23 @@ public abstract class AbstractHibernateStorage extends AbstractStorage {
         ensureNotClosed();
         TypedQuery<TStored> query = prepareNamedQuery(transaction, entityClass, queryName, queryParameters);
         return new PagedResultIterator<>(transaction, query, loader, page, shouldCloseTransaction);
+    }
+
+    protected <T> PageInfo calculatePageInfo(TransactionContext transaction, Class<T> entityClass, Page page) {
+        CriteriaBuilder cb = transaction.getSession().getCriteriaBuilder();
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<T> rootEntry = cq.from(entityClass);
+        CriteriaQuery<Long> count = cq.select(cb.count(rootEntry));
+        long results = transaction.getEntityManager().createQuery(count).getSingleResult();
+        return new PageInfo(page.getSize(), results);
+    }
+
+    protected PageInfo calculatePageInfo(TransactionContext transaction, String queryName,
+                                         Map<String, Object> queryParameters, Page page) {
+        TypedQuery<Long> count = prepareNamedCountQuery(transaction, queryName, queryParameters);
+        Long results = count.getSingleResultOrNull();
+        return new PageInfo(page.getSize(), results != null ? results : 0);
+
     }
 }
 

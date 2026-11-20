@@ -16,6 +16,7 @@
 package io.telicent.smart.cache.storage.hibernate.model;
 
 import io.telicent.smart.cache.storage.hibernate.AbstractHibernateStorage;
+import io.telicent.smart.cache.storage.hibernate.PageInfo;
 import io.telicent.smart.cache.storage.hibernate.TransactionContext;
 import io.telicent.smart.cache.storage.hibernate.configuration.JpaConfiguration;
 import org.flywaydb.core.Flyway;
@@ -104,17 +105,33 @@ public class OrderManager extends AbstractHibernateStorage {
 
     public Iterator<Product> iterateProducts(Page page) {
         ensureNotClosed();
-        TransactionContext context = this.begin();
-        return this.<Product, Product>scrollAll(context, Product.class, page != null ? page : Page.first(10),
+        TransactionContext transaction = this.begin();
+        return this.<Product, Product>scrollAll(transaction, Product.class, page != null ? page : Page.first(10),
                                                 List.of("id"), x -> x, true);
+    }
+
+    public PageInfo productPageInfo(Page page) {
+        ensureNotClosed();
+        try (TransactionContext transaction = this.begin()) {
+            return this.calculatePageInfo(transaction, Product.class, page);
+        }
+    }
+
+    public PageInfo productPageInfo(Page page, boolean inStock) {
+        ensureNotClosed();
+        try (TransactionContext transaction = this.begin()) {
+            return this.calculatePageInfo(transaction, inStock ? "inStockCount" : "outOfStockCount", Collections.emptyMap(),
+                                          page);
+        }
     }
 
     public Iterator<Product> badIterateProducts(Page page) {
         ensureNotClosed();
-        try (TransactionContext context = this.begin()) {
+        try (TransactionContext transaction = this.begin()) {
             // BAD: The iterator needs to hold a reference to the active transaction, when returned in this way the
             // transaction is closed by the time the caller tries to iterate and nothing will be returned
-            return this.scrollAll(context, Product.class, page != null ? page : Page.first(10), List.of("id"), x -> x,
+            return this.scrollAll(transaction, Product.class, page != null ? page : Page.first(10), List.of("id"),
+                                  x -> x,
                                   true);
         }
     }

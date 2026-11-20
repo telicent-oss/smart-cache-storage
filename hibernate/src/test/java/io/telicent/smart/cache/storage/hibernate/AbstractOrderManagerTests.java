@@ -491,4 +491,26 @@ public abstract class AbstractOrderManagerTests {
                                                     "Product " + p.getCode() + " has wrong stock"), 100);
         }
     }
+
+    @Test
+    public void givenPopulatedStore_whenCalculatingPageInfo_thenAsExpected() {
+        // Given
+        try (OrderManager orderManager = createOrderManager()) {
+            generateProducts(orderManager, 100, 0);
+
+            // When
+            Page page = Page.first(10);
+            PageInfo all = orderManager.productPageInfo(page);
+            PageInfo inStock = orderManager.productPageInfo(page, true);
+            PageInfo outOfStock = orderManager.productPageInfo(page, false);
+
+            // Then
+            Assert.assertEquals(all.getTotalResults(), 100);
+            Assert.assertEquals(all.getTotalPages(), 10);
+            Assert.assertEquals(inStock.getTotalResults(), 0);
+            Assert.assertEquals(inStock.getTotalPages(), 1);
+            Assert.assertEquals(outOfStock.getTotalResults(), 100);
+            Assert.assertEquals(outOfStock.getTotalPages(), 10);
+        }
+    }
 }
