@@ -19,7 +19,6 @@ import io.telicent.smart.cache.storage.hibernate.AbstractHibernateStorage;
 import io.telicent.smart.cache.storage.hibernate.TransactionContext;
 import io.telicent.smart.cache.storage.hibernate.configuration.HibernateConfiguration;
 import io.telicent.smart.cache.storage.hibernate.configuration.JpaConfiguration;
-import org.hibernate.KeyType;
 
 import java.util.List;
 import java.util.Properties;

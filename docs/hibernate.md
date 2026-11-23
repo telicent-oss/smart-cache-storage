@@ -129,6 +129,90 @@ that caused JPA/Hibernate to do its own schema generation then that should be re
 then those implementations should ensure that they configure Flyway to use different sets of migration scripts e.g. by
 setting `sqlMigrationPrefix()` differently on each Flyway configuration.
 
+## Helper Methods
+
+`AbstractHibernateStorage` provides a variety of protected methods that help implement common Hibernate storage
+patterns, here we summarise these.  As already noted please refer to the test [`OrderManager`][OrderManager] class for
+an exemplar implementation.
+
+### `getOrCreate` helpers
+
+There are three helper methods here that implement the pattern of looking up an existing entity, and inserting a new one
+if it doesn't yet exist.  In all cases these attempt to look up and return a pre-existing entity first, if it doesn't
+exist then the provided `Supplier` is used to create a new entity.  Callers **MUST** ensure they `commit()` the provided
+[`TransactionContext`](#transaction-contexts) as otherwise a newly created entity will not be persistent.
+
+- `getOrCreateById()` method gets/creates based on the primary key field for the entity.
+- `getOrCreateByNaturalId()` method gets/creates based on the `@NaturalId` field for the entity.
+- `getOrCreateByNamedQuery()` methods gets/creates based upon a JPA `@NamedQuery`, this query **MUST** return at most 1
+  entity otherwise an `IllegalStateException` is thrown.
+
+### `loadByNaturalId()`
+
+The `loadByNaturalId()` helper attempts to load an entity based upon its `@NaturalId` field, this returns either the
+entity or `null` if no such entity.
+
+An optional "loader function" parameter can be provided to transform from the stored entity type to the domain model
+type if those types differ.
+
+Note that [`getOrCreateByNaturalId()`](#getorcreate-helpers) might be the more appropriate method for some use cases.
+
+### `loadByNamedQuery()`
+
+The `loadByNamedQuery()` helpers allow loading a list of entities based upon a JPA `@NamedQuery` defined on one of your
+entity types.  Various overloads are provided that allow for customisation of the loading, including:
+
+- A `Map<String, Object>` to provide the named parameters to the named query.
+- An optional Hibernate `Page` to specify paging for the query, i.e., return a subset of results for the named query.
+- An optional "loader function" to transform from the stored entity type to the domain model type if those types differ.
+
+Note that when a `Page` parameter is provided the caller **MUST** ensure that the named query imposes a [stable sort
+order](#stable-order-requirement) on the results otherwise the returned pages may repeat entities if any database
+mutation occurs during paging.
+
+If you just want to load all entities of a given type use the [`loadAll()`](#loadall) helpers instead.
+
+### `loadAll()`
+
+The `loadAll()` helpers allow loading a list of all entities of a given type.  Various overloads are provided that allow
+for customisation of the loading, including:
+
+- An optional Hibernate `Page` to specify paging for the query, i.e., return a subset of entities.
+- An optional `List<String>` indicating fields to order by.
+- An optional "loader function" to transform from the stored entity type to the domain model type if those types differ.
+
+### `prepare` helpers
+
+The prepare helper methods are used by other helper methods, or derived storage, to help in preparing queries for
+execution.  These all return an appropriate JPA `TypedQuery`:
+
+- `prepareSelectAllQuery()` prepares a JPA Criteria Query that selects all entities of a given type with optional
+  ordering and a return type of the specified entity class.
+- `prepareNamedQuery()` prepares a JPA Named Query with the given parameters specified and a return type of the
+  specified entity class.
+- `prepareNamedCountQuery()` prepares a JPA Named Query with the given parameters specified and a return type of `Long`.
+
+### `scroll` helpers
+
+The scroll helper methods are used to return an `Iterator` over stored entities with automatic paging so at most the
+page size of entities is held in memory at any one time.
+
+> **IMPORTANT** Since these helpers return an `Iterator`, and this holds a reference to the
+> [`TransactionContext`](#transaction-contexts) derived storage **MUST** ensure it **DOES NOT** `close()`/`commit()` the
+> transaction prior to returning the iterator, otherwise the iterator will not be able to page results on demand.
+
+- `scrollAll()` returns an iterator over all instances of a given entity type.
+- `scrollByNamedQuery()` returns an iterator over all entities that are returned by a named query.
+
+Please see the [Pagination](#pagination) section for more details.
+
+### `calculatePageInfo()`
+
+The `calculatePageInfo()` helpers can be used to return a `PageInfo` instance that indicates how many results, and thus
+how many pages of results, are available for either an entity type, or a named query.  
+
+Please see the [Pagination](#pagination) section for more details.
+
 ## JSON Fields
 
 The `hibernate` module includes a dependency on [Hypersistence Utils][HypUtils] which adds support for JSON
@@ -165,20 +249,45 @@ some unnecessary `UPDATE` statements may be issued to the underlying database in
 
 Please refer to [JsonStore][JsonStore] and [JsonHolder][JsonHolder] for exemplars of JSON typed fields.
 
-## Pagination
+## Pagination
 
 As this module is based on standard JPA and Hibernate you can use the standardised capabilities for paging where needed.
-In particular from `0.17.0` onwards we added a `Page` typed parameter to a number of helper methods to allow developers
-to supply their desired page of results.
+In particular from `0.17.0` onwards we added a `Page` typed parameter to a number of helper method overloads, e.g.,
+[`loadAll()`](#loadall) and [`loadByNamedQuery()`](#loadbynamedquery), to allow developers to supply their desired page
+of results.
 
-Additionally `0.17.0` added new `scrollAll()` and `scrollByNamedQuery()` helper methods that allow developers to obtain
-an `Iterator` over the entities.  The iterator only ever holds at most the given page size of entities in-memory itself
-keeping memory usage low and allowing processing of very large databases.  Note that for iteration to be consistent a
-stable sort order must be defined, either by the caller for `scrollAll()`, or by the named query used for
-`scrollByNamedQuery()`.  If a stable sort order is not defined then its possible for the iterator to return the same
-entities multiple times even as it advances the page internally, this is particularly likely to happen if the caller is
-updating the database as they iterate it.  For scenarios like that we would strongly recommend using the primary key of
-the entities, especially if its a `@Generated` auto-incrementing `@Id` value.
+Additionally `0.17.0` added new [`scrollAll()` and `scrollByNamedQuery()`](#scroll-helpers) helper methods that allow
+developers to obtain an `Iterator` over the entities.  The iterator only ever holds at most the given page size of
+entities in-memory itself keeping memory usage low and allowing processing of very large databases.  
+
+### Stable Order Requirement
+
+Note that for iteration to be consistent a stable sort order must be defined, either by the caller for `scrollAll()`, or
+by the named query used for `scrollByNamedQuery()`.  If a stable sort order is not defined then its possible for the
+iterator to return the same entities multiple times even as it advances the page internally, this is particularly likely
+to happen if the caller is updating the database as they iterate it.  For scenarios like that we would strongly
+recommend using the primary key of the entities, especially if its a `@Generated` auto-incrementing `@Id` value.
+
+### Calculating Available Pages
+
+`0.17.0` also adds new `calculatePageInfo()` methods that allows derived storage to calculate how many pages would be
+available for a given query.  Note that because JPA/Hibernate does not provide a simple way to transform a named query
+into a `COUNT()` variant of that query developers **MUST** define a separate JPA `@NamedQuery` that allows counting the
+results that would be reduced by a named query e.g.
+
+```java
+@NamedQuery(name = "inStock", query = """
+        SELECT p FROM Product p WHERE p.available>0
+        """)
+@NamedQuery(name = "inStockCount", query = """
+        SELECT COUNT(p) FROM Product p WHERE p.available>0
+        """)
+```
+
+To paginate over that named query you would use `scrollByNamedQuery()` with `inStock` as the `queryName` parameter, but
+to calculate available pages you would use `calculatePageInfo()` with `inStockCount` as the `queryName` parameter.  The
+named query specified for any call to `calculatePageInfo()` **MUST** return a `Long` result otherwise a type error will
+be generated at runtime.
 
 [OrderManager]: ../hibernate/src/test/java/io/telicent/smart/cache/storage/hibernate/model/OrderManager.java
 [HibExamples]: ../hibernate/src/test/java/io/telicent/smart/cache/storage/hibernate/

@@ -17,6 +17,7 @@ package io.telicent.smart.cache.storage.hibernate;
 
 import io.telicent.smart.cache.storage.hibernate.model.Address;
 import io.telicent.smart.cache.storage.hibernate.model.OrderManager;
+import io.telicent.smart.cache.storage.hibernate.model.PagedList;
 import io.telicent.smart.cache.storage.hibernate.model.Product;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -26,8 +27,10 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.math.BigDecimal;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -485,7 +488,6 @@ public abstract class AbstractOrderManagerTests {
             orderManager.restockAll(100);
 
             // Then
-            List<Product> ps = orderManager.listProducts();
             verifyIterator(orderManager.iterateProducts(Page.first(25)),
                            p -> Assert.assertEquals(p.getAvailable(), 100,
                                                     "Product " + p.getCode() + " has wrong stock"), 100);
@@ -511,6 +513,35 @@ public abstract class AbstractOrderManagerTests {
             Assert.assertEquals(inStock.getTotalPages(), 1);
             Assert.assertEquals(outOfStock.getTotalResults(), 100);
             Assert.assertEquals(outOfStock.getTotalPages(), 10);
+        }
+    }
+
+    @Test
+    public void givenPopulatedStore_whenLoadingProductsByPage_thenAsExpected() {
+        // Given
+        try (OrderManager orderManager = createOrderManager()) {
+            generateProducts(orderManager, 100);
+
+            // When
+            Page page = Page.first(10);
+            int pageNum = 1;
+            PagedList<Product> products = orderManager.pageProducts(page);
+            Set<String> productCodes = new HashSet<>();
+            while (true) {
+                // Then
+                if (pageNum > products.getPaging().getTotalPages()) {
+                    Assert.assertTrue(products.getItems().isEmpty(), "Once total pages exceeded then page should be empty");
+                    break;
+                } else {
+                    Assert.assertFalse(products.getItems().isEmpty(), "Page " + pageNum + " should not be empty");
+                }
+                products.getItems().forEach(Assert::assertNotNull);
+                productCodes.addAll(products.getItems().stream().map(Product::getCode).toList());
+                pageNum++;
+                page = page.next();
+                products = orderManager.pageProducts(page);
+            }
+            Assert.assertEquals(productCodes.size(), 100);
         }
     }
 }

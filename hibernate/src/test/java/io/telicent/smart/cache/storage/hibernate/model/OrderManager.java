@@ -20,10 +20,7 @@ import io.telicent.smart.cache.storage.hibernate.PageInfo;
 import io.telicent.smart.cache.storage.hibernate.TransactionContext;
 import io.telicent.smart.cache.storage.hibernate.configuration.JpaConfiguration;
 import org.flywaydb.core.Flyway;
-import org.hibernate.query.Order;
 import org.hibernate.query.Page;
-import org.hibernate.query.sqm.tree.expression.SqmExpression;
-import org.hibernate.query.sqm.tree.select.SqmSortSpecification;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -103,6 +100,15 @@ public class OrderManager extends AbstractHibernateStorage {
         }
     }
 
+    public PagedList<Product> pageProducts(Page page) {
+        ensureNotClosed();
+        try (TransactionContext transaction = this.begin()) {
+            PageInfo info = this.calculatePageInfo(transaction, Product.class, page);
+            List<Product> products = this.loadAll(transaction, Product.class, page, List.of("id"), x -> x);
+            return new PagedList<>(info, products);
+        }
+    }
+
     public Iterator<Product> iterateProducts(Page page) {
         ensureNotClosed();
         TransactionContext transaction = this.begin();
@@ -120,7 +126,8 @@ public class OrderManager extends AbstractHibernateStorage {
     public PageInfo productPageInfo(Page page, boolean inStock) {
         ensureNotClosed();
         try (TransactionContext transaction = this.begin()) {
-            return this.calculatePageInfo(transaction, inStock ? "inStockCount" : "outOfStockCount", Collections.emptyMap(),
+            return this.calculatePageInfo(transaction, inStock ? "inStockCount" : "outOfStockCount",
+                                          Collections.emptyMap(),
                                           page);
         }
     }

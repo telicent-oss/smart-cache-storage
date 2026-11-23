@@ -20,7 +20,17 @@ import lombok.Getter;
 import lombok.ToString;
 
 /**
- * Provides information about pages of results from a query
+ * Provides information about available pages of results from a query
+ * <p>
+ * More specifically given a page size and a known total number of results it indicates how many pages of results are
+ * available via {@link #getTotalPages()}.
+ * </p>
+ * <p>
+ * There is always at least {@code 1} page of results available, this may be empty when the total results are {@code 0},
+ * i.e., empty results.  Total pages reported also always includes partial pages, i.e., depending on the
+ * {@link #getTotalResults()} there may be some number of full pages followed by a final partial page if the
+ * {@link #getPageSize()} is not an exact divisor of {@link #getTotalResults()}.
+ * </p>
  *
  */
 @Getter

@@ -86,11 +86,20 @@ class PagedResultIterator<TStored, T> implements Iterator<T> {
             markFinished();
             return;
         }
-        // Otherwise load the next page of results
+
+        // Before loading the next page of results flush() and clear() the entity manager otherwise we might continue
+        // to hold those entities in-memory beyond the lifetime of that page.  For iteration over very large query
+        // results this could cause memory consumption problems.
+        this.context.getEntityManager().flush();
+        this.context.getEntityManager().clear();
+
+        // Then load the next page of results
         this.query.setFirstResult(this.page.getNumber() * this.page.getSize());
         this.query.setMaxResults(this.page.getSize());
         LOGGER.debug("Loading page {} of size {} results", this.page.getNumber(), this.page.getSize());
         this.currentPage.addAll(this.query.getResultList().stream().map(this.loader).toList());
+
+        // Check whether this is the last page of results and update state accordingly
         if (this.currentPage.isEmpty()) {
             // If no results were returned we've reached the end of the results and don't need to attempt any further
             // queries.  At this point we close the transaction if we've been configured to do so.

@@ -23,22 +23,18 @@ import jakarta.persistence.NamedQuery;
 import jakarta.persistence.Persistence;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.*;
-import jakarta.persistence.metamodel.SingularAttribute;
 import lombok.ToString;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.flywaydb.core.Flyway;
 import org.hibernate.KeyType;
-import org.hibernate.ScrollableResults;
 import org.hibernate.query.Page;
-import org.hibernate.query.criteria.JpaExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 /**
  * An abstract storage layer using Hibernate plus JPA to provide persistent {@link jakarta.persistence.Entity} centric
@@ -138,6 +134,10 @@ public abstract class AbstractHibernateStorage extends AbstractStorage {
      * <p>
      * The {@link jakarta.persistence.Entity} annotated class <strong>MUST</strong> have one, and only one, field
      * annotated with the Hibernate {@link org.hibernate.annotations.NaturalId} annotation.
+     * </p>
+     * <p>
+     * Callers <strong>MUST</strong> ensure they {@link TransactionContext#commit()} the provided transaction to ensure
+     * any newly created entity is actually persisted.
      * </p>
      *
      * @param transaction Transaction Context
@@ -454,13 +454,13 @@ public abstract class AbstractHibernateStorage extends AbstractStorage {
                                                     String queryName, Map<String, Object> queryParameters, Page page,
                                                     Function<List<TStored>, List<T>> loader) {
         ensureNotClosed();
-        TypedQuery<TStored> all = prepareNamedQuery(transaction, entityClass, queryName, queryParameters);
+        TypedQuery<TStored> query = prepareNamedQuery(transaction, entityClass, queryName, queryParameters);
         if (page != null) {
-            all.setFirstResult(page.getNumber() * page.getSize());
-            all.setMaxResults(page.getSize());
+            query.setFirstResult(page.getNumber() * page.getSize());
+            query.setMaxResults(page.getSize());
         }
 
-        return loader.apply(all.getResultList());
+        return loader.apply(query.getResultList());
     }
 
     /**
@@ -498,9 +498,54 @@ public abstract class AbstractHibernateStorage extends AbstractStorage {
      */
     protected <TStored, T> List<T> loadAll(TransactionContext transaction, Class<TStored> entityClass,
                                            Function<List<TStored>, List<T>> loader) {
+        return loadAll(transaction, entityClass, null, null, loader);
+    }
+
+    /**
+     * Loads all entities
+     * <p>
+     * The provided entity class <strong>MUST</strong> be annotated with JPA {@link jakarta.persistence.Entity}
+     * </p>
+     * <p>
+     * The optional {@code page} parameter controls how many results are returned, allowing a caller to page through
+     * results and not return them all in a single call.  Use
+     * {@link #calculatePageInfo(TransactionContext, Class, Page)} to calculate how many pages are available for the
+     * given entity type.
+     * </p>
+     * <p>
+     * As opposed to the {@link #loadAll(TransactionContext, Class)} overload this method allows for a loader function
+     * that can mutate the loaded entities before returning it e.g. unwrapping a JPA {@link jakarta.persistence.Entity}
+     * into a plain POJO, calculating computed properties, forcing lazily loaded JPA properties to be fetched etc.
+     * </p>
+     * <h4>Stable Ordering Requirement</h4>
+     * <p>
+     * Importantly the caller <strong>MUST</strong> provide a stable ordering of the entities, ideally by a non-mutable
+     * field like its primary key field.  Otherwise, if the database is updated between calls to retrieve the next page
+     * there's no guarantee that it won't just return the same entities again.
+     * </p>
+     * <p>
+     * For this method the ordering will be by the field names given, each in ascending order with nulls first.  If you
+     * want more control over the ordering then use
+     * {@link #loadByNamedQuery(TransactionContext, Class, String, Map, Page)} instead and specify the desired ordering
+     * in the named query.
+     * </p>
+     *
+     * @param transaction Transaction Context
+     * @param entityClass Entity Class
+     * @param loader      Loader function that transforms the stored entity type into the desired output type
+     * @param <TStored>   Entity type
+     * @param <T>         Output type
+     * @return All entities, potentially transformed by the loader function
+     */
+    protected <TStored, T> List<T> loadAll(TransactionContext transaction, Class<TStored> entityClass, Page page,
+                                           List<String> ordering, Function<List<TStored>, List<T>> loader) {
         ensureNotClosed();
 
-        TypedQuery<TStored> allQuery = prepareSelectAllQuery(transaction, entityClass, null);
+        TypedQuery<TStored> allQuery = prepareSelectAllQuery(transaction, entityClass, ordering);
+        if (page != null) {
+            allQuery.setFirstResult(page.getNumber() * page.getSize());
+            allQuery.setMaxResults(page.getSize());
+        }
         List<TStored> stored = allQuery.getResultList();
         return loader.apply(stored);
     }
@@ -566,8 +611,27 @@ public abstract class AbstractHibernateStorage extends AbstractStorage {
         return query;
     }
 
-    protected TypedQuery<Long> prepareNamedCountQuery(TransactionContext transaction,
-                                                      String queryName, Map<String, Object> queryParameters) {
+    /**
+     * Prepares a named query that returns a single count as a long
+     * <p>
+     * There must be a JPA {@link jakarta.persistence.NamedQuery} annotation on one of your persistence units entity
+     * classes whose {@link NamedQuery#name()} matches the provided query name defined.
+     * </p>
+     * <p>
+     * The provided {@code queryParameters} map allows to pass in parameters for the named query, the values
+     * <strong>MUST</strong> match the expected JPA types e.g. if joining by entities then the caller
+     * <strong>MUST</strong> supply an instance of that entity, likely retrieved by a previous operation e.g.
+     * {@link #getOrCreateByNaturalId(TransactionContext, Object, Class, Supplier)} or
+     * {@link #loadByNaturalId(TransactionContext, Object, Class, Function)}.
+     * </p>
+     *
+     * @param transaction     Transaction context
+     * @param queryName       Query Name
+     * @param queryParameters Parameters for the named query
+     * @return Prepared named query
+     */
+    protected TypedQuery<Long> prepareNamedCountQuery(TransactionContext transaction, String queryName,
+                                                      Map<String, Object> queryParameters) {
         TypedQuery<Long> query = transaction.getEntityManager().createNamedQuery(queryName, Long.class);
         if (MapUtils.isNotEmpty(queryParameters)) {
             for (Map.Entry<String, Object> entry : queryParameters.entrySet()) {
@@ -689,6 +753,21 @@ public abstract class AbstractHibernateStorage extends AbstractStorage {
         return new PagedResultIterator<>(transaction, query, loader, page, shouldCloseTransaction);
     }
 
+    /**
+     * Calculates how many pages would be available if using
+     * {@link #loadAll(TransactionContext, Class, Page, List, Function)} or
+     * {@link #scrollAll(TransactionContext, Class, Page, List, Function, boolean)}.
+     * <p>
+     * This is designed to allow the caller to augment results they may be obtaining with metadata about how many pages
+     * of results are currently available.
+     * </p>
+     *
+     * @param transaction Transaction context
+     * @param entityClass Entity class
+     * @param page        Page
+     * @param <T>         Entity type
+     * @return Page information
+     */
     protected <T> PageInfo calculatePageInfo(TransactionContext transaction, Class<T> entityClass, Page page) {
         CriteriaBuilder cb = transaction.getSession().getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
@@ -698,6 +777,21 @@ public abstract class AbstractHibernateStorage extends AbstractStorage {
         return new PageInfo(page.getSize(), results);
     }
 
+    /**
+     * Calculates how many pages would be available if using
+     * {@link #loadByNamedQuery(TransactionContext, Class, String, Map, Page, Function)} or
+     * {@link #scrollByNamedQuery(TransactionContext, Class, String, Map, Page, Function, boolean)}
+     * <p>
+     * This is designed to allow the caller to augment results they may be obtaining with metadata about how many pages
+     * of results are currently available.
+     * </p>
+     *
+     * @param transaction     Transaction context
+     * @param queryName       Query name
+     * @param queryParameters Query parameters
+     * @param page            Page
+     * @return Page information
+     */
     protected PageInfo calculatePageInfo(TransactionContext transaction, String queryName,
                                          Map<String, Object> queryParameters, Page page) {
         TypedQuery<Long> count = prepareNamedCountQuery(transaction, queryName, queryParameters);
