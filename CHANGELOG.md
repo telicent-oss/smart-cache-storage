@@ -1,5 +1,8 @@
 # Smart Cache - Storage Libraries - Change Log
 
+# 0.16.1
+- Dependency update: SC Core v1.21.1 (Jena v6.3.0)
+
 # 0.16.0
 
 - Distribution State Hibernate improvements:
