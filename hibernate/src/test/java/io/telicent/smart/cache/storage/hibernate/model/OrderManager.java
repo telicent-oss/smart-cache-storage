@@ -127,8 +127,7 @@ public class OrderManager extends AbstractHibernateStorage {
         ensureNotClosed();
         try (TransactionContext transaction = this.begin()) {
             return this.calculatePageInfo(transaction, inStock ? "inStockCount" : "outOfStockCount",
-                                          Collections.emptyMap(),
-                                          page);
+                                          Collections.emptyMap(), page);
         }
     }
 
@@ -138,8 +137,7 @@ public class OrderManager extends AbstractHibernateStorage {
             // BAD: The iterator needs to hold a reference to the active transaction, when returned in this way the
             // transaction is closed by the time the caller tries to iterate and nothing will be returned
             return this.scrollAll(transaction, Product.class, page != null ? page : Page.first(10), List.of("id"),
-                                  x -> x,
-                                  true);
+                                  x -> x, true);
         }
     }
 
@@ -187,6 +185,14 @@ public class OrderManager extends AbstractHibernateStorage {
 
     public void restockAll(long diff) {
         try (TransactionContext context = this.begin()) {
+            // This method intentionally tests a potentially problematic pattern.  Iterating over the database while at
+            // the same time mutating the database.  If the caller does not supply a stable sort ordering then the
+            // iterator can potentially return the same entities multiple times. This happens because the mutation of
+            // the database can result in subsequent queries, which are issued when the current in-memory page of the
+            // iterator is exhausted, can return the same results again.
+            //
+            // By supplying a stable sort order, here by the auto-incrementing primary key id field we guarantee that
+            // it doesn't happen, and we definitely iterate over all entities.
             Iterator<Product> products =
                     this.scrollAll(context, Product.class, Page.first(25), List.of("id"), x -> x, false);
             int i = 0;
