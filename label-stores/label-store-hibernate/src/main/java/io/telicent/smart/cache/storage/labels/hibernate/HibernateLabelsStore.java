@@ -117,8 +117,7 @@ public class HibernateLabelsStore extends AbstractHibernateStorage implements La
         }
         final String finalEncoded = encoded;
         id = this.getOrCreateByNaturalId(context, encoded, EncodedLabel.class,
-                                         () -> EncodedLabel.of(finalEncoded, label))
-                 .getId();
+                                         () -> EncodedLabel.of(finalEncoded, label)).getId();
 
         return id;
     }
@@ -257,8 +256,7 @@ public class HibernateLabelsStore extends AbstractHibernateStorage implements La
 
         try (TransactionContext context = this.begin()) {
             String encoded = encoder.encodeToString(key);
-            AssignedLabel assignment =
-                    context.getSession().find(AssignedLabel.class, encoded, KeyType.NATURAL);
+            AssignedLabel assignment = this.loadByNaturalId(context, encoded, AssignedLabel.class);
 
             return assignment != null ? assignment.getLabelId() : null;
         }

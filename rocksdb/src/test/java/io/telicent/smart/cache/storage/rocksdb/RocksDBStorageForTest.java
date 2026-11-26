@@ -66,6 +66,7 @@ public class RocksDBStorageForTest extends AbstractRocksDBStorage
         }
     }
 
+    @Override
     public void flush() throws RocksDBException {
         try (FlushOptions flushOptions = new FlushOptions().setWaitForFlush(true)) {
             getTransactionDB().flush(flushOptions);

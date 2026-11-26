@@ -16,14 +16,14 @@
 package io.telicent.smart.cache.storage.hibernate.model;
 
 import io.telicent.smart.cache.storage.hibernate.AbstractHibernateStorage;
+import io.telicent.smart.cache.storage.hibernate.PageInfo;
 import io.telicent.smart.cache.storage.hibernate.TransactionContext;
 import io.telicent.smart.cache.storage.hibernate.configuration.JpaConfiguration;
 import org.flywaydb.core.Flyway;
+import org.hibernate.query.Page;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 @SuppressWarnings({ "unused", "UnusedReturnValue" })
 public class OrderManager extends AbstractHibernateStorage {
@@ -100,6 +100,47 @@ public class OrderManager extends AbstractHibernateStorage {
         }
     }
 
+    public PagedList<Product> pageProducts(Page page) {
+        ensureNotClosed();
+        try (TransactionContext transaction = this.begin()) {
+            PageInfo info = this.calculatePageInfo(transaction, Product.class, page);
+            List<Product> products = this.loadAll(transaction, Product.class, page, List.of("id"), x -> x);
+            return new PagedList<>(info, products);
+        }
+    }
+
+    public Iterator<Product> iterateProducts(Page page) {
+        ensureNotClosed();
+        TransactionContext transaction = this.begin();
+        return this.<Product, Product>scrollAll(transaction, Product.class, page != null ? page : Page.first(10),
+                                                List.of("id"), x -> x, true);
+    }
+
+    public PageInfo productPageInfo(Page page) {
+        ensureNotClosed();
+        try (TransactionContext transaction = this.begin()) {
+            return this.calculatePageInfo(transaction, Product.class, page);
+        }
+    }
+
+    public PageInfo productPageInfo(Page page, boolean inStock) {
+        ensureNotClosed();
+        try (TransactionContext transaction = this.begin()) {
+            return this.calculatePageInfo(transaction, inStock ? "inStockCount" : "outOfStockCount",
+                                          Collections.emptyMap(), page);
+        }
+    }
+
+    public Iterator<Product> badIterateProducts(Page page) {
+        ensureNotClosed();
+        try (TransactionContext transaction = this.begin()) {
+            // BAD: The iterator needs to hold a reference to the active transaction, when returned in this way the
+            // transaction is closed by the time the caller tries to iterate and nothing will be returned
+            return this.scrollAll(transaction, Product.class, page != null ? page : Page.first(10), List.of("id"),
+                                  x -> x, true);
+        }
+    }
+
     public List<Product> listProducts(boolean inStock) {
         ensureNotClosed();
         try (TransactionContext transaction = this.begin()) {
@@ -139,6 +180,33 @@ public class OrderManager extends AbstractHibernateStorage {
             }
             transaction.getEntityManager().merge(product);
             transaction.commit();
+        }
+    }
+
+    public void restockAll(long diff) {
+        try (TransactionContext context = this.begin()) {
+            // This method intentionally tests a potentially problematic pattern.  Iterating over the database while at
+            // the same time mutating the database.  If the caller does not supply a stable sort ordering then the
+            // iterator can potentially return the same entities multiple times. This happens because the mutation of
+            // the database can result in subsequent queries, which are issued when the current in-memory page of the
+            // iterator is exhausted, can return the same results again.
+            //
+            // By supplying a stable sort order, here by the auto-incrementing primary key id field we guarantee that
+            // it doesn't happen, and we definitely iterate over all entities.
+            Iterator<Product> products =
+                    this.scrollAll(context, Product.class, Page.first(25), List.of("id"), x -> x, false);
+            int i = 0;
+            while (products.hasNext()) {
+                Product product = products.next();
+                product.setAvailable(product.getAvailable() + diff);
+                context.getEntityManager().merge(product);
+                i++;
+                if (i % 25 == 0) {
+                    context.getEntityManager().flush();
+                }
+            }
+            context.getEntityManager().flush();
+            context.commit();
         }
     }
 }

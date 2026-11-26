@@ -72,9 +72,9 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
     public static final Duration RECENT_CACHE_DURATION = Duration.ofMinutes(1);
     
     /**
-     * The array of tables that back the state store, used by {@link #clear()} to clear out the store
+     * The list of tables that back the state store, used by {@link #clear()} to clear out the store
      */
-    protected static final String[] TABLES = {
+    protected static final List<String> TABLES = List.of(
             // From V1__Initial_Schema.sql
             "LIFECYCLE_ACTIONS",
             "LIFECYCLE_APPLICATION_STATES",
@@ -83,7 +83,7 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
             "LIFECYCLE_INGEST_STATES",
             // From V6__Add_Metadata_Table.sql
             "METADATA"
-    };
+    );
     /**
      * Metadata key used by {@link #getSourceIdentity()}/{@link #setSourceIdentity(String)}
      */
@@ -483,6 +483,7 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
     }
 
     @Override
+    @SuppressWarnings("java:S2583")
     public DistributionLifecycleState getLifecycleState(String distributionId) {
         if (StringUtils.isBlank(distributionId)) {
             throw new IllegalArgumentException("Distribution ID cannot be null/blank");
@@ -492,6 +493,9 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
             DistributionLifecycleState state =
                     fromCacheOrDbWithUpdate(context, distributionId, this.recentLifecycleStates,
                                             StoredDistributionState.class, StoredDistributionState::getState);
+            // S2583 False Positive, SonarQube incorrectly thinks fromCacheOrDbWithUpdate() always returns non-null BUT
+            // this is not the case.  If the given distributionId is not in the cache, nor in the database, then null
+            // is returned.
             return state != null ? state : DistributionLifecycleState.Unregistered;
         }
     }
@@ -635,7 +639,7 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
             return;
         }
         try (TransactionContext context = this.begin()) {
-            Metadata stored = context.getEntityManager().find(Metadata.class, SOURCE_IDENTITY, KeyType.NATURAL);
+            Metadata stored = this.loadByNaturalId(context, SOURCE_IDENTITY, Metadata.class);
             if (stored == null) {
                 stored = Metadata.of(SOURCE_IDENTITY, sourceId);
                 context.getEntityManager().persist(stored);
@@ -655,7 +659,7 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
             return id;
         }
         try (TransactionContext context = this.begin()) {
-            Metadata metadata = context.getEntityManager().find(Metadata.class, SOURCE_IDENTITY, KeyType.NATURAL);
+            Metadata metadata = this.loadByNaturalId(context, SOURCE_IDENTITY, Metadata.class);
             this.sourceIdentity.set(metadata != null ? metadata.getValue() : null);
             return this.sourceIdentity.get();
         }
@@ -666,6 +670,9 @@ public class HibernateDistributionLifecycleStateStore extends AbstractHibernateS
         try (TransactionContext context = this.begin()) {
             int deleted = 0;
             for (String table : TABLES) {
+                // S2077 Dynamic SQL is safe here, the TABLES constant is an immutable List of the known tables in the
+                // schema which we need to delete from when clearing the store
+                @SuppressWarnings("java:S2077")
                 Query query = context.getEntityManager().createNativeQuery("DELETE FROM " + table);
                 deleted += query.executeUpdate();
             }

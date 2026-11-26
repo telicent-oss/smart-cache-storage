@@ -30,6 +30,12 @@ import java.math.BigDecimal;
 @NamedQuery(name = "outOfStock", query = """
         SELECT p FROM Product p WHERE p.available=0
         """)
+@NamedQuery(name = "inStockCount", query = """
+        SELECT COUNT(p) FROM Product p WHERE p.available>0
+        """)
+@NamedQuery(name = "outOfStockCount", query = """
+        SELECT COUNT(p) FROM Product p WHERE p.available=0
+        """)
 @Entity
 @Data
 @NoArgsConstructor

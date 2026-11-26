@@ -19,7 +19,6 @@ import io.telicent.smart.cache.storage.hibernate.AbstractHibernateStorage;
 import io.telicent.smart.cache.storage.hibernate.TransactionContext;
 import io.telicent.smart.cache.storage.hibernate.configuration.HibernateConfiguration;
 import io.telicent.smart.cache.storage.hibernate.configuration.JpaConfiguration;
-import org.hibernate.KeyType;
 
 import java.util.List;
 import java.util.Properties;
@@ -59,7 +58,7 @@ public class JsonStore extends AbstractHibernateStorage {
 
     public JsonHolder load(String id) {
         try (TransactionContext transaction = this.begin()) {
-            return transaction.getSession().find(JsonHolder.class, id, KeyType.NATURAL);
+            return this.loadByNaturalId(transaction, id, JsonHolder.class);
         }
     }
 
@@ -71,7 +70,7 @@ public class JsonStore extends AbstractHibernateStorage {
 
     public boolean delete(String id) {
         try (TransactionContext transaction = this.begin()) {
-            JsonHolder json = transaction.getSession().find(JsonHolder.class, id, KeyType.NATURAL);
+            JsonHolder json = this.loadByNaturalId(transaction, id, JsonHolder.class);
             if (json != null) {
                 transaction.getEntityManager().remove(json);
                 transaction.commit();

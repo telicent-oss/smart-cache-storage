@@ -15,7 +15,6 @@
  */
 package io.telicent.smart.cache.storage.labels.rocksdb;
 
-import io.telicent.smart.cache.storage.*;
 import io.telicent.smart.cache.storage.labels.DictionaryLabelsStore;
 import io.telicent.smart.cache.storage.labels.LabelsStore;
 import io.telicent.smart.cache.storage.rocksdb.AbstractRocksDBStorage;
